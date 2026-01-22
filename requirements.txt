@@ -1,0 +1,8 @@
+torch>=2.0
+torch-geometric>=2.7
+numpy
+pandas
+scipy
+fastmcp
+requests
+gremln @ git+https://github.com/czi-ai/GREmLN.git

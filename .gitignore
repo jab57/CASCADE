@@ -1,0 +1,27 @@
+# Virtual environment
+env/
+venv/
+.venv/
+
+# Cache files
+cache/
+__pycache__/
+*.pyc
+*.pyo
+
+# Model checkpoints (large files)
+models/*.ckpt
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test artifacts
+.pytest_cache/
