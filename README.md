@@ -174,6 +174,16 @@ Where `α` (default 0.7) controls the balance between network and embedding sign
 
 Genes with high embedding similarity but no direct network connection are also reported as potential indirect effects, allowing discovery of relationships not captured in the static network.
 
+## Roadmap
+
+### Planned Features
+
+- **Automatic Expression Data Fetching**: Fetch baseline expression profiles for each cell type from public databases (CellxGene Census, Human Protein Atlas)
+- **Context-Aware Gene Embeddings**: Use expression data to generate cell-type-specific gene embeddings via model forward pass
+- **Perturb_GDTransformer Support**: Integration with fine-tuned perturbation model when checkpoint becomes available
+
+See `tools/expression_fetcher.py` for implementation notes.
+
 ## License
 
 MIT
