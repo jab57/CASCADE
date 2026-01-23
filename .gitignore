@@ -9,8 +9,11 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Model checkpoints (large files)
+# Model checkpoints (large files - download separately)
 models/*.ckpt
+
+# Network data (large files - download separately)
+data/networks/*/network.tsv
 
 # IDE
 .vscode/
@@ -25,3 +28,13 @@ Thumbs.db
 
 # Test artifacts
 .pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Distribution
+dist/
+build/
+*.egg-info/

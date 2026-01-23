@@ -333,3 +333,302 @@ def get_targets(network_df: pd.DataFrame, regulator_gene: str) -> dict:
             for tgt, w in sorted_targets
         ]
     }
+
+
+def simulate_knockdown_with_embeddings(
+    network_df: pd.DataFrame,
+    gene: str,
+    model: "GREmLNModel",
+    depth: int = 2,
+    top_k: int = 25,
+    alpha: float = 0.7,
+    decay: float = 0.5,
+    embedding_threshold: float = 0.3
+) -> dict:
+    """
+    Simulate knockdown using network topology + embedding similarity.
+
+    Combines two sources of information:
+    1. Network-based propagation (existing BFS algorithm)
+    2. Embedding similarity (learned functional relationships)
+
+    The embedding similarity modulates network effects and can discover
+    indirect effects not captured in the static network.
+
+    Args:
+        network_df: Gene regulatory network
+        gene: Gene to knock down (Ensembl ID)
+        model: GREmLNModel with loaded embeddings
+        depth: Network propagation depth (1=direct, 2+=indirect)
+        top_k: Number of top affected genes to return
+        alpha: Weight for network score (1-alpha for embedding). Default 0.7
+        decay: Effect decay per hop in network propagation
+        embedding_threshold: Minimum similarity to consider (0-1)
+
+    Returns:
+        Dict with perturbation results including combined scores
+    """
+    from tools.cache import get_embedding_cache
+
+    adj = _build_adjacency(network_df)
+
+    # Check if gene exists in model vocabulary
+    if not model.is_gene_in_vocab(gene):
+        return {
+            "status": "error",
+            "error": f"Gene {gene} not found in model vocabulary",
+            "suggestion": "Check that the Ensembl ID is correct"
+        }
+
+    # 1. Get network-based effects (existing algorithm)
+    network_effects = _propagate_effect(adj, gene, initial_effect=-1.0, depth=depth, decay=decay)
+    network_effects.pop(gene, None)  # Remove perturbed gene
+
+    # 2. Get embedding-based similarities
+    cache = get_embedding_cache(model)
+    similarities_df = cache.get_similarities(gene)
+
+    if similarities_df is None:
+        return {
+            "status": "error",
+            "error": f"Could not compute similarities for gene {gene}",
+        }
+
+    # Convert to dict for fast lookup
+    similarity_map = dict(zip(
+        similarities_df["ensembl_id"],
+        similarities_df["similarity"]
+    ))
+
+    # 3. Combine scores
+    combined_effects = {}
+
+    # Process genes that are in the network
+    for target, net_effect in network_effects.items():
+        emb_sim = similarity_map.get(target, 0.0)
+        # Combined score: weighted average, with embedding modulating the effect
+        # Higher similarity = effect is more reliable/stronger
+        if emb_sim >= embedding_threshold:
+            combined = alpha * net_effect + (1 - alpha) * emb_sim * net_effect
+        else:
+            combined = alpha * net_effect
+        combined_effects[target] = {
+            "network_effect": net_effect,
+            "embedding_similarity": emb_sim,
+            "combined_effect": combined
+        }
+
+    # 4. Add genes with high embedding similarity but not in network
+    # These are potential indirect effects
+    for _, row in similarities_df.iterrows():
+        target = row["ensembl_id"]
+        emb_sim = row["similarity"]
+
+        if target in combined_effects:
+            continue  # Already processed
+        if target == gene:
+            continue
+        if emb_sim < embedding_threshold:
+            continue
+
+        # Gene has high embedding similarity but no network connection
+        # Predict effect based purely on similarity
+        indirect_effect = emb_sim * -1.0  # knockdown direction
+
+        combined_effects[target] = {
+            "network_effect": 0.0,
+            "embedding_similarity": emb_sim,
+            "combined_effect": (1 - alpha) * indirect_effect,
+            "source": "embedding_only"
+        }
+
+    if not combined_effects:
+        return {
+            "status": "complete",
+            "perturbed_gene": gene,
+            "perturbation_type": "knockdown_with_embeddings",
+            "message": f"Gene {gene} has no predicted effects",
+            "affected_genes": []
+        }
+
+    # Sort by absolute combined effect magnitude
+    sorted_effects = sorted(
+        combined_effects.items(),
+        key=lambda x: abs(x[1]["combined_effect"]),
+        reverse=True
+    )[:top_k]
+
+    # Get gene mapper for symbol lookups
+    mapper = get_mapper()
+
+    affected_genes = []
+    for g, scores in sorted_effects:
+        combined = scores["combined_effect"]
+        affected_genes.append({
+            "ensembl_id": g,
+            "symbol": mapper.ensembl_to_symbol(g) or g,
+            "combined_effect": round(combined, 4),
+            "network_effect": round(scores["network_effect"], 4),
+            "embedding_similarity": round(scores["embedding_similarity"], 4),
+            "direction": "down" if combined < 0 else "up",
+            "magnitude": round(abs(combined), 4),
+            "source": scores.get("source", "network+embedding")
+        })
+
+    return {
+        "status": "complete",
+        "perturbed_gene": gene,
+        "perturbation_type": "knockdown_with_embeddings",
+        "propagation_depth": depth,
+        "alpha": alpha,
+        "embedding_threshold": embedding_threshold,
+        "total_affected_genes": len(combined_effects),
+        "top_affected_genes": affected_genes,
+        "method": "Combined network propagation + GREmLN embeddings"
+    }
+
+
+def simulate_overexpression_with_embeddings(
+    network_df: pd.DataFrame,
+    gene: str,
+    model: "GREmLNModel",
+    fold_change: float = 2.0,
+    depth: int = 2,
+    top_k: int = 25,
+    alpha: float = 0.7,
+    decay: float = 0.5,
+    embedding_threshold: float = 0.3
+) -> dict:
+    """
+    Simulate overexpression using network topology + embedding similarity.
+
+    Args:
+        network_df: Gene regulatory network
+        gene: Gene to overexpress (Ensembl ID)
+        model: GREmLNModel with loaded embeddings
+        fold_change: Expression multiplier (e.g., 2.0 = 2x expression)
+        depth: Network propagation depth
+        top_k: Number of top affected genes to return
+        alpha: Weight for network score (1-alpha for embedding)
+        decay: Effect decay per hop
+        embedding_threshold: Minimum similarity to consider
+
+    Returns:
+        Dict with perturbation results including combined scores
+    """
+    from tools.cache import get_embedding_cache
+
+    adj = _build_adjacency(network_df)
+
+    if not model.is_gene_in_vocab(gene):
+        return {
+            "status": "error",
+            "error": f"Gene {gene} not found in model vocabulary",
+        }
+
+    # Overexpression effect = log2(fold_change)
+    initial_effect = np.log2(fold_change)
+
+    # 1. Get network-based effects
+    network_effects = _propagate_effect(adj, gene, initial_effect=initial_effect, depth=depth, decay=decay)
+    network_effects.pop(gene, None)
+
+    # 2. Get embedding-based similarities
+    cache = get_embedding_cache(model)
+    similarities_df = cache.get_similarities(gene)
+
+    if similarities_df is None:
+        return {
+            "status": "error",
+            "error": f"Could not compute similarities for gene {gene}",
+        }
+
+    similarity_map = dict(zip(
+        similarities_df["ensembl_id"],
+        similarities_df["similarity"]
+    ))
+
+    # 3. Combine scores
+    combined_effects = {}
+
+    for target, net_effect in network_effects.items():
+        emb_sim = similarity_map.get(target, 0.0)
+        if emb_sim >= embedding_threshold:
+            combined = alpha * net_effect + (1 - alpha) * emb_sim * net_effect
+        else:
+            combined = alpha * net_effect
+        combined_effects[target] = {
+            "network_effect": net_effect,
+            "embedding_similarity": emb_sim,
+            "combined_effect": combined
+        }
+
+    # 4. Add embedding-only effects
+    for _, row in similarities_df.iterrows():
+        target = row["ensembl_id"]
+        emb_sim = row["similarity"]
+
+        if target in combined_effects or target == gene:
+            continue
+        if emb_sim < embedding_threshold:
+            continue
+
+        indirect_effect = emb_sim * initial_effect
+        combined_effects[target] = {
+            "network_effect": 0.0,
+            "embedding_similarity": emb_sim,
+            "combined_effect": (1 - alpha) * indirect_effect,
+            "source": "embedding_only"
+        }
+
+    if not combined_effects:
+        return {
+            "status": "complete",
+            "perturbed_gene": gene,
+            "perturbation_type": "overexpression_with_embeddings",
+            "fold_change": fold_change,
+            "message": f"Gene {gene} has no predicted effects",
+            "affected_genes": []
+        }
+
+    sorted_effects = sorted(
+        combined_effects.items(),
+        key=lambda x: abs(x[1]["combined_effect"]),
+        reverse=True
+    )[:top_k]
+
+    mapper = get_mapper()
+
+    affected_genes = []
+    for g, scores in sorted_effects:
+        combined = scores["combined_effect"]
+        affected_genes.append({
+            "ensembl_id": g,
+            "symbol": mapper.ensembl_to_symbol(g) or g,
+            "combined_effect": round(combined, 4),
+            "network_effect": round(scores["network_effect"], 4),
+            "embedding_similarity": round(scores["embedding_similarity"], 4),
+            "direction": "up" if combined > 0 else "down",
+            "magnitude": round(abs(combined), 4),
+            "source": scores.get("source", "network+embedding")
+        })
+
+    return {
+        "status": "complete",
+        "perturbed_gene": gene,
+        "perturbation_type": "overexpression_with_embeddings",
+        "fold_change": fold_change,
+        "propagation_depth": depth,
+        "alpha": alpha,
+        "embedding_threshold": embedding_threshold,
+        "total_affected_genes": len(combined_effects),
+        "top_affected_genes": affected_genes,
+        "method": "Combined network propagation + GREmLN embeddings"
+    }
+
+
+# Type hint for documentation (not runtime import)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tools.model_inference import GREmLNModel

@@ -1,8 +1,17 @@
+# Core dependencies
 torch>=2.0
-torch-geometric>=2.7
 numpy
 pandas
 scipy
+
+# MCP framework
 fastmcp
+
+# Gene ID lookups
 requests
+
+# GREmLN model (includes scGraphLLM)
 gremln @ git+https://github.com/czi-ai/GREmLN.git
+
+# Optional: torch-geometric for graph operations
+# torch-geometric>=2.7
