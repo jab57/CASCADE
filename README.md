@@ -11,19 +11,41 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 - **Target Discovery**: Find genes controlled by a regulator
 - **Gene ID Mapping**: Convert between gene symbols (MYC) and Ensembl IDs (ENSG...)
 
-### Model-Enhanced Analysis (NEW)
+### Model-Enhanced Analysis
 - **Embedding-Enhanced Knockdown**: Combines network topology with learned gene representations
 - **Embedding-Enhanced Overexpression**: More accurate predictions using 11M-cell-trained embeddings
 - **Gene Similarity**: Compute functional similarity between genes using learned embeddings
 - **Similar Gene Discovery**: Find functionally related genes even without direct network connections
 
+### Network Vulnerability Analysis (Drug Target Discovery)
+- **Hub Gene Identification**: Find genes with the most downstream targets
+- **Vulnerability Scoring**: Rank genes by network criticality (cascade impact, connectivity)
+- **Drug Target Comparison**: Compare candidate genes to identify best therapeutic targets
+- **Master Regulator Detection**: Identify genes that control large portions of the network
+
+## Use Cases
+
+### Cancer Research & Immuno-Oncology
+- **Tumor Microenvironment**: Analyze immune cell networks (CD8 T cells, NK cells, monocytes) for immunotherapy target discovery
+- **Drug Target Prioritization**: Use vulnerability analysis to identify high-value therapeutic targets
+- **Checkpoint Biology**: Explore PD-1, CTLA-4, LAG-3 regulatory networks
+- **CAR-T Engineering**: Understand T cell exhaustion and persistence pathways
+
+### General Applications
+- Perturbation prediction for CRISPR experiments
+- Transcription factor target mapping
+- Functional gene annotation via embeddings
+- Pathway exploration
+
 ## How It Works
 
-The server provides two types of analysis:
+The server provides three types of analysis:
 
 1. **Network-only** (`analyze_gene_knockdown`, `analyze_gene_overexpression`): Uses BFS propagation through the regulatory network based on mutual information edge weights.
 
 2. **Model-enhanced** (`analyze_gene_knockdown_model`, `analyze_gene_overexpression_model`): Combines network propagation with gene embeddings learned from 11 million cells. This can discover indirect effects not captured in the static network.
+
+3. **Vulnerability analysis** (`analyze_network_vulnerability`, `compare_gene_vulnerability`): Identifies critical network nodes (hub genes, master regulators) for drug target discovery. Ranks genes by downstream impact if disrupted.
 
 ## Supported Cell Types
 
@@ -96,6 +118,12 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 - "Find genes functionally similar to BRCA1"
 - "Check the model status and GPU availability"
 
+**Drug Target Discovery (Network Vulnerability):**
+- "Find the top 20 most critical genes in epithelial cells"
+- "Compare STAT3, MYC, and TP53 as potential drug targets"
+- "What are the master regulators in CD8 T cells?"
+- "Which gene would cause the most network disruption if knocked out?"
+
 ## Available MCP Tools
 
 ### Network-Based Tools
@@ -117,6 +145,12 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 | `get_gene_similarity` | Cosine similarity between two genes |
 | `find_similar_genes` | Find top-k functionally similar genes |
 | `get_embedding_cache_stats` | Check embedding cache performance |
+
+### Network Vulnerability Tools (Drug Target Discovery)
+| Tool | Description |
+|------|-------------|
+| `analyze_network_vulnerability` | Find top hub genes and critical network nodes |
+| `compare_gene_vulnerability` | Compare vulnerability scores for candidate genes |
 
 ## Project Structure
 
@@ -173,6 +207,25 @@ Where `α` (default 0.7) controls the balance between network and embedding sign
 ### Embedding-Only Effects
 
 Genes with high embedding similarity but no direct network connection are also reported as potential indirect effects, allowing discovery of relationships not captured in the static network.
+
+### Network Vulnerability Scoring
+
+The vulnerability analysis tools rank genes by their criticality to the network:
+
+```
+vulnerability_score = hub_score × 1.0 + cascade_reach × 0.3 + avg_edge_weight × 10 + isolation_factor × 5
+```
+
+Where:
+- **hub_score**: Number of direct target genes
+- **cascade_reach**: Number of 2nd-order downstream targets
+- **avg_edge_weight**: Mean mutual information of outgoing edges
+- **isolation_factor**: `1 / (regulator_count + 1)` — genes with fewer upstream regulators are harder to compensate for if knocked out
+
+**Interpretation:**
+- High vulnerability = Gene is critical to network (good drug target)
+- Master regulators (high hub score, low regulator count) = High-value therapeutic targets
+- Downstream effectors (many regulators, few targets) = Lower priority targets
 
 ## Roadmap
 

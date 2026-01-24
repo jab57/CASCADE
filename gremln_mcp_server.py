@@ -159,7 +159,8 @@ def analyze_gene_overexpression(
 @mcp.tool()
 def find_gene_regulators(
     target_gene: str,
-    cell_type: str = "epithelial_cell"
+    cell_type: str = "epithelial_cell",
+    max_regulators: int = 50
 ) -> dict:
     """
     Find all transcription factors and regulators that control a target gene.
@@ -170,38 +171,47 @@ def find_gene_regulators(
     Args:
         target_gene: Gene to find regulators for (gene symbol like TP53 or Ensembl ID)
         cell_type: Cell type context for the regulatory network
+        max_regulators: Maximum number of regulators to return (default: 50, to avoid timeout)
 
     Returns:
         List of regulators with their regulatory edge weights (mutual information scores).
     """
-    network_path = NETWORKS_DIR / cell_type / "network.tsv"
-    if not network_path.exists():
-        available = get_available_cell_types(NETWORKS_DIR)
-        return {
-            "error": f"Network not found for cell type: {cell_type}",
-            "available_cell_types": available
-        }
+    try:
+        network_path = NETWORKS_DIR / cell_type / "network.tsv"
+        if not network_path.exists():
+            available = get_available_cell_types(NETWORKS_DIR)
+            return {
+                "error": f"Network not found for cell type: {cell_type}",
+                "available_cell_types": available
+            }
 
-    # Resolve gene symbol to Ensembl ID if needed
-    ensembl_id = gene_mapper.symbol_to_ensembl(target_gene)
-    if ensembl_id is None:
-        return {
-            "error": f"Could not resolve gene '{target_gene}' to Ensembl ID",
-            "suggestion": "Use an Ensembl ID (ENSG...) or check the gene symbol spelling"
-        }
+        # Resolve gene symbol to Ensembl ID if needed
+        ensembl_id = gene_mapper.symbol_to_ensembl(target_gene)
+        if ensembl_id is None:
+            return {
+                "error": f"Could not resolve gene '{target_gene}' to Ensembl ID",
+                "suggestion": "Use an Ensembl ID (ENSG...) or check the gene symbol spelling"
+            }
 
-    network_df = load_network(network_path)
-    result = get_regulators(network_df, ensembl_id)
-    result["cell_type"] = cell_type
-    result["input_gene"] = target_gene
-    result["resolved_ensembl_id"] = ensembl_id
-    return result
+        network_df = load_network(network_path)
+        result = get_regulators(network_df, ensembl_id, max_regulators=max_regulators)
+        result["cell_type"] = cell_type
+        result["input_gene"] = target_gene
+        result["resolved_ensembl_id"] = ensembl_id
+        return result
+    except Exception as e:
+        return {
+            "error": f"Tool execution failed: {str(e)}",
+            "error_type": type(e).__name__,
+            "suggestion": "This may be a timeout issue. Try reducing max_regulators parameter."
+        }
 
 
 @mcp.tool()
 def find_gene_targets(
     regulator_gene: str,
-    cell_type: str = "epithelial_cell"
+    cell_type: str = "epithelial_cell",
+    max_targets: int = 50
 ) -> dict:
     """
     Find all target genes controlled by a regulator or transcription factor.
@@ -212,32 +222,40 @@ def find_gene_targets(
     Args:
         regulator_gene: Regulator/TF to find targets for (gene symbol like MYC or Ensembl ID)
         cell_type: Cell type context for the regulatory network
+        max_targets: Maximum number of targets to return (default: 50, to avoid timeout)
 
     Returns:
         List of target genes with their regulatory edge weights.
     """
-    network_path = NETWORKS_DIR / cell_type / "network.tsv"
-    if not network_path.exists():
-        available = get_available_cell_types(NETWORKS_DIR)
-        return {
-            "error": f"Network not found for cell type: {cell_type}",
-            "available_cell_types": available
-        }
+    try:
+        network_path = NETWORKS_DIR / cell_type / "network.tsv"
+        if not network_path.exists():
+            available = get_available_cell_types(NETWORKS_DIR)
+            return {
+                "error": f"Network not found for cell type: {cell_type}",
+                "available_cell_types": available
+            }
 
-    # Resolve gene symbol to Ensembl ID if needed
-    ensembl_id = gene_mapper.symbol_to_ensembl(regulator_gene)
-    if ensembl_id is None:
-        return {
-            "error": f"Could not resolve gene '{regulator_gene}' to Ensembl ID",
-            "suggestion": "Use an Ensembl ID (ENSG...) or check the gene symbol spelling"
-        }
+        # Resolve gene symbol to Ensembl ID if needed
+        ensembl_id = gene_mapper.symbol_to_ensembl(regulator_gene)
+        if ensembl_id is None:
+            return {
+                "error": f"Could not resolve gene '{regulator_gene}' to Ensembl ID",
+                "suggestion": "Use an Ensembl ID (ENSG...) or check the gene symbol spelling"
+            }
 
-    network_df = load_network(network_path)
-    result = get_targets(network_df, ensembl_id)
-    result["cell_type"] = cell_type
-    result["input_gene"] = regulator_gene
-    result["resolved_ensembl_id"] = ensembl_id
-    return result
+        network_df = load_network(network_path)
+        result = get_targets(network_df, ensembl_id, max_targets=max_targets)
+        result["cell_type"] = cell_type
+        result["input_gene"] = regulator_gene
+        result["resolved_ensembl_id"] = ensembl_id
+        return result
+    except Exception as e:
+        return {
+            "error": f"Tool execution failed: {str(e)}",
+            "error_type": type(e).__name__,
+            "suggestion": "This may be a timeout issue. Try reducing max_targets parameter."
+        }
 
 
 @mcp.tool()
@@ -507,41 +525,283 @@ def find_similar_genes(
 
     Args:
         gene: Query gene (symbol or Ensembl ID)
-        top_k: Number of similar genes to return
+        top_k: Number of similar genes to return (default: 20, max recommended: 50)
 
     Returns:
         List of most similar genes with similarity scores.
     """
-    ensembl_id = gene_mapper.symbol_to_ensembl(gene)
-    if ensembl_id is None:
-        return {"error": f"Could not resolve gene '{gene}' to Ensembl ID"}
+    try:
+        ensembl_id = gene_mapper.symbol_to_ensembl(gene)
+        if ensembl_id is None:
+            return {"error": f"Could not resolve gene '{gene}' to Ensembl ID"}
 
-    model = get_model()
+        model = get_model()
 
-    if not model.is_gene_in_vocab(ensembl_id):
-        return {"error": f"Gene {gene} ({ensembl_id}) not in model vocabulary"}
+        if not model.is_gene_in_vocab(ensembl_id):
+            return {"error": f"Gene {gene} ({ensembl_id}) not in model vocabulary"}
 
-    similar_df = model.get_top_similar_genes(ensembl_id, top_k=top_k)
+        similar_df = model.get_top_similar_genes(ensembl_id, top_k=top_k)
 
-    if similar_df is None:
-        return {"error": f"Could not compute similarities for {gene}"}
+        if similar_df is None:
+            return {"error": f"Could not compute similarities for {gene}"}
 
-    similar_genes = []
-    for _, row in similar_df.iterrows():
-        target_ensembl = row["ensembl_id"]
-        symbol = gene_mapper.ensembl_to_symbol(target_ensembl) or target_ensembl
-        similar_genes.append({
-            "gene_symbol": symbol,
-            "ensembl_id": target_ensembl,
-            "similarity": round(row["similarity"], 4)
-        })
+        similar_genes = []
+        for _, row in similar_df.iterrows():
+            target_ensembl = row["ensembl_id"]
+            # Use cached lookup only to avoid API timeouts
+            symbol = gene_mapper.ensembl_to_symbol(target_ensembl) or target_ensembl
+            similar_genes.append({
+                "gene_symbol": symbol,
+                "ensembl_id": target_ensembl,
+                "similarity": round(row["similarity"], 4)
+            })
 
-    return {
-        "query_gene": gene,
-        "query_ensembl": ensembl_id,
-        "top_similar_genes": similar_genes,
-        "note": "Similarity based on GREmLN embeddings learned from 11M cells"
-    }
+        return {
+            "query_gene": gene,
+            "query_ensembl": ensembl_id,
+            "top_similar_genes": similar_genes,
+            "note": "Similarity based on GREmLN embeddings learned from 11M cells"
+        }
+    except Exception as e:
+        return {
+            "error": f"Tool execution failed: {str(e)}",
+            "error_type": type(e).__name__,
+            "suggestion": "This may be a timeout issue. Try reducing top_k parameter or check model status with get_model_status."
+        }
+
+
+@mcp.tool()
+def analyze_network_vulnerability(
+    cell_type: str = "epithelial_cell",
+    top_k: int = 20,
+    include_cascade: bool = True
+) -> dict:
+    """
+    Identify critical hub genes and network vulnerabilities for drug target discovery.
+
+    Analyzes network topology to find genes whose disruption would cause
+    maximum downstream impact - potential high-value drug targets.
+
+    Args:
+        cell_type: Cell type context for the regulatory network
+        top_k: Number of top vulnerable genes to return (default: 20)
+        include_cascade: Whether to simulate knockdown cascade (slower but more accurate)
+
+    Returns:
+        Ranked list of genes by vulnerability score with:
+        - Hub score (number of direct targets)
+        - Regulator count (number of upstream controllers)
+        - Cascade impact (predicted downstream disruption)
+        - Vulnerability score (combined metric)
+    """
+    try:
+        network_path = NETWORKS_DIR / cell_type / "network.tsv"
+        if not network_path.exists():
+            available = get_available_cell_types(NETWORKS_DIR)
+            return {
+                "error": f"Network not found for cell type: {cell_type}",
+                "available_cell_types": available
+            }
+
+        network_df = load_network(network_path)
+
+        # Build adjacency structures
+        from collections import defaultdict
+
+        # Forward: regulator -> targets
+        forward_adj = defaultdict(list)
+        # Reverse: target -> regulators
+        reverse_adj = defaultdict(list)
+
+        for _, row in network_df.iterrows():
+            reg = row["regulator"]
+            tgt = row["target"]
+            weight = row.get("mi", 1.0)
+            if weight > 0:
+                forward_adj[reg].append((tgt, float(weight)))
+                reverse_adj[tgt].append((reg, float(weight)))
+
+        # Calculate vulnerability metrics for all regulators
+        vulnerability_scores = []
+        all_regulators = set(network_df["regulator"].unique())
+
+        for gene in all_regulators:
+            targets = forward_adj.get(gene, [])
+            regulators = reverse_adj.get(gene, [])
+
+            hub_score = len(targets)
+            regulator_count = len(regulators)
+            avg_target_weight = sum(w for _, w in targets) / len(targets) if targets else 0
+
+            # Cascade impact: count 2nd-order targets
+            cascade_targets = set()
+            if include_cascade and hub_score > 0:
+                for tgt, _ in targets[:50]:  # Limit to avoid timeout
+                    second_order = forward_adj.get(tgt, [])
+                    cascade_targets.update(t for t, _ in second_order[:20])
+
+            cascade_size = len(cascade_targets)
+
+            # Combined vulnerability score
+            # Higher = more critical to network (better drug target)
+            vulnerability = (
+                hub_score * 1.0 +           # Direct targets
+                cascade_size * 0.3 +         # Indirect reach
+                avg_target_weight * 10 +     # Connection strength
+                (1 / (regulator_count + 1)) * 5  # Less regulated = harder to compensate
+            )
+
+            vulnerability_scores.append({
+                "ensembl_id": gene,
+                "hub_score": hub_score,
+                "regulator_count": regulator_count,
+                "cascade_reach": cascade_size,
+                "avg_edge_weight": round(avg_target_weight, 4),
+                "vulnerability_score": round(vulnerability, 2)
+            })
+
+        # Sort by vulnerability score
+        vulnerability_scores.sort(key=lambda x: x["vulnerability_score"], reverse=True)
+        top_genes = vulnerability_scores[:top_k]
+
+        # Add gene symbols for top genes
+        for gene_data in top_genes:
+            symbol = gene_mapper.ensembl_to_symbol(gene_data["ensembl_id"])
+            gene_data["symbol"] = symbol or gene_data["ensembl_id"]
+
+        return {
+            "status": "complete",
+            "cell_type": cell_type,
+            "total_regulators_analyzed": len(all_regulators),
+            "top_vulnerable_genes": top_genes,
+            "interpretation": {
+                "hub_score": "Number of direct target genes (higher = more influence)",
+                "regulator_count": "Number of upstream controllers (lower = harder to compensate)",
+                "cascade_reach": "2nd-order targets affected by knockdown",
+                "vulnerability_score": "Combined metric for drug target prioritization"
+            },
+            "use_case": "High vulnerability genes are potential drug targets - their disruption causes maximum network damage"
+        }
+
+    except Exception as e:
+        return {
+            "error": f"Tool execution failed: {str(e)}",
+            "error_type": type(e).__name__,
+            "suggestion": "Try reducing top_k or setting include_cascade=false"
+        }
+
+
+@mcp.tool()
+def compare_gene_vulnerability(
+    genes: list[str],
+    cell_type: str = "epithelial_cell"
+) -> dict:
+    """
+    Compare vulnerability scores for specific genes of interest.
+
+    Use this to evaluate candidate drug targets or compare known disease genes.
+
+    Args:
+        genes: List of gene symbols or Ensembl IDs to compare
+        cell_type: Cell type context for the regulatory network
+
+    Returns:
+        Vulnerability metrics for each gene, ranked by score.
+    """
+    try:
+        network_path = NETWORKS_DIR / cell_type / "network.tsv"
+        if not network_path.exists():
+            available = get_available_cell_types(NETWORKS_DIR)
+            return {
+                "error": f"Network not found for cell type: {cell_type}",
+                "available_cell_types": available
+            }
+
+        network_df = load_network(network_path)
+
+        # Build adjacency structures
+        from collections import defaultdict
+
+        forward_adj = defaultdict(list)
+        reverse_adj = defaultdict(list)
+
+        for _, row in network_df.iterrows():
+            reg = row["regulator"]
+            tgt = row["target"]
+            weight = row.get("mi", 1.0)
+            if weight > 0:
+                forward_adj[reg].append((tgt, float(weight)))
+                reverse_adj[tgt].append((reg, float(weight)))
+
+        results = []
+
+        for gene in genes:
+            # Resolve to Ensembl ID
+            ensembl_id = gene_mapper.symbol_to_ensembl(gene)
+            if ensembl_id is None:
+                results.append({
+                    "input": gene,
+                    "error": "Could not resolve gene"
+                })
+                continue
+
+            targets = forward_adj.get(ensembl_id, [])
+            regulators = reverse_adj.get(ensembl_id, [])
+
+            hub_score = len(targets)
+            regulator_count = len(regulators)
+            avg_weight = sum(w for _, w in targets) / len(targets) if targets else 0
+
+            # Cascade calculation
+            cascade_targets = set()
+            for tgt, _ in targets[:50]:
+                second_order = forward_adj.get(tgt, [])
+                cascade_targets.update(t for t, _ in second_order[:20])
+
+            vulnerability = (
+                hub_score * 1.0 +
+                len(cascade_targets) * 0.3 +
+                avg_weight * 10 +
+                (1 / (regulator_count + 1)) * 5
+            )
+
+            # Determine role
+            if hub_score > 50 and regulator_count < 10:
+                role = "Master regulator (high-value target)"
+            elif hub_score > 20:
+                role = "Hub gene"
+            elif regulator_count > hub_score * 2:
+                role = "Downstream effector"
+            else:
+                role = "Intermediate node"
+
+            results.append({
+                "input": gene,
+                "ensembl_id": ensembl_id,
+                "symbol": gene_mapper.ensembl_to_symbol(ensembl_id) or gene,
+                "hub_score": hub_score,
+                "regulator_count": regulator_count,
+                "cascade_reach": len(cascade_targets),
+                "vulnerability_score": round(vulnerability, 2),
+                "network_role": role
+            })
+
+        # Sort by vulnerability
+        results.sort(key=lambda x: x.get("vulnerability_score", 0), reverse=True)
+
+        return {
+            "status": "complete",
+            "cell_type": cell_type,
+            "genes_analyzed": len(genes),
+            "comparison": results,
+            "recommendation": results[0]["input"] if results and "vulnerability_score" in results[0] else None
+        }
+
+    except Exception as e:
+        return {
+            "error": f"Tool execution failed: {str(e)}",
+            "error_type": type(e).__name__
+        }
 
 
 @mcp.tool()

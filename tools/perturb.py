@@ -249,13 +249,14 @@ def simulate_overexpression(
     }
 
 
-def get_regulators(network_df: pd.DataFrame, target_gene: str) -> dict:
+def get_regulators(network_df: pd.DataFrame, target_gene: str, max_regulators: int = 50) -> dict:
     """
     Find all regulators (transcription factors) that control a target gene.
 
     Args:
         network_df: Gene regulatory network
         target_gene: Gene to find regulators for
+        max_regulators: Maximum number of regulators to return (limits API calls)
 
     Returns:
         Dict with list of regulators and their edge weights
@@ -273,32 +274,43 @@ def get_regulators(network_df: pd.DataFrame, target_gene: str) -> dict:
 
     regulators = reverse_adj[target_gene]
     sorted_regs = sorted(regulators, key=lambda x: x[1], reverse=True)
+    total_regulators = len(sorted_regs)
 
-    # Get gene mapper for symbol lookups
+    # Limit regulators to avoid timeout from symbol lookups
+    limited_regs = sorted_regs[:max_regulators]
+
+    # Get gene mapper for symbol lookups (only for limited set)
     mapper = get_mapper()
 
-    return {
+    result = {
         "status": "complete",
         "target_gene": target_gene,
-        "num_regulators": len(sorted_regs),
+        "num_regulators": total_regulators,
+        "regulators_returned": len(limited_regs),
         "regulators": [
             {
                 "ensembl_id": reg,
                 "symbol": mapper.ensembl_to_symbol(reg) or reg,
                 "edge_weight": round(w, 4)
             }
-            for reg, w in sorted_regs
+            for reg, w in limited_regs
         ]
     }
 
+    if total_regulators > max_regulators:
+        result["note"] = f"Showing top {max_regulators} of {total_regulators} regulators (sorted by edge weight). Increase max_regulators to see more."
 
-def get_targets(network_df: pd.DataFrame, regulator_gene: str) -> dict:
+    return result
+
+
+def get_targets(network_df: pd.DataFrame, regulator_gene: str, max_targets: int = 50) -> dict:
     """
     Find all target genes controlled by a regulator.
 
     Args:
         network_df: Gene regulatory network
         regulator_gene: Regulator to find targets for
+        max_targets: Maximum number of targets to return (limits API calls)
 
     Returns:
         Dict with list of targets and their edge weights
@@ -316,23 +328,33 @@ def get_targets(network_df: pd.DataFrame, regulator_gene: str) -> dict:
 
     targets = adj[regulator_gene]
     sorted_targets = sorted(targets, key=lambda x: x[1], reverse=True)
+    total_targets = len(sorted_targets)
 
-    # Get gene mapper for symbol lookups
+    # Limit targets to avoid timeout from symbol lookups
+    limited_targets = sorted_targets[:max_targets]
+
+    # Get gene mapper for symbol lookups (only for limited set)
     mapper = get_mapper()
 
-    return {
+    result = {
         "status": "complete",
         "regulator_gene": regulator_gene,
-        "num_targets": len(sorted_targets),
+        "num_targets": total_targets,
+        "targets_returned": len(limited_targets),
         "targets": [
             {
                 "ensembl_id": tgt,
                 "symbol": mapper.ensembl_to_symbol(tgt) or tgt,
                 "edge_weight": round(w, 4)
             }
-            for tgt, w in sorted_targets
+            for tgt, w in limited_targets
         ]
     }
+
+    if total_targets > max_targets:
+        result["note"] = f"Showing top {max_targets} of {total_targets} targets (sorted by edge weight). Increase max_targets to see more."
+
+    return result
 
 
 def simulate_knockdown_with_embeddings(
