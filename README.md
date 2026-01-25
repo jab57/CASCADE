@@ -23,6 +23,11 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 - **Drug Target Comparison**: Compare candidate genes to identify best therapeutic targets
 - **Master Regulator Detection**: Identify genes that control large portions of the network
 
+### Protein-Protein Interactions (STRING Database)
+- **Interaction Partners**: Query physical and functional protein interactions from STRING
+- **Confidence Scoring**: Filter by experimental evidence, database annotations, or text mining
+- **Mechanism Discovery**: Understand protein-level effects of gene perturbations (e.g., APC knockdown disrupts β-catenin binding)
+
 ## Use Cases
 
 ### Cancer Research & Immuno-Oncology
@@ -46,6 +51,8 @@ The server provides three types of analysis:
 2. **Model-enhanced** (`analyze_gene_knockdown_model`, `analyze_gene_overexpression_model`): Combines network propagation with gene embeddings learned from 11 million cells. This can discover indirect effects not captured in the static network.
 
 3. **Vulnerability analysis** (`analyze_network_vulnerability`, `compare_gene_vulnerability`): Identifies critical network nodes (hub genes, master regulators) for drug target discovery. Ranks genes by downstream impact if disrupted.
+
+4. **Protein-protein interactions** (`get_protein_interactions`): Queries STRING database for physical and functional protein interactions. Explains what happens at the protein level after perturbation.
 
 ## Supported Cell Types
 
@@ -124,6 +131,11 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 - "What are the master regulators in CD8 T cells?"
 - "Which gene would cause the most network disruption if knocked out?"
 
+**Protein-Protein Interactions:**
+- "What proteins does APC interact with?"
+- "Get high-confidence interactions for TP53"
+- "What protein interactions would be disrupted if I knock down BRCA1?"
+
 ## Available MCP Tools
 
 ### Network-Based Tools
@@ -152,6 +164,11 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 | `analyze_network_vulnerability` | Find top hub genes and critical network nodes |
 | `compare_gene_vulnerability` | Compare vulnerability scores for candidate genes |
 
+### Protein-Protein Interaction Tools
+| Tool | Description |
+|------|-------------|
+| `get_protein_interactions` | Get interaction partners from STRING database |
+
 ## Project Structure
 
 ```
@@ -162,7 +179,9 @@ GREmLN/
 │   ├── perturb.py            # Perturbation analysis (network + embeddings)
 │   ├── model_inference.py    # GREmLN model wrapper for embeddings
 │   ├── cache.py              # Embedding similarity cache
-│   └── gene_id_mapper.py     # Gene symbol/Ensembl ID conversion
+│   ├── gene_id_mapper.py     # Gene symbol/Ensembl ID conversion
+│   └── ppi/
+│       └── string_client.py  # STRING database API client
 ├── data/
 │   └── networks/             # Pre-computed regulatory networks (10 cell types)
 ├── models/
@@ -207,6 +226,34 @@ Where `α` (default 0.7) controls the balance between network and embedding sign
 ### Embedding-Only Effects
 
 Genes with high embedding similarity but no direct network connection are also reported as potential indirect effects, allowing discovery of relationships not captured in the static network.
+
+### Protein-Protein Interaction Integration
+
+The `get_protein_interactions` tool queries the STRING database to complement gene regulatory network analysis with protein-level mechanisms. This helps explain *why* perturbations have downstream effects.
+
+**Example: Understanding APC Knockdown**
+
+```
+User: "What happens when APC is knocked down, and why?"
+
+Step 1: Simulate knockdown
+> analyze_gene_knockdown("APC", cell_type="epithelial_cell")
+Result: CTNNB1, TCF7L2, MYC show increased expression
+
+Step 2: Get protein interactions
+> get_protein_interactions("APC", min_score=700)
+Result: APC interacts with CTNNB1 (β-catenin), GSK3B, AXIN1, CSNK1A1
+
+Interpretation: APC normally binds β-catenin in the destruction complex.
+When APC is knocked down, β-catenin escapes degradation, translocates
+to nucleus, and activates TCF/LEF target genes (including MYC).
+```
+
+**STRING Confidence Scores:**
+- 900+: Highest confidence (experimentally validated)
+- 700-899: High confidence
+- 400-699: Medium confidence
+- 150-399: Low confidence
 
 ### Network Vulnerability Scoring
 

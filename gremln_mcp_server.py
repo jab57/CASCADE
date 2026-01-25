@@ -19,6 +19,7 @@ from tools.perturb import (
     simulate_overexpression_with_embeddings,
 )
 from tools.gene_id_mapper import GeneIDMapper
+from tools.ppi.string_client import get_string_client
 
 # Initialize MCP server
 mcp = FastMCP("gremln_mcp_server")
@@ -286,6 +287,63 @@ def lookup_gene(gene: str) -> dict:
             "gene_symbol": gene.upper(),
             "ensembl_id": ensembl_id,
             "status": "found" if ensembl_id else "ensembl_id_not_found"
+        }
+
+
+# =============================================================================
+# Protein-Protein Interaction Tools (STRING database)
+# =============================================================================
+
+
+@mcp.tool()
+def get_protein_interactions(
+    gene: str,
+    min_score: int = 400,
+    limit: int = 25
+) -> dict:
+    """
+    Get protein-protein interactions from STRING database.
+
+    Retrieves physical and functional protein interactions for a gene,
+    useful for understanding what happens at the protein level after
+    perturbation (e.g., APC knockdown affects beta-catenin binding).
+
+    Args:
+        gene: Gene symbol (e.g., APC, TP53, CTNNB1)
+        min_score: Minimum confidence score 0-1000 (150=low, 400=medium, 700=high, 900=highest)
+        limit: Maximum number of interaction partners to return (default: 25)
+
+    Returns:
+        List of interaction partners with confidence scores and evidence types.
+        Evidence types include: experimental, database, textmining, coexpression.
+    """
+    try:
+        # Resolve Ensembl ID to symbol if needed
+        if gene.upper().startswith("ENSG"):
+            symbol = gene_mapper.ensembl_to_symbol(gene)
+            if symbol is None:
+                return {
+                    "error": f"Could not resolve Ensembl ID '{gene}' to gene symbol",
+                    "suggestion": "Use a gene symbol directly (e.g., APC, TP53)"
+                }
+            gene = symbol
+
+        client = get_string_client()
+        result = client.get_interactions(gene, min_score=min_score, limit=limit)
+
+        # Add interpretation help
+        if "interactions" in result and result["interactions"]:
+            result["use_case"] = (
+                "These proteins physically or functionally interact with your query gene. "
+                "After perturbation, these interactions may be disrupted, affecting downstream signaling."
+            )
+
+        return result
+
+    except Exception as e:
+        return {
+            "error": f"Failed to fetch protein interactions: {str(e)}",
+            "error_type": type(e).__name__
         }
 
 
