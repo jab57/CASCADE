@@ -311,10 +311,6 @@ Where:
 
 See `tools/expression_fetcher.py` for implementation notes.
 
-### Future: Unified Bio-Orchestrator
-
-A future integration with regnetagents is planned to create a unified LangGraph workflow that automatically routes analyses based on gene type. See `FUTURE_ROADMAP.md` for architectural details (currently postponed).
-
 ## License
 
 MIT
