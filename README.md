@@ -10,6 +10,12 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 - **Regulator Discovery**: Find transcription factors controlling a target gene
 - **Target Discovery**: Find genes controlled by a regulator
 - **Gene ID Mapping**: Convert between gene symbols (MYC) and Ensembl IDs (ENSG...)
+- **Gene Metadata & Classification**: Determine if a gene is a transcription factor, effector, or scaffold protein based on network position
+
+### Intelligent Tool Guidance
+- **Automatic Suggestions**: When perturbation tools return no targets (e.g., scaffold proteins like APC), the response includes actionable suggestions for alternative analyses
+- **Known Complex Partners**: For well-characterized proteins, suggestions include known interaction partners (e.g., APC → CTNNB1, AXIN1, GSK3B)
+- **Recommended Follow-ups**: Specific tool calls suggested based on biological context (e.g., "Run overexpression on CTNNB1 to see effects of APC loss")
 
 ### Model-Enhanced Analysis
 - **Embedding-Enhanced Knockdown**: Combines network topology with learned gene representations
@@ -142,10 +148,11 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 | Tool | Description |
 |------|-------------|
 | `list_cell_types` | List available cell types with networks |
-| `analyze_gene_knockdown` | Simulate gene knockdown (network only) |
-| `analyze_gene_overexpression` | Simulate overexpression (network only) |
+| `get_gene_metadata` | Get gene classification (TF, effector, scaffold) and analysis recommendations |
+| `analyze_gene_knockdown` | Simulate gene knockdown (includes suggestions if no targets) |
+| `analyze_gene_overexpression` | Simulate overexpression (includes suggestions if no targets) |
 | `find_gene_regulators` | Find upstream regulators of a gene |
-| `find_gene_targets` | Find downstream targets of a regulator |
+| `find_gene_targets` | Find downstream targets of a regulator (with fallback suggestions) |
 | `lookup_gene` | Convert between symbol and Ensembl ID |
 
 ### Model-Enhanced Tools
@@ -231,22 +238,42 @@ Genes with high embedding similarity but no direct network connection are also r
 
 The `get_protein_interactions` tool queries the STRING database to complement gene regulatory network analysis with protein-level mechanisms. This helps explain *why* perturbations have downstream effects.
 
-**Example: Understanding APC Knockdown**
+**Example: Understanding APC Knockdown (with Intelligent Suggestions)**
+
+APC is a scaffold protein with no transcriptional targets. The tools now guide you:
 
 ```
-User: "What happens when APC is knocked down, and why?"
+User: "What happens when APC is knocked down?"
 
-Step 1: Simulate knockdown
+Step 1: Check gene type
+> get_gene_metadata("APC", cell_type="epithelial_cell")
+Result: {
+  "gene_type": "effector",
+  "is_transcription_factor": false,
+  "num_targets": 0,
+  "analysis_recommendations": [
+    {"tool": "get_protein_interactions", "reason": "Gene does not regulate transcription"}
+  ]
+}
+
+Step 2: Simulate knockdown (returns suggestions since no targets)
 > analyze_gene_knockdown("APC", cell_type="epithelial_cell")
-Result: CTNNB1, TCF7L2, MYC show increased expression
+Result: {
+  "total_affected_genes": 0,
+  "suggestions": [
+    {"action": "get_protein_interactions", "priority": "high"},
+    {"action": "analyze_functional_partners",
+     "genes": ["CTNNB1", "AXIN1", "GSK3B", "CSNK1A1"],
+     "recommended_followup": "Run analyze_gene_overexpression on CTNNB1..."}
+  ]
+}
 
-Step 2: Get protein interactions
-> get_protein_interactions("APC", min_score=700)
-Result: APC interacts with CTNNB1 (β-catenin), GSK3B, AXIN1, CSNK1A1
+Step 3: Follow suggestions - analyze CTNNB1 (the key functional partner)
+> analyze_gene_overexpression("CTNNB1", cell_type="epithelial_cell")
+Result: 2,739 genes affected (MYC, CCND1, GLUT1, etc.)
 
-Interpretation: APC normally binds β-catenin in the destruction complex.
-When APC is knocked down, β-catenin escapes degradation, translocates
-to nucleus, and activates TCF/LEF target genes (including MYC).
+Interpretation: APC normally degrades β-catenin via the destruction complex.
+APC loss → β-catenin accumulates → activates oncogenic transcription.
 ```
 
 **STRING Confidence Scores:**
@@ -283,6 +310,10 @@ Where:
 - **Perturb_GDTransformer Support**: Integration with fine-tuned perturbation model when checkpoint becomes available
 
 See `tools/expression_fetcher.py` for implementation notes.
+
+### Future: Unified Bio-Orchestrator
+
+A future integration with regnetagents is planned to create a unified LangGraph workflow that automatically routes analyses based on gene type. See `FUTURE_ROADMAP.md` for architectural details (currently postponed).
 
 ## License
 
