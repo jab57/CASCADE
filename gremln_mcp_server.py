@@ -60,6 +60,187 @@ def list_cell_types() -> dict:
     }
 
 
+def _get_gene_network_role(network_df, ensembl_id: str) -> dict:
+    """
+    Determine a gene's role in the network based on its position.
+
+    Returns metadata about gene type and function for intelligent tool routing.
+    """
+    # Count targets (genes this gene regulates)
+    targets = network_df[network_df["regulator"] == ensembl_id]
+    num_targets = len(targets)
+
+    # Count regulators (genes that regulate this gene)
+    regulators = network_df[network_df["target"] == ensembl_id]
+    num_regulators = len(regulators)
+
+    # Classify gene based on network position
+    if num_targets > 50:
+        gene_type = "master_regulator"
+        primary_function = "transcriptional_regulation"
+        description = "Hub transcription factor with many downstream targets"
+    elif num_targets > 10:
+        gene_type = "transcription_factor"
+        primary_function = "transcriptional_regulation"
+        description = "Regulates multiple downstream genes"
+    elif num_targets > 0:
+        gene_type = "minor_regulator"
+        primary_function = "transcriptional_regulation"
+        description = "Regulates a small number of genes"
+    elif num_regulators > 0:
+        gene_type = "effector"
+        primary_function = "post_translational_or_structural"
+        description = "Regulated by network but does not regulate others - likely a scaffold, enzyme, or structural protein"
+    else:
+        gene_type = "isolated"
+        primary_function = "unknown"
+        description = "Not connected in this cell type's regulatory network"
+
+    return {
+        "gene_type": gene_type,
+        "primary_function": primary_function,
+        "description": description,
+        "num_targets": num_targets,
+        "num_regulators": num_regulators,
+        "is_transcription_factor": num_targets > 0
+    }
+
+
+def _generate_suggestions(gene: str, ensembl_id: str, gene_metadata: dict, result: dict) -> list:
+    """
+    Generate intelligent suggestions based on analysis results and gene type.
+    """
+    suggestions = []
+
+    total_affected = result.get("total_affected_genes", 0)
+    gene_type = gene_metadata.get("gene_type", "unknown")
+
+    # No transcriptional targets - suggest protein-level analysis
+    if total_affected == 0 and gene_type in ["effector", "isolated"]:
+        suggestions.append({
+            "action": "get_protein_interactions",
+            "params": {"gene": gene},
+            "reason": f"{gene} has no transcriptional targets in this network. It likely functions through protein-protein interactions rather than transcriptional regulation.",
+            "priority": "high"
+        })
+
+        # Common scaffold proteins and their known partners
+        known_complexes = {
+            "APC": ["CTNNB1", "AXIN1", "GSK3B", "CSNK1A1"],
+            "AXIN1": ["APC", "CTNNB1", "GSK3B"],
+            "AXIN2": ["APC", "CTNNB1", "GSK3B"],
+        }
+
+        gene_upper = gene.upper()
+        if gene_upper in known_complexes:
+            partners = known_complexes[gene_upper]
+            suggestions.append({
+                "action": "analyze_functional_partners",
+                "params": {"genes": partners},
+                "reason": f"{gene} is part of a known protein complex. Its partners ({', '.join(partners)}) may be transcriptional regulators worth analyzing.",
+                "priority": "high",
+                "recommended_followup": f"Run analyze_gene_overexpression on {partners[0]} to see downstream effects of {gene} loss (if {gene} normally inhibits {partners[0]})"
+            })
+
+    # Few targets - suggest embedding-based analysis for broader effects
+    elif 0 < total_affected < 10:
+        suggestions.append({
+            "action": "analyze_gene_knockdown_model",
+            "params": {"gene": gene, "alpha": 0.5},
+            "reason": "Few direct targets found. Using GREmLN embeddings may reveal indirect functional relationships.",
+            "priority": "medium"
+        })
+
+    # Many targets - suggest pathway enrichment
+    if total_affected > 50:
+        suggestions.append({
+            "action": "pathway_enrichment_recommended",
+            "reason": f"{total_affected} genes affected. Consider pathway enrichment analysis to understand biological processes impacted.",
+            "priority": "medium"
+        })
+
+    return suggestions
+
+
+@mcp.tool()
+def get_gene_metadata(
+    gene: str,
+    cell_type: str = "epithelial_cell"
+) -> dict:
+    """
+    Get gene classification and network role metadata.
+
+    Analyzes a gene's position in the regulatory network to determine its
+    functional type (transcription factor, effector, scaffold, etc.).
+    Useful for understanding how to analyze a gene's mutation effects.
+
+    Args:
+        gene: Gene symbol (e.g., APC, MYC) or Ensembl ID
+        cell_type: Cell type context for the regulatory network
+
+    Returns:
+        Gene classification including:
+        - gene_type: master_regulator, transcription_factor, effector, isolated
+        - primary_function: transcriptional_regulation, post_translational_or_structural
+        - num_targets: Number of genes this gene regulates
+        - num_regulators: Number of genes that regulate this gene
+        - analysis_recommendations: Suggested tools based on gene type
+    """
+    network_path = NETWORKS_DIR / cell_type / "network.tsv"
+    if not network_path.exists():
+        available = get_available_cell_types(NETWORKS_DIR)
+        return {
+            "error": f"Network not found for cell type: {cell_type}",
+            "available_cell_types": available
+        }
+
+    # Resolve gene symbol to Ensembl ID
+    ensembl_id = gene_mapper.symbol_to_ensembl(gene)
+    if ensembl_id is None:
+        return {
+            "error": f"Could not resolve gene '{gene}' to Ensembl ID",
+            "suggestion": "Use an Ensembl ID (ENSG...) or check the gene symbol spelling"
+        }
+
+    network_df = load_network(network_path)
+    metadata = _get_gene_network_role(network_df, ensembl_id)
+
+    # Add analysis recommendations based on gene type
+    recommendations = []
+    if metadata["is_transcription_factor"]:
+        recommendations.append({
+            "tool": "analyze_gene_knockdown",
+            "reason": "Gene has transcriptional targets - knockdown will show downstream effects"
+        })
+        recommendations.append({
+            "tool": "find_gene_targets",
+            "reason": "View all regulated genes"
+        })
+    else:
+        recommendations.append({
+            "tool": "get_protein_interactions",
+            "reason": "Gene does not regulate transcription - analyze protein-level interactions instead"
+        })
+        recommendations.append({
+            "tool": "find_gene_regulators",
+            "reason": "Understand what controls this gene's expression"
+        })
+
+    recommendations.append({
+        "tool": "find_similar_genes",
+        "reason": "Find functionally related genes via embeddings"
+    })
+
+    return {
+        "gene": gene,
+        "ensembl_id": ensembl_id,
+        "cell_type": cell_type,
+        **metadata,
+        "analysis_recommendations": recommendations,
+        "note": "Use recommendations to guide your analysis strategy based on this gene's network role"
+    }
+
+
 @mcp.tool()
 def analyze_gene_knockdown(
     gene: str,
@@ -82,6 +263,7 @@ def analyze_gene_knockdown(
 
     Returns:
         Predicted expression changes for downstream target genes, sorted by impact magnitude.
+        Includes suggestions for alternative analyses if no targets are found.
     """
     network_path = NETWORKS_DIR / cell_type / "network.tsv"
     if not network_path.exists():
@@ -104,6 +286,16 @@ def analyze_gene_knockdown(
     result["cell_type"] = cell_type
     result["input_gene"] = gene
     result["resolved_ensembl_id"] = ensembl_id
+
+    # Add gene metadata and suggestions for intelligent routing
+    gene_metadata = _get_gene_network_role(network_df, ensembl_id)
+    result["gene_metadata"] = gene_metadata
+
+    # Generate suggestions if results are limited
+    suggestions = _generate_suggestions(gene, ensembl_id, gene_metadata, result)
+    if suggestions:
+        result["suggestions"] = suggestions
+
     return result
 
 
@@ -130,6 +322,7 @@ def analyze_gene_overexpression(
 
     Returns:
         Predicted expression changes for downstream target genes.
+        Includes suggestions for alternative analyses if no targets are found.
     """
     network_path = NETWORKS_DIR / cell_type / "network.tsv"
     if not network_path.exists():
@@ -154,6 +347,16 @@ def analyze_gene_overexpression(
     result["cell_type"] = cell_type
     result["input_gene"] = gene
     result["resolved_ensembl_id"] = ensembl_id
+
+    # Add gene metadata and suggestions for intelligent routing
+    gene_metadata = _get_gene_network_role(network_df, ensembl_id)
+    result["gene_metadata"] = gene_metadata
+
+    # Generate suggestions if results are limited
+    suggestions = _generate_suggestions(gene, ensembl_id, gene_metadata, result)
+    if suggestions:
+        result["suggestions"] = suggestions
+
     return result
 
 
@@ -227,6 +430,7 @@ def find_gene_targets(
 
     Returns:
         List of target genes with their regulatory edge weights.
+        Includes suggestions if no targets are found (gene may not be a TF).
     """
     try:
         network_path = NETWORKS_DIR / cell_type / "network.tsv"
@@ -250,6 +454,26 @@ def find_gene_targets(
         result["cell_type"] = cell_type
         result["input_gene"] = regulator_gene
         result["resolved_ensembl_id"] = ensembl_id
+
+        # Add suggestions if no targets found
+        if result.get("total_targets", 0) == 0:
+            gene_metadata = _get_gene_network_role(network_df, ensembl_id)
+            result["gene_metadata"] = gene_metadata
+            result["suggestions"] = [
+                {
+                    "action": "get_protein_interactions",
+                    "params": {"gene": regulator_gene},
+                    "reason": f"{regulator_gene} has no transcriptional targets in this network. It may function through protein interactions instead.",
+                    "priority": "high"
+                },
+                {
+                    "action": "find_gene_regulators",
+                    "params": {"target_gene": regulator_gene},
+                    "reason": f"Check what regulates {regulator_gene} to understand its upstream control.",
+                    "priority": "medium"
+                }
+            ]
+
         return result
     except Exception as e:
         return {
