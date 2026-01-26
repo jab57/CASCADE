@@ -52,13 +52,11 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 
 The server provides three types of analysis:
 
-1. **Network-only** (`analyze_gene_knockdown`, `analyze_gene_overexpression`): Uses BFS propagation through the regulatory network based on mutual information edge weights.
+1. **Perturbation analysis** (`analyze_gene_knockdown`, `analyze_gene_overexpression`): Combines BFS propagation through the regulatory network with gene embeddings learned from 11 million cells. This discovers both direct network effects and indirect functional relationships. Falls back to network-only if model is unavailable.
 
-2. **Model-enhanced** (`analyze_gene_knockdown_model`, `analyze_gene_overexpression_model`): Combines network propagation with gene embeddings learned from 11 million cells. This can discover indirect effects not captured in the static network.
+2. **Vulnerability analysis** (`analyze_network_vulnerability`, `compare_gene_vulnerability`): Identifies critical network nodes (hub genes, master regulators) for drug target discovery. Ranks genes by downstream impact if disrupted.
 
-3. **Vulnerability analysis** (`analyze_network_vulnerability`, `compare_gene_vulnerability`): Identifies critical network nodes (hub genes, master regulators) for drug target discovery. Ranks genes by downstream impact if disrupted.
-
-4. **Protein-protein interactions** (`get_protein_interactions`): Queries STRING database for physical and functional protein interactions. Explains what happens at the protein level after perturbation.
+3. **Protein-protein interactions** (`get_protein_interactions`): Queries STRING database for physical and functional protein interactions. Explains what happens at the protein level after perturbation.
 
 ## Supported Cell Types
 
@@ -119,14 +117,13 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 
 ### Example Prompts
 
-**Basic Network Analysis:**
+**Perturbation Analysis:**
 - "Simulate knocking down MYC in epithelial cells"
 - "What genes does TP53 regulate in CD4 T cells?"
 - "Find all regulators of BRCA1 in epithelial cells"
 - "What happens if we overexpress HNF4A 3-fold?"
 
-**Model-Enhanced Analysis:**
-- "Use the model to simulate MYC knockdown in epithelial cells"
+**Gene Similarity (Embeddings):**
 - "How similar are MYC and TP53 based on the model embeddings?"
 - "Find genes functionally similar to BRCA1"
 - "Check the model status and GPU availability"
@@ -144,23 +141,21 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 
 ## Available MCP Tools
 
-### Network-Based Tools
+### Perturbation Analysis Tools
 | Tool | Description |
 |------|-------------|
 | `list_cell_types` | List available cell types with networks |
 | `get_gene_metadata` | Get gene classification (TF, effector, scaffold) and analysis recommendations |
-| `analyze_gene_knockdown` | Simulate gene knockdown (includes suggestions if no targets) |
-| `analyze_gene_overexpression` | Simulate overexpression (includes suggestions if no targets) |
+| `analyze_gene_knockdown` | Simulate gene knockdown using network + embeddings |
+| `analyze_gene_overexpression` | Simulate overexpression using network + embeddings |
 | `find_gene_regulators` | Find upstream regulators of a gene |
-| `find_gene_targets` | Find downstream targets of a regulator (with fallback suggestions) |
+| `find_gene_targets` | Find downstream targets of a regulator |
 | `lookup_gene` | Convert between symbol and Ensembl ID |
 
-### Model-Enhanced Tools
+### Gene Similarity Tools (Embeddings)
 | Tool | Description |
 |------|-------------|
 | `get_model_status` | Check model loading status and GPU |
-| `analyze_gene_knockdown_model` | Knockdown with embedding enhancement |
-| `analyze_gene_overexpression_model` | Overexpression with embeddings |
 | `get_gene_similarity` | Cosine similarity between two genes |
 | `find_similar_genes` | Find top-k functionally similar genes |
 | `get_embedding_cache_stats` | Check embedding cache performance |

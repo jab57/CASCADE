@@ -35,12 +35,12 @@ Status: Frozen (no changes)     Status: Active development
 - Domain-specific agents (cancer, drug, clinical, systems biology)
 
 **GREmLN MCP Server:**
-- `analyze_gene_knockdown` / `analyze_gene_overexpression` - Network perturbation
-- `get_gene_metadata` - Gene type classification (NEW)
+- `analyze_gene_knockdown` / `analyze_gene_overexpression` - Perturbation analysis (network + embeddings)
+- `get_gene_metadata` - Gene type classification
 - `get_protein_interactions` - STRING database
 - `find_similar_genes` - Embedding-based similarity
 - `analyze_network_vulnerability` - Drug target discovery
-- Smart suggestions when results are empty (NEW)
+- Smart suggestions when results are empty
 
 ### Current Limitation
 

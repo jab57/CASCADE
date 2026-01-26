@@ -246,20 +246,27 @@ def analyze_gene_knockdown(
     gene: str,
     cell_type: str = "epithelial_cell",
     depth: int = 2,
-    top_k: int = 25
+    top_k: int = 25,
+    alpha: float = 0.7,
+    embedding_threshold: float = 0.3
 ) -> dict:
     """
     Simulate knocking down a gene and predict downstream effects on gene expression.
 
-    This tool uses the gene regulatory network to propagate the effect of
-    completely silencing a gene (e.g., via siRNA or CRISPR knockout) and
-    predicts which downstream genes will be affected.
+    This tool combines:
+    1. Network topology (regulatory connections from mutual information)
+    2. GREmLN embeddings (learned gene relationships from 11M cells)
+
+    The embeddings capture functional relationships that may not be present
+    in the static network, potentially discovering indirect effects.
 
     Args:
         gene: Gene to knock down (gene symbol like MYC or Ensembl ID like ENSG00000136997)
         cell_type: Cell type context for the regulatory network (default: epithelial_cell)
         depth: How many network hops to propagate (1=direct targets only, 2=includes indirect effects)
         top_k: Number of top affected genes to return (default: 25)
+        alpha: Weight for network vs embedding (0.0-1.0). Higher = more network weight (default: 0.7)
+        embedding_threshold: Minimum embedding similarity to consider (0.0-1.0, default: 0.3)
 
     Returns:
         Predicted expression changes for downstream target genes, sorted by impact magnitude.
@@ -282,7 +289,24 @@ def analyze_gene_knockdown(
         }
 
     network_df = load_network(network_path)
-    result = simulate_knockdown(network_df, ensembl_id, depth=depth, top_k=top_k)
+
+    # Try model-enhanced analysis, fall back to network-only if model unavailable
+    try:
+        model = get_model()
+        result = simulate_knockdown_with_embeddings(
+            network_df,
+            ensembl_id,
+            model,
+            depth=depth,
+            top_k=top_k,
+            alpha=alpha,
+            embedding_threshold=embedding_threshold
+        )
+    except Exception as model_error:
+        # Fallback to network-only analysis
+        result = simulate_knockdown(network_df, ensembl_id, depth=depth, top_k=top_k)
+        result["note"] = f"Using network-only analysis (model unavailable: {str(model_error)[:100]})"
+
     result["cell_type"] = cell_type
     result["input_gene"] = gene
     result["resolved_ensembl_id"] = ensembl_id
@@ -305,13 +329,16 @@ def analyze_gene_overexpression(
     cell_type: str = "epithelial_cell",
     fold_change: float = 2.0,
     depth: int = 2,
-    top_k: int = 25
+    top_k: int = 25,
+    alpha: float = 0.7,
+    embedding_threshold: float = 0.3
 ) -> dict:
     """
     Simulate overexpressing a gene and predict downstream effects on gene expression.
 
-    This tool models what happens when a gene's expression is artificially increased
-    (e.g., via transfection or CRISPRa) and predicts downstream expression changes.
+    This tool combines:
+    1. Network topology (regulatory connections from mutual information)
+    2. GREmLN embeddings (learned gene relationships from 11M cells)
 
     Args:
         gene: Gene to overexpress (gene symbol like MYC or Ensembl ID like ENSG00000136997)
@@ -319,6 +346,8 @@ def analyze_gene_overexpression(
         fold_change: How much to increase expression (2.0 = 2x normal expression)
         depth: How many network hops to propagate effects
         top_k: Number of top affected genes to return
+        alpha: Weight for network vs embedding (0.0-1.0). Higher = more network weight (default: 0.7)
+        embedding_threshold: Minimum embedding similarity to consider (0.0-1.0, default: 0.3)
 
     Returns:
         Predicted expression changes for downstream target genes.
@@ -341,9 +370,27 @@ def analyze_gene_overexpression(
         }
 
     network_df = load_network(network_path)
-    result = simulate_overexpression(
-        network_df, ensembl_id, fold_change=fold_change, depth=depth, top_k=top_k
-    )
+
+    # Try model-enhanced analysis, fall back to network-only if model unavailable
+    try:
+        model = get_model()
+        result = simulate_overexpression_with_embeddings(
+            network_df,
+            ensembl_id,
+            model,
+            fold_change=fold_change,
+            depth=depth,
+            top_k=top_k,
+            alpha=alpha,
+            embedding_threshold=embedding_threshold
+        )
+    except Exception as model_error:
+        # Fallback to network-only analysis
+        result = simulate_overexpression(
+            network_df, ensembl_id, fold_change=fold_change, depth=depth, top_k=top_k
+        )
+        result["note"] = f"Using network-only analysis (model unavailable: {str(model_error)[:100]})"
+
     result["cell_type"] = cell_type
     result["input_gene"] = gene
     result["resolved_ensembl_id"] = ensembl_id
@@ -604,134 +651,6 @@ def get_model_status() -> dict:
             "error": str(e),
             "checkpoint_path": str(MODEL_PATH),
         }
-
-
-@mcp.tool()
-def analyze_gene_knockdown_model(
-    gene: str,
-    cell_type: str = "epithelial_cell",
-    depth: int = 2,
-    top_k: int = 25,
-    alpha: float = 0.7,
-    embedding_threshold: float = 0.3
-) -> dict:
-    """
-    Simulate gene knockdown using GREmLN model embeddings.
-
-    This enhanced version combines:
-    1. Network topology (regulatory connections from mutual information)
-    2. GREmLN embeddings (learned gene relationships from 11M cells)
-
-    The embeddings capture functional relationships that may not be present
-    in the static network, potentially discovering indirect effects.
-
-    Args:
-        gene: Gene to knock down (gene symbol like MYC or Ensembl ID)
-        cell_type: Cell type context for the regulatory network
-        depth: Network propagation depth (1=direct, 2+=indirect)
-        top_k: Number of top affected genes to return
-        alpha: Weight for network vs embedding (0.0-1.0). Higher = more network weight
-        embedding_threshold: Minimum embedding similarity to consider (0.0-1.0)
-
-    Returns:
-        Predicted expression changes with both network and embedding scores.
-    """
-    network_path = NETWORKS_DIR / cell_type / "network.tsv"
-    if not network_path.exists():
-        available = get_available_cell_types(NETWORKS_DIR)
-        return {
-            "error": f"Network not found for cell type: {cell_type}",
-            "available_cell_types": available
-        }
-
-    # Resolve gene symbol to Ensembl ID if needed
-    ensembl_id = gene_mapper.symbol_to_ensembl(gene)
-    if ensembl_id is None:
-        return {
-            "error": f"Could not resolve gene '{gene}' to Ensembl ID",
-            "suggestion": "Use an Ensembl ID (ENSG...) or check the gene symbol spelling"
-        }
-
-    model = get_model()
-    network_df = load_network(network_path)
-
-    result = simulate_knockdown_with_embeddings(
-        network_df,
-        ensembl_id,
-        model,
-        depth=depth,
-        top_k=top_k,
-        alpha=alpha,
-        embedding_threshold=embedding_threshold
-    )
-
-    result["cell_type"] = cell_type
-    result["input_gene"] = gene
-    result["resolved_ensembl_id"] = ensembl_id
-    return result
-
-
-@mcp.tool()
-def analyze_gene_overexpression_model(
-    gene: str,
-    cell_type: str = "epithelial_cell",
-    fold_change: float = 2.0,
-    depth: int = 2,
-    top_k: int = 25,
-    alpha: float = 0.7,
-    embedding_threshold: float = 0.3
-) -> dict:
-    """
-    Simulate gene overexpression using GREmLN model embeddings.
-
-    This enhanced version combines network topology with learned gene
-    embeddings for improved predictions.
-
-    Args:
-        gene: Gene to overexpress (gene symbol like MYC or Ensembl ID)
-        cell_type: Cell type context for the regulatory network
-        fold_change: How much to increase expression (2.0 = 2x normal)
-        depth: Network propagation depth
-        top_k: Number of top affected genes to return
-        alpha: Weight for network vs embedding (0.0-1.0)
-        embedding_threshold: Minimum embedding similarity to consider
-
-    Returns:
-        Predicted expression changes with both network and embedding scores.
-    """
-    network_path = NETWORKS_DIR / cell_type / "network.tsv"
-    if not network_path.exists():
-        available = get_available_cell_types(NETWORKS_DIR)
-        return {
-            "error": f"Network not found for cell type: {cell_type}",
-            "available_cell_types": available
-        }
-
-    ensembl_id = gene_mapper.symbol_to_ensembl(gene)
-    if ensembl_id is None:
-        return {
-            "error": f"Could not resolve gene '{gene}' to Ensembl ID",
-            "suggestion": "Use an Ensembl ID (ENSG...) or check the gene symbol spelling"
-        }
-
-    model = get_model()
-    network_df = load_network(network_path)
-
-    result = simulate_overexpression_with_embeddings(
-        network_df,
-        ensembl_id,
-        model,
-        fold_change=fold_change,
-        depth=depth,
-        top_k=top_k,
-        alpha=alpha,
-        embedding_threshold=embedding_threshold
-    )
-
-    result["cell_type"] = cell_type
-    result["input_gene"] = gene
-    result["resolved_ensembl_id"] = ensembl_id
-    return result
 
 
 @mcp.tool()
