@@ -115,6 +115,10 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 }
 ```
 
+### Claude Code Skill
+
+The repo includes a skill at `.claude/skills/gremln/SKILL.md` that teaches Claude Code when and how to use GREmLN tools. It triggers automatically on keywords like "knockdown", "knockout", "perturbation", "overexpress", "similar genes", etc.
+
 ### Example Prompts
 
 **Perturbation Analysis:**
@@ -176,6 +180,8 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 ```
 GREmLN/
 ├── gremln_mcp_server.py      # MCP server entry point
+├── .claude/
+│   └── skills/gremln/        # Claude Code skill for perturbation analysis
 ├── tools/
 │   ├── loader.py             # Network/model loading utilities
 │   ├── perturb.py            # Perturbation analysis (network + embeddings)
