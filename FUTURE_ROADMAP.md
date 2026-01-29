@@ -56,6 +56,16 @@ CTNNB1 overexpression → rich cascade data
 
 The new `gene_metadata` and `suggestions` fields help Claude make these decisions, but the reasoning still happens at the conversation level.
 
+### Partial Solution: Claude Code Skill (Implemented 2025-01)
+
+The GREmLN skill (`.claude/skills/gremln/SKILL.md`) provides workflow guidance to Claude Code, teaching it:
+- When to use knockdown vs PPI analysis
+- How to handle effector genes (scaffold proteins)
+- Suggested tool chaining (e.g., empty knockdown → check metadata → use PPI)
+- Trigger keywords to distinguish from other MCP servers (regnetagents)
+
+This reduces manual intervention but doesn't fully automate the orchestration. The unified orchestrator (Option C) remains the long-term vision for seamless single-tool analysis.
+
 ---
 
 ## Future Vision (Option C - Unified Orchestrator)
