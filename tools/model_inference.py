@@ -149,8 +149,13 @@ class GREmLNModel:
         sim = torch.dot(
             self._normalized_embeddings[idx1],
             self._normalized_embeddings[idx2]
-        )
-        return sim.item()
+        ).item()
+
+        # Monitor for potential artifacts
+        if abs(sim) > 0.99:
+            print(f"[GREmLN] Warning: extreme similarity {sim:.4f} between {gene1} and {gene2}")
+
+        return sim
 
     def get_all_similarities(self, gene: str) -> Optional[pd.DataFrame]:
         """
