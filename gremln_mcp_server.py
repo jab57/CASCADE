@@ -25,6 +25,11 @@ from tools.lincs import (
     get_knockdown_effects as _get_knockdown_effects,
     get_lincs_stats as _get_lincs_stats,
 )
+from tools.super_enhancers import (
+    get_super_enhancer_info as _get_super_enhancer_info,
+    check_genes_for_super_enhancers as _check_genes_for_super_enhancers,
+    get_super_enhancer_stats as _get_super_enhancer_stats,
+)
 
 # Initialize MCP server
 mcp = FastMCP("gremln_mcp_server")
@@ -1157,6 +1162,70 @@ def get_lincs_data_stats() -> dict:
         return {"error": str(e)}
     except Exception as e:
         return {"error": f"Failed to load LINCS data: {str(e)}"}
+
+
+@mcp.tool()
+def check_super_enhancer(gene: str) -> dict:
+    """
+    Check if a gene is associated with super-enhancers (BRD4/BET inhibitor sensitivity).
+
+    Super-enhancers are large regulatory regions that drive high expression of key genes.
+    Genes with super-enhancers may be sensitive to BRD4/BET inhibitors (e.g., JQ1, OTX015).
+
+    This is useful for drug discovery when a gene cannot be directly targeted - if it has
+    a super-enhancer, epigenetic drugs may reduce its expression.
+
+    Args:
+        gene: Gene symbol (e.g., "MYC", "BCL2")
+
+    Returns:
+        Super-enhancer status, cell types, and therapeutic implications.
+
+    Example:
+        check_super_enhancer("MYC")
+        → MYC has super-enhancers in 32 cell types, may respond to BET inhibitors
+
+    Data source: dbSUPER
+    """
+    try:
+        return _get_super_enhancer_info(gene)
+    except FileNotFoundError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"Failed to check super-enhancer status: {str(e)}"}
+
+
+@mcp.tool()
+def check_genes_super_enhancers(genes: list[str]) -> dict:
+    """
+    Check multiple genes for super-enhancer associations.
+
+    Useful for screening a list of candidate genes for BRD4/BET inhibitor sensitivity.
+
+    Args:
+        genes: List of gene symbols (e.g., ["MYC", "BCL2", "TP53"])
+
+    Returns:
+        Super-enhancer status for each gene.
+    """
+    try:
+        results = _check_genes_for_super_enhancers(genes)
+
+        se_positive = [r for r in results if r["has_super_enhancer"]]
+        se_negative = [r for r in results if not r["has_super_enhancer"]]
+
+        return {
+            "total_genes": len(genes),
+            "super_enhancer_positive": len(se_positive),
+            "super_enhancer_negative": len(se_negative),
+            "results": results,
+            "interpretation": f"{len(se_positive)}/{len(genes)} genes have super-enhancers and may be BRD4/BET inhibitor sensitive",
+            "data_source": "dbSUPER"
+        }
+    except FileNotFoundError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"Failed to check super-enhancers: {str(e)}"}
 
 
 if __name__ == "__main__":

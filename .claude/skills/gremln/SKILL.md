@@ -35,6 +35,10 @@ This MCP server provides in silico gene perturbation analysis combining regulato
 - `get_knockdown_effects` - Find genes affected when a specific gene is knocked out
 - `get_lincs_data_stats` - Check LINCS dataset statistics
 
+### Super-Enhancer / BRD4 Druggability
+- `check_super_enhancer` - Check if a gene has super-enhancers (BRD4/BET inhibitor sensitive)
+- `check_genes_super_enhancers` - Screen multiple genes for super-enhancer status
+
 ### Utilities
 - `list_cell_types` - Show available cell type networks
 - `lookup_gene` - Convert between gene symbols and Ensembl IDs
@@ -69,6 +73,12 @@ When network analysis misses known regulators (e.g., BRD4 → MYC):
 1. `find_expression_regulators(gene, direction="down")` - Find what knockdowns reduce target expression
 2. This captures epigenetic and post-translational effects the transcriptional network misses
 3. Example: `find_expression_regulators("CDKN1A")` → Returns TP53 (validated regulator)
+
+### Checking BRD4 Druggability (Super-Enhancers)
+When a gene is "undruggable" (e.g., MYC has no binding pocket):
+1. `check_super_enhancer(gene)` - Check if gene has super-enhancer associations
+2. If yes → Gene may be sensitive to BRD4/BET inhibitors (JQ1, OTX015)
+3. Example: `check_super_enhancer("MYC")` → 32 cell types, BRD4-sensitive
 
 ## Interpreting Results
 

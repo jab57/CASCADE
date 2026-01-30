@@ -18,6 +18,10 @@ data/networks/*/network.tsv
 # LINCS data (large files - download separately)
 data/lincs/*.gz
 
+# Super-enhancer data (download separately)
+data/super_enhancers/*.tsv
+data/super_enhancers/*.bed
+
 # IDE
 .vscode/
 .idea/
