@@ -279,7 +279,42 @@ This roadmap exists because of the APC mutation analysis scenario:
 
 ---
 
+## Near-Term Enhancements
+
+### Completed: LINCS L1000 Expression Perturbation (2025-01-30)
+
+Added tools to find regulatory relationships from experimental CRISPR knockdown data:
+- `find_expression_regulators(gene)` - what knockdowns affect this gene?
+- `get_knockdown_effects(gene)` - what does this knockdown affect?
+
+**Data source**: Harmonizome LINCS L1000 CRISPR Knockout Consensus Signatures
+
+**Limitation**: Harmonizome pre-filters data, removing some validated relationships (e.g., BRD4 → MYC).
+
+### Planned: Raw LINCS Integration
+
+**Problem**: BRD4 → MYC (validated BET inhibitor target) not in Harmonizome data
+
+**Solution**: Integrate raw LINCS L1000 data from clue.io (GEO: GSE92742)
+
+**Effort**: Medium (larger dataset, GCTX format parsing)
+
+**Validation**: `find_expression_regulators("MYC")` should return BRD4
+
+### Planned: Super-Enhancer Annotations
+
+**Problem**: Can't identify BRD4-sensitive genes from network alone
+
+**Solution**: Add super-enhancer annotations to flag genes likely responsive to BET inhibitors
+
+**Effort**: Low (public datasets available)
+
+**Benefit**: Directly actionable for drug discovery (BRD4 inhibitors exist)
+
+---
+
 ## Document History
 
+- **2025-01-30**: Added LINCS L1000 tools, documented limitations, planned raw LINCS integration
 - **2025-01-25**: Initial roadmap created (Jose A. Bird, PhD)
-- **Status**: Postponed - current Option A architecture with smart suggestions is sufficient for now
+- **Status**: Active development - LINCS tools added, raw LINCS and super-enhancers planned

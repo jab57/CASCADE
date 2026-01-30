@@ -24,3 +24,12 @@ curl -L "https://maayanlab.cloud/static/hdfs/harmonizome/data/l1000crispr/gene_a
 - 9,551 genes measured
 - 5,049 gene knockdowns
 - Effect direction: +1 (upregulated), -1 (downregulated)
+
+## Known Limitations
+
+Harmonizome pre-filters the raw LINCS data, which removes some biologically validated relationships:
+
+- **BRD4 → MYC**: Well-established drug target relationship (BRD4 inhibitors reduce MYC), but not present in this filtered dataset
+- **Validation case**: TP53 → CDKN1A works (rank #3)
+
+For complete coverage of known regulatory relationships, consider using raw LINCS data from [clue.io](https://clue.io/data/CMap2020#LINCS2020) (future enhancement).
