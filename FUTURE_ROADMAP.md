@@ -301,20 +301,23 @@ Added tools to find regulatory relationships from experimental CRISPR knockdown 
 
 **Validation**: `find_expression_regulators("MYC")` should return BRD4
 
-### Planned: Super-Enhancer Annotations
+### Completed: Super-Enhancer Annotations (2025-01-30)
 
-**Problem**: Can't identify BRD4-sensitive genes from network alone
+Added tools to identify BRD4/BET inhibitor sensitive genes:
+- `check_super_enhancer(gene)` - Check if gene has super-enhancers
+- `check_genes_super_enhancers(genes)` - Screen multiple genes
 
-**Solution**: Add super-enhancer annotations to flag genes likely responsive to BET inhibitors
+**Data source**: dbSUPER (69K associations, 10K genes, 102 cell types)
 
-**Effort**: Low (public datasets available)
+**Validation**: MYC has SE in 32 cell types (BRD4-sensitive), TP53 has none
 
-**Benefit**: Directly actionable for drug discovery (BRD4 inhibitors exist)
+**Therapeutic value**: Enables drug discovery for "undruggable" targets like MYC - if a gene has super-enhancers, BRD4 inhibitors (JQ1, OTX015) may reduce its expression
 
 ---
 
 ## Document History
 
+- **2025-01-30**: Added super-enhancer annotations (dbSUPER) for BRD4 druggability
 - **2025-01-30**: Added LINCS L1000 tools, documented limitations, planned raw LINCS integration
 - **2025-01-25**: Initial roadmap created (Jose A. Bird, PhD)
-- **Status**: Active development - LINCS tools added, raw LINCS and super-enhancers planned
+- **Status**: Active development - LINCS and super-enhancer tools complete, raw LINCS planned

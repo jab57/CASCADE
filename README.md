@@ -175,6 +175,19 @@ The repo includes a skill at `.claude/skills/gremln/SKILL.md` that teaches Claud
 |------|-------------|
 | `get_protein_interactions` | Get interaction partners from STRING database |
 
+### Experimental Perturbation Data (LINCS L1000)
+| Tool | Description |
+|------|-------------|
+| `find_expression_regulators` | Find genes whose knockdown affects target expression |
+| `get_knockdown_effects` | Find genes affected when a specific gene is knocked out |
+| `get_lincs_data_stats` | Check LINCS dataset statistics |
+
+### Super-Enhancer / BRD4 Druggability
+| Tool | Description |
+|------|-------------|
+| `check_super_enhancer` | Check if a gene has super-enhancers (BRD4/BET inhibitor sensitive) |
+| `check_genes_super_enhancers` | Screen multiple genes for super-enhancer status |
+
 ## Project Structure
 
 ```
@@ -188,10 +201,14 @@ GREmLN/
 │   ├── model_inference.py    # GREmLN model wrapper for embeddings
 │   ├── cache.py              # Embedding similarity cache
 │   ├── gene_id_mapper.py     # Gene symbol/Ensembl ID conversion
+│   ├── lincs.py              # LINCS L1000 expression perturbation data
+│   ├── super_enhancers.py    # Super-enhancer annotations (BRD4 druggability)
 │   └── ppi/
 │       └── string_client.py  # STRING database API client
 ├── data/
-│   └── networks/             # Pre-computed regulatory networks (10 cell types)
+│   ├── networks/             # Pre-computed regulatory networks (10 cell types)
+│   ├── lincs/                # LINCS L1000 knockdown expression data
+│   └── super_enhancers/      # dbSUPER super-enhancer annotations
 ├── models/
 │   └── model.ckpt            # GREmLN model checkpoint (120MB)
 └── cache/
