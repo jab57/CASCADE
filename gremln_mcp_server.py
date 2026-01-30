@@ -20,6 +20,11 @@ from tools.perturb import (
 )
 from tools.gene_id_mapper import GeneIDMapper
 from tools.ppi.string_client import get_string_client
+from tools.lincs import (
+    find_expression_regulators as _find_expression_regulators,
+    get_knockdown_effects as _get_knockdown_effects,
+    get_lincs_stats as _get_lincs_stats,
+)
 
 # Initialize MCP server
 mcp = FastMCP("gremln_mcp_server")
@@ -1026,6 +1031,132 @@ def get_embedding_cache_stats() -> dict:
         }
     except Exception as e:
         return {"error": str(e)}
+
+
+@mcp.tool()
+def find_expression_regulators(
+    gene: str,
+    direction: str = "any",
+    top_k: int = 20
+) -> dict:
+    """
+    Find genes whose knockdown affects target gene expression (LINCS L1000 data).
+
+    This identifies regulatory relationships from experimental CRISPR perturbation data,
+    capturing effects that transcriptional networks may miss (epigenetic, post-translational).
+
+    Args:
+        gene: Target gene symbol (e.g., "MYC", "CDKN1A")
+        direction: Filter by effect direction:
+            - "down": Knockdowns that decrease target expression
+            - "up": Knockdowns that increase target expression
+            - "any": Both directions (default)
+        top_k: Number of top results to return (default 20)
+
+    Returns:
+        List of genes whose knockdown affects target expression, with effect sizes.
+
+    Example:
+        find_expression_regulators("CDKN1A", direction="down")
+        → Returns TP53 (TP53 knockdown reduces CDKN1A expression)
+
+    Data source: LINCS L1000 CRISPR Knockout Consensus Signatures
+    """
+    try:
+        results = _find_expression_regulators(gene, direction=direction, top_k=top_k)
+
+        if not results:
+            return {
+                "gene": gene,
+                "regulators_found": 0,
+                "note": f"No knockdowns found that affect {gene} expression in LINCS data"
+            }
+
+        return {
+            "gene": gene,
+            "direction_filter": direction,
+            "regulators_found": len(results),
+            "regulators": results,
+            "interpretation": f"These genes, when knocked out, cause {gene} expression to change",
+            "data_source": "LINCS L1000 CRISPR Knockout (Harmonizome)"
+        }
+
+    except FileNotFoundError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"Failed to query LINCS data: {str(e)}"}
+
+
+@mcp.tool()
+def get_knockdown_effects(
+    gene: str,
+    direction: str = "any",
+    top_k: int = 20
+) -> dict:
+    """
+    Find genes whose expression changes when a specific gene is knocked out.
+
+    This is the inverse of find_expression_regulators - instead of asking
+    "what regulates gene X?", it asks "what does gene X knockdown affect?".
+
+    Args:
+        gene: Gene that was knocked out (e.g., "BRD4", "TP53")
+        direction: Filter by effect direction ("down", "up", "any")
+        top_k: Number of top results to return (default 20)
+
+    Returns:
+        List of genes affected by the knockdown, with effect sizes.
+
+    Example:
+        get_knockdown_effects("TP53")
+        → Returns CDKN1A (downregulated), and other TP53 targets
+
+    Data source: LINCS L1000 CRISPR Knockout Consensus Signatures
+    """
+    try:
+        results = _get_knockdown_effects(gene, direction=direction, top_k=top_k)
+
+        if not results:
+            return {
+                "gene_knocked_out": gene,
+                "affected_genes_found": 0,
+                "note": f"No expression changes found for {gene} knockdown in LINCS data"
+            }
+
+        return {
+            "gene_knocked_out": gene,
+            "direction_filter": direction,
+            "affected_genes_found": len(results),
+            "affected_genes": results,
+            "interpretation": f"When {gene} is knocked out, these genes change expression",
+            "data_source": "LINCS L1000 CRISPR Knockout (Harmonizome)"
+        }
+
+    except FileNotFoundError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"Failed to query LINCS data: {str(e)}"}
+
+
+@mcp.tool()
+def get_lincs_data_stats() -> dict:
+    """
+    Get statistics about the LINCS L1000 perturbation dataset.
+
+    Returns information about the number of genes, knockdowns, and associations
+    available in the dataset.
+    """
+    try:
+        stats = _get_lincs_stats()
+        return {
+            **stats,
+            "data_source": "LINCS L1000 CRISPR Knockout Consensus Signatures (Harmonizome)",
+            "note": "Expression changes measured after CRISPR gene knockouts"
+        }
+    except FileNotFoundError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": f"Failed to load LINCS data: {str(e)}"}
 
 
 if __name__ == "__main__":

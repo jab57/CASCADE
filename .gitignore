@@ -15,6 +15,9 @@ models/*.ckpt
 # Network data (large files - download separately)
 data/networks/*/network.tsv
 
+# LINCS data (large files - download separately)
+data/lincs/*.gz
+
 # IDE
 .vscode/
 .idea/

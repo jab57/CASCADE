@@ -30,6 +30,11 @@ This MCP server provides in silico gene perturbation analysis combining regulato
 ### Protein-Protein Interactions
 - `get_protein_interactions` - Query STRING database for physical/functional interactions
 
+### Experimental Perturbation Data (LINCS L1000)
+- `find_expression_regulators` - Find genes whose knockdown affects target expression
+- `get_knockdown_effects` - Find genes affected when a specific gene is knocked out
+- `get_lincs_data_stats` - Check LINCS dataset statistics
+
 ### Utilities
 - `list_cell_types` - Show available cell type networks
 - `lookup_gene` - Convert between gene symbols and Ensembl IDs
@@ -58,6 +63,12 @@ epithelial_cell, cd4_t_cells, cd8_t_cells, cd14_monocytes, cd16_monocytes, cd20_
 
 ### Cross-Cell-Type Comparison
 Run the same analysis across multiple cell types to identify cell-type-specific effects (e.g., compare knockdown effects in cd8_t_cells vs nk_cells)
+
+### Finding Epigenetic Regulators (LINCS)
+When network analysis misses known regulators (e.g., BRD4 → MYC):
+1. `find_expression_regulators(gene, direction="down")` - Find what knockdowns reduce target expression
+2. This captures epigenetic and post-translational effects the transcriptional network misses
+3. Example: `find_expression_regulators("CDKN1A")` → Returns TP53 (validated regulator)
 
 ## Interpreting Results
 
