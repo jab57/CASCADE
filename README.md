@@ -321,13 +321,24 @@ Where:
 
 ## Roadmap
 
+For the complete roadmap including the Unified Bio-Orchestrator vision, see **[FUTURE_ROADMAP.md](FUTURE_ROADMAP.md)**.
+
+### Recently Completed
+
+- **LINCS L1000 Expression Perturbation** (2025-01): Find regulatory relationships from experimental CRISPR knockdown data
+- **Super-Enhancer Annotations** (2025-01): BRD4/BET inhibitor sensitivity using dbSUPER database
+
 ### Planned Features
 
-- **Automatic Expression Data Fetching**: Fetch baseline expression profiles for each cell type from public databases (CellxGene Census, Human Protein Atlas)
-- **Context-Aware Gene Embeddings**: Use expression data to generate cell-type-specific gene embeddings via model forward pass
-- **Perturb_GDTransformer Support**: Integration with fine-tuned perturbation model when checkpoint becomes available
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Raw LINCS Integration | Planned | Full LINCS L1000 data from clue.io for better coverage (e.g., BRD4 → MYC) |
+| Expression Data Fetching | Planned | Fetch baseline expression from CellxGene Census, Human Protein Atlas |
+| Context-Aware Embeddings | Planned | Cell-type-specific gene embeddings via model forward pass |
+| Perturb_GDTransformer | Waiting | Integration when fine-tuned perturbation checkpoint becomes available |
+| Unified Bio-Orchestrator | Postponed | LangGraph-based intelligent routing across analysis tools |
 
-See `tools/expression_fetcher.py` for implementation notes.
+See `tools/expression_fetcher.py` for expression fetching implementation notes.
 
 ## License
 

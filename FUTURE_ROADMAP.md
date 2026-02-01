@@ -1,8 +1,23 @@
 # GREmLN Future Roadmap: Unified Bio-Orchestrator
 
-> **STATUS: POSTPONED** - This document outlines future integration work that is not currently scheduled. The current architecture (Option A) is in production.
+> **STATUS: POSTPONED** - This document outlines future integration work that is not currently scheduled. Option 1 is in production.
 
-## Current Architecture (Option A - In Production)
+## Architecture Options
+
+| Aspect | Option 1: Two Separate Servers | Option 2: One Integrated Server |
+|--------|--------------------------------|---------------------------------|
+| **MCP Servers** | 2 (regnetagents + GREmLN) | 1 (Bio-Orchestrator) |
+| **Orchestration** | Claude conversation-level | LangGraph StateGraph |
+| **Tool Chaining** | Manual (user/Claude decides) | Automatic (gene-type routing) |
+| **State Management** | None (stateless tools) | Unified state across analyses |
+| **Complexity** | Simple, modular | More complex, integrated |
+| **Maintenance** | Independent updates | Coordinated updates |
+| **User Experience** | Multiple tool calls needed | Single query → full analysis |
+| **Status** | **In Production** | Postponed |
+
+---
+
+## Option 1: Two Separate MCP Servers (Current)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -64,11 +79,11 @@ The GREmLN skill (`.claude/skills/gremln/SKILL.md`) provides workflow guidance t
 - Suggested tool chaining (e.g., empty knockdown → check metadata → use PPI)
 - Trigger keywords to distinguish from other MCP servers (regnetagents)
 
-This reduces manual intervention but doesn't fully automate the orchestration. The unified orchestrator (Option C) remains the long-term vision for seamless single-tool analysis.
+This reduces manual intervention but doesn't fully automate the orchestration. Option 2 remains the long-term vision for seamless single-tool analysis.
 
 ---
 
-## Future Vision (Option C - Unified Orchestrator)
+## Option 2: One Integrated Server (Future)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -200,12 +215,12 @@ class UnifiedBioState(TypedDict):
    - Design unified state schema that captures both systems' outputs
    - Handle async execution (both systems use asyncio)
 
-### Architectural Decisions Needed
+### Architectural Decisions Needed (for Option 2)
 
 1. **Where does orchestrator live?**
-   - Option A: New standalone project (`c:\Dev\bio-orchestrator`)
-   - Option B: Inside GREmLN as optional module
-   - Option C: Inside regnetagents as extension
+   - New standalone project (`c:\Dev\bio-orchestrator`) - *Recommended*
+   - Inside GREmLN as optional module
+   - Inside regnetagents as extension
 
 2. **How to handle regnetagents being frozen?**
    - Import as-is without modification
@@ -281,6 +296,15 @@ This roadmap exists because of the APC mutation analysis scenario:
 
 ## Near-Term Enhancements
 
+| Feature | Status | Date | Description |
+|---------|--------|------|-------------|
+| LINCS L1000 (Harmonizome) | **COMPLETE** | 2025-01-30 | Expression perturbation from CRISPR knockdowns |
+| Super-Enhancer Annotations | **COMPLETE** | 2025-01-30 | BRD4 druggability from dbSUPER |
+| Raw LINCS Integration | NOT STARTED | - | Full LINCS data for better coverage |
+| Expression Data Fetching | NOT STARTED | - | CellxGene Census / HPA integration |
+
+---
+
 ### Completed: LINCS L1000 Expression Perturbation (2025-01-30)
 
 Added tools to find regulatory relationships from experimental CRISPR knockdown data:
@@ -293,6 +317,8 @@ Added tools to find regulatory relationships from experimental CRISPR knockdown 
 
 ### Planned: Raw LINCS Integration
 
+**Status**: NOT STARTED
+
 **Problem**: BRD4 → MYC (validated BET inhibitor target) not in Harmonizome data
 
 **Solution**: Integrate raw LINCS L1000 data from clue.io (GEO: GSE92742)
@@ -300,6 +326,13 @@ Added tools to find regulatory relationships from experimental CRISPR knockdown 
 **Effort**: Medium (larger dataset, GCTX format parsing)
 
 **Validation**: `find_expression_regulators("MYC")` should return BRD4
+
+**Tasks**:
+- [ ] Download raw LINCS L1000 data (level 5 - moderated z-scores)
+- [ ] Implement GCTX file parser (HDF5 format)
+- [ ] Create gene-knockdown → affected-genes mapping
+- [ ] Add tool: `find_expression_regulators_raw(gene)`
+- [ ] Validate: BRD4 knockdown should show MYC downregulation
 
 ### Completed: Super-Enhancer Annotations (2025-01-30)
 
@@ -313,11 +346,38 @@ Added tools to identify BRD4/BET inhibitor sensitive genes:
 
 **Therapeutic value**: Enables drug discovery for "undruggable" targets like MYC - if a gene has super-enhancers, BRD4 inhibitors (JQ1, OTX015) may reduce its expression
 
+### Planned: Expression Data Fetching
+
+**Status**: NOT STARTED (stub in `tools/expression_fetcher.py`)
+
+**Goal**: Automatically fetch baseline expression profiles for each cell type
+
+**Data Sources** (in order of priority):
+1. **Human Protein Atlas** - Simple, pre-computed averages, no complex dependencies
+2. **CellxGene Census** - Most comprehensive, true single-cell data
+3. **Tabula Sapiens** - Human cell atlas
+
+**Use Cases**:
+- Context-aware gene embeddings (cell-type-specific)
+- Baseline for perturbation predictions
+- Gene rank embeddings for model input
+
+**Tasks**:
+- [ ] Implement HPA data download and parsing
+- [ ] Map cell type names to standardized ontology terms (mapping exists in stub)
+- [ ] Create local cache for expression profiles
+- [ ] Add tool: `get_baseline_expression(cell_type)`
+- [ ] Integrate with model for context-aware embeddings
+
 ---
 
 ## Document History
 
-- **2025-01-30**: Added super-enhancer annotations (dbSUPER) for BRD4 druggability
-- **2025-01-30**: Added LINCS L1000 tools, documented limitations, planned raw LINCS integration
-- **2025-01-25**: Initial roadmap created (Jose A. Bird, PhD)
-- **Status**: Active development - LINCS and super-enhancer tools complete, raw LINCS planned
+| Date | Change |
+|------|--------|
+| 2025-02-01 | Added status summary table, Expression Data Fetching section, task checklists |
+| 2025-01-30 | Added super-enhancer annotations (dbSUPER) for BRD4 druggability |
+| 2025-01-30 | Added LINCS L1000 tools, documented limitations, planned raw LINCS integration |
+| 2025-01-25 | Initial roadmap created (Jose A. Bird, PhD) |
+
+**Current Status**: Active development - LINCS and super-enhancer tools complete, raw LINCS and expression fetching planned

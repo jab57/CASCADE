@@ -104,7 +104,7 @@ class ExpressionFetcher:
         """
         raise NotImplementedError(
             "Expression fetching not yet implemented. "
-            "See FUTURE_IMPLEMENTATION.md for planned approach."
+            "See FUTURE_ROADMAP.md for planned approach."
         )
 
     def _fetch_from_cellxgene(self, cell_type: str) -> pd.DataFrame:
