@@ -907,10 +907,10 @@ values = [
 ]
 
 for i, (title, desc, color) in enumerate(values):
-    y = Inches(1.7 + i * 1.35)
+    y = Inches(1.6 + i * 1.05)
 
     # Color bar
-    bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.6), y, Inches(0.15), Inches(1.1))
+    bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.6), y, Inches(0.15), Inches(0.9))
     bar.fill.solid()
     bar.fill.fore_color.rgb = color
     bar.line.fill.background()
@@ -925,7 +925,7 @@ for i, (title, desc, color) in enumerate(values):
     p.font.color.rgb = color
 
     # Description
-    d_box = slide.shapes.add_textbox(Inches(1.0), y + Inches(0.55), Inches(11), Inches(0.5))
+    d_box = slide.shapes.add_textbox(Inches(1.0), y + Inches(0.45), Inches(11), Inches(0.5))
     tf = d_box.text_frame
     p = tf.paragraphs[0]
     p.text = desc
@@ -933,12 +933,12 @@ for i, (title, desc, color) in enumerate(values):
     p.font.color.rgb = DARK_GRAY
 
 # CTA box
-cta = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(3), Inches(6.0), Inches(7.333), Inches(1.0))
+cta = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(3), Inches(5.8), Inches(7.333), Inches(1.0))
 cta.fill.solid()
 cta.fill.fore_color.rgb = ACCENT_TEAL
 cta.line.fill.background()
 
-cta_box = slide.shapes.add_textbox(Inches(3), Inches(6.25), Inches(7.333), Inches(0.6))
+cta_box = slide.shapes.add_textbox(Inches(3), Inches(6.05), Inches(7.333), Inches(0.6))
 tf = cta_box.text_frame
 p = tf.paragraphs[0]
 p.text = "Ready to transform your drug discovery pipeline?"
