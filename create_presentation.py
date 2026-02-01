@@ -463,7 +463,227 @@ add_arrow_shape(slide, Inches(6.45), Inches(5.85), "down")
 add_flow_box(slide, Inches(3.4), Inches(6.3), Inches(6.5), Inches(0.9),
              "Ranked Gene List + Actionable Recommendations", ACCENT_ORANGE, WHITE, 18)
 
-# ============ SLIDE 5: CELL TYPES ============
+# ============ SLIDE 5: PERTURBATION ALGORITHM ============
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_gradient_background(slide, prs)
+
+header = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, Inches(1.4))
+header.fill.solid()
+header.fill.fore_color.rgb = DARK_BLUE
+header.line.fill.background()
+
+title_box = slide.shapes.add_textbox(Inches(0.6), Inches(0.4), Inches(12.133), Inches(0.9))
+tf = title_box.text_frame
+p = tf.paragraphs[0]
+p.text = "Perturbation Analysis Algorithm"
+p.font.size = Pt(36)
+p.font.bold = True
+p.font.color.rgb = WHITE
+
+# Step 1: Network Propagation
+add_flow_box(slide, Inches(0.5), Inches(1.6), Inches(0.8), Inches(0.8), "1", ACCENT_TEAL, WHITE, 28)
+
+step1_title = slide.shapes.add_textbox(Inches(1.5), Inches(1.6), Inches(4), Inches(0.5))
+tf = step1_title.text_frame
+p = tf.paragraphs[0]
+p.text = "Network Propagation"
+p.font.size = Pt(22)
+p.font.bold = True
+p.font.color.rgb = ACCENT_TEAL
+
+step1_desc = slide.shapes.add_textbox(Inches(1.5), Inches(2.1), Inches(5), Inches(1.0))
+tf = step1_desc.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "Walk through regulatory network using BFS. Edge weights (mutual information) determine effect strength as signal propagates."
+p.font.size = Pt(16)
+p.font.color.rgb = DARK_GRAY
+
+# Step 1 diagram - with MI values and effect calculation
+add_flow_box(slide, Inches(6.5), Inches(1.55), Inches(1.1), Inches(0.5), "MYC", ACCENT_ORANGE, WHITE, 12)
+effect1 = slide.shapes.add_textbox(Inches(6.5), Inches(2.05), Inches(1.1), Inches(0.3))
+tf = effect1.text_frame
+p = tf.paragraphs[0]
+p.text = "effect=1.0"
+p.font.size = Pt(10)
+p.font.bold = True
+p.font.color.rgb = ACCENT_ORANGE
+p.alignment = PP_ALIGN.CENTER
+
+# Arrow with MI label
+add_arrow_shape(slide, Inches(7.7), Inches(1.75), "right")
+mi1_label = slide.shapes.add_textbox(Inches(7.6), Inches(1.45), Inches(0.7), Inches(0.3))
+tf = mi1_label.text_frame
+p = tf.paragraphs[0]
+p.text = "MI=0.8"
+p.font.size = Pt(9)
+p.font.color.rgb = MID_GRAY
+p.alignment = PP_ALIGN.CENTER
+
+add_flow_box(slide, Inches(8.3), Inches(1.55), Inches(1.1), Inches(0.5), "Gene B", MID_BLUE, WHITE, 12)
+effect2 = slide.shapes.add_textbox(Inches(8.3), Inches(2.05), Inches(1.1), Inches(0.3))
+tf = effect2.text_frame
+p = tf.paragraphs[0]
+p.text = "effect=0.80"
+p.font.size = Pt(10)
+p.font.bold = True
+p.font.color.rgb = MID_BLUE
+p.alignment = PP_ALIGN.CENTER
+
+# Arrow with MI label
+add_arrow_shape(slide, Inches(9.5), Inches(1.75), "right")
+mi2_label = slide.shapes.add_textbox(Inches(9.4), Inches(1.45), Inches(0.7), Inches(0.3))
+tf = mi2_label.text_frame
+p = tf.paragraphs[0]
+p.text = "MI=0.5"
+p.font.size = Pt(9)
+p.font.color.rgb = MID_GRAY
+p.alignment = PP_ALIGN.CENTER
+
+add_flow_box(slide, Inches(10.1), Inches(1.55), Inches(1.1), Inches(0.5), "Gene C", LIGHT_BLUE, WHITE, 12)
+effect3 = slide.shapes.add_textbox(Inches(10.1), Inches(2.05), Inches(1.1), Inches(0.3))
+tf = effect3.text_frame
+p = tf.paragraphs[0]
+p.text = "effect=0.40"
+p.font.size = Pt(10)
+p.font.bold = True
+p.font.color.rgb = LIGHT_BLUE
+p.alignment = PP_ALIGN.CENTER
+
+# Second branch
+add_flow_box(slide, Inches(8.3), Inches(2.5), Inches(1.1), Inches(0.5), "Gene D", RGBColor(0xaa, 0xcc, 0xee), WHITE, 12)
+effect4 = slide.shapes.add_textbox(Inches(8.3), Inches(3.0), Inches(1.1), Inches(0.3))
+tf = effect4.text_frame
+p = tf.paragraphs[0]
+p.text = "effect=0.20"
+p.font.size = Pt(10)
+p.font.bold = True
+p.font.color.rgb = RGBColor(0x88, 0xaa, 0xcc)
+p.alignment = PP_ALIGN.CENTER
+
+# Diagonal arrow from MYC to Gene D
+mi3_label = slide.shapes.add_textbox(Inches(7.3), Inches(2.35), Inches(0.7), Inches(0.3))
+tf = mi3_label.text_frame
+p = tf.paragraphs[0]
+p.text = "MI=0.2"
+p.font.size = Pt(9)
+p.font.color.rgb = MID_GRAY
+p.alignment = PP_ALIGN.CENTER
+
+# Calculation explanation
+calc_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(11.3), Inches(1.5), Inches(1.8), Inches(1.1))
+calc_box.fill.solid()
+calc_box.fill.fore_color.rgb = LIGHT_GRAY
+calc_box.line.fill.background()
+
+calc_text = slide.shapes.add_textbox(Inches(11.35), Inches(1.55), Inches(1.7), Inches(1.0))
+tf = calc_text.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "1.0 × 0.8 = 0.80"
+p.font.size = Pt(9)
+p.font.color.rgb = DARK_GRAY
+p = tf.add_paragraph()
+p.text = "0.8 × 0.5 = 0.40"
+p.font.size = Pt(9)
+p.font.color.rgb = DARK_GRAY
+p = tf.add_paragraph()
+p.text = "1.0 × 0.2 = 0.20"
+p.font.size = Pt(9)
+p.font.color.rgb = DARK_GRAY
+
+# Step 2: Embedding Similarity
+add_flow_box(slide, Inches(0.5), Inches(3.5), Inches(0.8), Inches(0.7), "2", MID_BLUE, WHITE, 24)
+
+step2_title = slide.shapes.add_textbox(Inches(1.5), Inches(3.5), Inches(4), Inches(0.5))
+tf = step2_title.text_frame
+p = tf.paragraphs[0]
+p.text = "Embedding Similarity"
+p.font.size = Pt(20)
+p.font.bold = True
+p.font.color.rgb = MID_BLUE
+
+step2_desc = slide.shapes.add_textbox(Inches(1.5), Inches(3.95), Inches(5), Inches(0.8))
+tf = step2_desc.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "256-dim gene vectors trained on 11M cells. High cosine similarity = functionally related, even without network edge."
+p.font.size = Pt(14)
+p.font.color.rgb = DARK_GRAY
+
+# Step 2 diagram - vectors
+vec_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.8), Inches(3.5), Inches(6), Inches(1.0))
+vec_box.fill.solid()
+vec_box.fill.fore_color.rgb = LIGHT_GRAY
+vec_box.line.fill.background()
+
+vec_text = slide.shapes.add_textbox(Inches(6.9), Inches(3.6), Inches(5.8), Inches(0.85))
+tf = vec_text.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "MYC   [0.23, -0.15, 0.87, ...]    similarity"
+p.font.size = Pt(12)
+p.font.name = "Consolas"
+p.font.color.rgb = DARK_GRAY
+p = tf.add_paragraph()
+p.text = "BRCA1 [0.21, -0.18, 0.85, ...]  →  0.94"
+p.font.size = Pt(12)
+p.font.name = "Consolas"
+p.font.color.rgb = DARK_GRAY
+
+# Step 3: Combined Scoring
+add_flow_box(slide, Inches(0.5), Inches(4.7), Inches(0.8), Inches(0.7), "3", ACCENT_GREEN, WHITE, 24)
+
+step3_title = slide.shapes.add_textbox(Inches(1.5), Inches(4.7), Inches(4), Inches(0.5))
+tf = step3_title.text_frame
+p = tf.paragraphs[0]
+p.text = "Combined Scoring"
+p.font.size = Pt(20)
+p.font.bold = True
+p.font.color.rgb = ACCENT_GREEN
+
+step3_desc = slide.shapes.add_textbox(Inches(1.5), Inches(5.15), Inches(5), Inches(0.8))
+tf = step3_desc.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "Network provides structure, embeddings boost confidence. Captures both direct and indirect relationships."
+p.font.size = Pt(14)
+p.font.color.rgb = DARK_GRAY
+
+# Formula box
+formula_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.8), Inches(4.7), Inches(6), Inches(1.2))
+formula_box.fill.solid()
+formula_box.fill.fore_color.rgb = DARK_BLUE
+formula_box.line.fill.background()
+
+formula_text = slide.shapes.add_textbox(Inches(7.0), Inches(4.85), Inches(5.6), Inches(1.0))
+tf = formula_text.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "combined_effect ="
+p.font.size = Pt(13)
+p.font.color.rgb = WHITE
+p = tf.add_paragraph()
+p.text = "    0.7 × network_effect"
+p.font.size = Pt(13)
+p.font.color.rgb = ACCENT_TEAL
+p = tf.add_paragraph()
+p.text = "  + 0.3 × embedding_similarity × network_effect"
+p.font.size = Pt(13)
+p.font.color.rgb = LIGHT_BLUE
+
+# Bottom note
+note_box = slide.shapes.add_textbox(Inches(0.5), Inches(6.2), Inches(12.333), Inches(0.8))
+tf = note_box.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "Result: Genes ranked by predicted impact. Network-only and embedding-only effects also reported separately."
+p.font.size = Pt(15)
+p.font.italic = True
+p.font.color.rgb = MID_GRAY
+p.alignment = PP_ALIGN.CENTER
+
+# ============ SLIDE 6: CELL TYPES ============
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 add_gradient_background(slide, prs)
 
