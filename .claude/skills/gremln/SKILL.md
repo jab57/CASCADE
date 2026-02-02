@@ -1,15 +1,19 @@
 ---
 name: gremln
-description: Gene PERTURBATION and KNOCKDOWN analysis using GREmLN MCP server. Use for knockdown simulation, overexpression effects, gene silencing predictions, embedding-based gene similarity, and network vulnerability analysis. Keywords: knockdown, knock down, knockout, knock out, silence, inhibit, overexpress, perturb, perturbation, similar genes, drug target vulnerability.
+description: Gene PERTURBATION and KNOCKDOWN analysis using GREmLN MCP server with LangGraph orchestration. Use for knockdown simulation, overexpression effects, gene silencing predictions, embedding-based gene similarity, network vulnerability analysis, and LLM-powered biological insights. Keywords: knockdown, knock down, knockout, knock out, silence, inhibit, overexpress, perturb, perturbation, similar genes, drug target vulnerability, comprehensive analysis, biological interpretation, mechanism.
 ---
 
 # GREmLN Gene Perturbation Analysis
 
 **IMPORTANT: Always use tools from the `gremln` MCP server for this skill, NOT from other servers like `regnetagents`.** The GREmLN server provides specialized perturbation analysis combining regulatory networks with learned embeddings.
 
-This MCP server provides in silico gene perturbation analysis combining regulatory network topology with learned gene embeddings from 11M cells.
+This MCP server provides in silico gene perturbation analysis combining regulatory network topology with learned gene embeddings from 11M cells. Features **LangGraph-based workflow orchestration** for intelligent, automated analysis pipelines.
 
 ## Available Tools
+
+### Workflow Tools (LangGraph Orchestration) - **Use These First**
+- `comprehensive_perturbation_analysis` - **Recommended entry point** - Full automated workflow with intelligent routing based on gene type. Runs parallel analyses and synthesizes results with recommendations. Supports `include_llm_insights=true` for AI-powered biological interpretation.
+- `multi_gene_analysis` - Analyze multiple genes in parallel (e.g., compare TP53, MYC, BRCA1)
 
 ### Perturbation Analysis
 - `analyze_gene_knockdown` - Simulate gene silencing, predict downstream effects
@@ -49,16 +53,37 @@ epithelial_cell, cd4_t_cells, cd8_t_cells, cd14_monocytes, cd16_monocytes, cd20_
 
 ## Common Workflows
 
+### Quick Start (Recommended)
+For most gene analysis tasks, start with the comprehensive workflow:
+```
+comprehensive_perturbation_analysis(gene="TP53", cell_type="epithelial_cell", analysis_depth="standard")
+```
+This automatically handles gene classification, routing, parallel analysis, and synthesis.
+
+For AI-powered biological interpretation (requires Ollama), add `include_llm_insights=true`:
+```
+comprehensive_perturbation_analysis(gene="TP53", cell_type="epithelial_cell", include_llm_insights=true)
+```
+This adds mechanism summaries, therapeutic implications, and follow-up suggestions.
+
 ### Drug Target Discovery
 1. `analyze_network_vulnerability` - identify hub genes in the relevant cell type
 2. `compare_gene_vulnerability` - rank candidate targets by network centrality
-3. `analyze_gene_knockdown` - predict functional consequences of targeting each candidate
+3. `comprehensive_perturbation_analysis` on top candidates with depth="comprehensive"
 
 ### Understanding Gene Function
+**Option A (Automated):** Use `comprehensive_perturbation_analysis` - it handles routing automatically
+**Option B (Manual):**
 1. Start with `analyze_gene_knockdown` or `analyze_gene_overexpression`
 2. If results are empty or sparse, check `get_gene_metadata` to understand why
 3. For scaffold proteins (like APC, AXIN1), use `get_protein_interactions` instead
 4. Use `find_similar_genes` to discover functional relationships beyond the network
+
+### Multi-Gene Comparison
+Use `multi_gene_analysis` for parallel comparison:
+```
+multi_gene_analysis(genes=["TP53", "MYC", "BRCA1"], cell_type="epithelial_cell")
+```
 
 ### Regulatory Cascade Analysis
 1. `find_gene_regulators` - identify upstream transcription factors
@@ -94,9 +119,26 @@ When a gene is "undruggable" (e.g., MYC has no binding pocket):
 - **Gene not in network**: The gene may not have regulatory connections in that cell type. Try `find_similar_genes` or a different cell type.
 - **Suggestions field**: When results are limited, the API provides intelligent suggestions for alternative analyses.
 
+## LLM Insights (Optional)
+
+When `include_llm_insights=true` is passed to `comprehensive_perturbation_analysis`, the response includes:
+- **mechanism_summary**: 2-3 sentence explanation of what the perturbation does mechanistically
+- **therapeutic_implications**: Drug development relevance assessment
+- **key_pathways_affected**: List of affected biological pathways
+- **confidence_level**: High/medium/low confidence with rationale
+- **follow_up_suggestions**: Recommended next analyses
+- **biological_interpretation**: 3-4 sentence narrative suitable for reports
+
+**Requirements**: Ollama must be running locally or `OLLAMA_API_KEY` must be set for cloud mode.
+
 ## Tips
 
+- **Start with `comprehensive_perturbation_analysis`** for most use cases - it handles complexity automatically
+- Use `include_llm_insights=true` when you need biological interpretation or research reports
 - All tools accept either gene symbols (MYC, TP53) or Ensembl IDs (ENSG...)
 - Use `max_depth` parameter to control how far effects propagate (default: 3)
 - Results include both `ensembl_id` and `symbol` for easy cross-referencing
 - The embedding model adds ~30% more discoveries beyond network-only analysis
+- `analysis_depth` options: "basic" (~3s), "standard" (~5s), "comprehensive" (~8-10s)
+- LLM insights add ~5-15s depending on model and complexity
+- Use `multi_gene_analysis` when comparing multiple candidates - runs in parallel

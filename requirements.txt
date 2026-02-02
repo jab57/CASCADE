@@ -13,5 +13,11 @@ requests
 # GREmLN model (includes scGraphLLM)
 gremln @ git+https://github.com/czi-ai/GREmLN.git
 
+# LangGraph orchestration
+langgraph
+
+# LLM insights (optional - for biological interpretation)
+ollama>=0.1.0
+
 # Optional: torch-geometric for graph operations
 # torch-geometric>=2.7

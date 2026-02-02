@@ -1,6 +1,6 @@
 # GREmLN Future Roadmap: Unified Bio-Orchestrator
 
-> **STATUS: POSTPONED** - This document outlines future integration work that is not currently scheduled. Option 1 is in production.
+> **STATUS UPDATE (2025-02)**: LangGraph orchestration has been implemented for GREmLN. The Unified Bio-Orchestrator (cross-project integration with regnetagents) remains postponed.
 
 ## Architecture Options
 
@@ -298,10 +298,67 @@ This roadmap exists because of the APC mutation analysis scenario:
 
 | Feature | Status | Date | Description |
 |---------|--------|------|-------------|
+| LLM-Powered Insights | **COMPLETE** | 2025-02-02 | Ollama integration for biological interpretation |
+| LangGraph Orchestration | **COMPLETE** | 2025-02-02 | Intelligent workflow routing with parallel execution |
 | LINCS L1000 (Harmonizome) | **COMPLETE** | 2025-01-30 | Expression perturbation from CRISPR knockdowns |
 | Super-Enhancer Annotations | **COMPLETE** | 2025-01-30 | BRD4 druggability from dbSUPER |
 | Raw LINCS Integration | NOT STARTED | - | Full LINCS data for better coverage |
 | Expression Data Fetching | NOT STARTED | - | CellxGene Census / HPA integration |
+
+---
+
+### Completed: LLM-Powered Biological Insights (2025-02-02)
+
+Added optional Ollama integration for AI-generated interpretation of perturbation analysis results:
+
+**New Feature:**
+- `include_llm_insights=True` parameter in `comprehensive_perturbation_analysis`
+
+**Key Capabilities:**
+- **Mechanism Summary**: 2-3 sentence explanation of what the perturbation does mechanistically
+- **Therapeutic Implications**: Drug development relevance assessment
+- **Pathway Identification**: Automated identification of key affected pathways
+- **Confidence Assessment**: High/medium/low confidence with rationale
+- **Follow-up Suggestions**: Intelligent recommendations for further analysis
+- **Biological Narrative**: 3-4 sentence synthesis suitable for research reports
+
+**Configuration:**
+- Auto-detects local vs cloud Ollama (set `OLLAMA_API_KEY` for cloud)
+- Configurable model, temperature, and timeout via environment variables
+- Graceful fallback: Returns structured data if LLM unavailable
+- Default OFF to avoid latency for quick queries
+
+**Files:**
+- `gremln_langgraph_workflow.py` - Added `_synthesize_insights` node, `_call_llm_synthesis` method
+- `gremln_langgraph_mcp_server.py` - Added `include_llm_insights` parameter to tool schema
+- `.env.example` - LLM configuration template
+
+---
+
+### Completed: LangGraph Orchestration (2025-02-02)
+
+Implemented LangGraph-based workflow orchestration within GREmLN MCP server:
+
+**New Files:**
+- `gremln_langgraph_workflow.py` - Core LangGraph StateGraph workflow
+- `gremln_langgraph_mcp_server.py` - MCP server exposing 22 tools
+
+**Key Features:**
+- **Intelligent Routing**: Automatically selects analysis strategy based on gene type (master_regulator, transcription_factor, effector, isolated)
+- **Parallel Batch Execution**: Independent analyses run concurrently (batch_core_analysis, batch_external_data, batch_insights)
+- **Automatic Synthesis**: Generates comprehensive reports with actionable recommendations
+- **Graceful Degradation**: Falls back to network-only if embeddings unavailable
+
+**New Workflow Tools:**
+- `comprehensive_perturbation_analysis` - Full automated analysis with intelligent routing
+- `multi_gene_analysis` - Analyze multiple genes in parallel
+
+**Performance:**
+- Basic analysis: ~3s
+- Comprehensive analysis: ~8-10s
+- Multi-gene parallel (3 genes): ~10s
+
+**Note:** This addresses the "GREmLN-only" orchestration need. The Unified Bio-Orchestrator (Option 2 - cross-project integration with regnetagents) remains postponed.
 
 ---
 
@@ -375,9 +432,11 @@ Added tools to identify BRD4/BET inhibitor sensitive genes:
 
 | Date | Change |
 |------|--------|
+| 2025-02-02 | Added LLM-powered biological insights (Ollama integration) |
+| 2025-02-02 | Added LangGraph orchestration (COMPLETE), updated architecture diagrams |
 | 2025-02-01 | Added status summary table, Expression Data Fetching section, task checklists |
 | 2025-01-30 | Added super-enhancer annotations (dbSUPER) for BRD4 druggability |
 | 2025-01-30 | Added LINCS L1000 tools, documented limitations, planned raw LINCS integration |
 | 2025-01-25 | Initial roadmap created (Jose A. Bird, PhD) |
 
-**Current Status**: Active development - LINCS and super-enhancer tools complete, raw LINCS and expression fetching planned
+**Current Status**: Active development - LLM insights and LangGraph orchestration complete, raw LINCS and expression fetching planned

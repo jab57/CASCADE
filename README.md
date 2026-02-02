@@ -1,6 +1,46 @@
 # GREmLN MCP Server
 
-A Model Context Protocol (MCP) server for **in silico gene perturbation analysis** using pre-computed gene regulatory networks and GREmLN model embeddings.
+A Model Context Protocol (MCP) server for **in silico gene perturbation analysis** using pre-computed gene regulatory networks and GREmLN model embeddings. Features **LangGraph-based workflow orchestration** for intelligent, automated analysis pipelines.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Claude Desktop / MCP Client                  │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              GREmLN LangGraph MCP Server                        │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │              LangGraph StateGraph                        │   │
+│  │                                                          │   │
+│  │  comprehensive_perturbation_analysis()                   │   │
+│  │    → Gene classification (TF, effector, master reg)      │   │
+│  │    → Intelligent routing based on gene type              │   │
+│  │    → Parallel batch execution                            │   │
+│  │    → Automatic synthesis & recommendations               │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│     ┌────────────────────────┼────────────────────────┐        │
+│     ▼                        ▼                        ▼        │
+│  ┌──────────┐         ┌──────────────┐         ┌──────────┐   │
+│  │ Network  │         │  Embeddings  │         │ External │   │
+│  │ Analysis │         │   (GREmLN)   │         │   APIs   │   │
+│  │ (BFS)    │         │   256-dim    │         │ (STRING, │   │
+│  └──────────┘         └──────────────┘         │  LINCS)  │   │
+│                                                └──────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Benefits of LangGraph Architecture
+
+- **Intelligent Routing**: Automatically selects analysis strategy based on gene type
+- **Parallel Execution**: Independent analyses run concurrently (3-5x faster)
+- **Automatic Synthesis**: Generates comprehensive reports with actionable recommendations
+- **LLM-Powered Insights**: Optional Ollama integration for biological interpretation of results
+- **Graceful Degradation**: Falls back to network-only if embeddings unavailable
 
 ## Features
 
@@ -22,6 +62,13 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 - **Embedding-Enhanced Overexpression**: More accurate predictions using 11M-cell-trained embeddings
 - **Gene Similarity**: Compute functional similarity between genes using learned embeddings
 - **Similar Gene Discovery**: Find functionally related genes even without direct network connections
+
+### LLM-Powered Biological Insights (Optional)
+- **Narrative Synthesis**: Ollama-powered interpretation of analysis results
+- **Mechanism Explanation**: Automatic generation of biological mechanism summaries
+- **Therapeutic Implications**: AI-generated drug development relevance
+- **Pathway Identification**: Automated identification of key affected pathways
+- **Follow-up Suggestions**: Intelligent recommendations for further analysis
 
 ### Network Vulnerability Analysis (Drug Target Discovery)
 - **Hub Gene Identification**: Find genes with the most downstream targets
@@ -90,6 +137,9 @@ pip install -r requirements.txt
 
 # For GPU support (recommended), install PyTorch with CUDA
 pip install torch --index-url https://download.pytorch.org/whl/cu124 --force-reinstall
+
+# Optional: Install Ollama for LLM-powered insights
+# Download from https://ollama.ai and run: ollama pull llama3.1:8b
 ```
 
 ## Usage
@@ -97,7 +147,30 @@ pip install torch --index-url https://download.pytorch.org/whl/cu124 --force-rei
 ### Run the MCP Server
 
 ```bash
-python gremln_mcp_server.py
+# LangGraph-based server (recommended)
+python gremln_langgraph_mcp_server.py
+
+# With LLM insights enabled (requires Ollama running)
+USE_LLM_INSIGHTS=true python gremln_langgraph_mcp_server.py
+
+# Original FastMCP server (deprecated, kept for reference)
+python gremln_mcp_server_original.py
+```
+
+### LLM Insights Configuration (Optional)
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+# Enable LLM-powered biological insights
+USE_LLM_INSIGHTS=true
+
+# Local Ollama (default)
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=llama3.1:8b
+
+# Or use Ollama Cloud
+# OLLAMA_API_KEY=your-api-key
 ```
 
 ### Claude Desktop Configuration
@@ -109,7 +182,7 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
   "mcpServers": {
     "GREmLN": {
       "command": "C:/Dev/GREmLN/env/Scripts/python.exe",
-      "args": ["C:/Dev/GREmLN/gremln_mcp_server.py"]
+      "args": ["C:/Dev/GREmLN/gremln_langgraph_mcp_server.py"]
     }
   }
 }
@@ -143,7 +216,13 @@ The repo includes a skill at `.claude/skills/gremln/SKILL.md` that teaches Claud
 - "Get high-confidence interactions for TP53"
 - "What protein interactions would be disrupted if I knock down BRCA1?"
 
-## Available MCP Tools
+## Available MCP Tools (22 total)
+
+### Workflow Tools (LangGraph Orchestration)
+| Tool | Description |
+|------|-------------|
+| `comprehensive_perturbation_analysis` | **Main entry point** - Full automated workflow with intelligent routing. Supports `include_llm_insights=true` for AI-powered biological interpretation |
+| `multi_gene_analysis` | Analyze multiple genes in parallel |
 
 ### Perturbation Analysis Tools
 | Tool | Description |
@@ -192,31 +271,34 @@ The repo includes a skill at `.claude/skills/gremln/SKILL.md` that teaches Claud
 
 ```
 GREmLN/
-├── gremln_mcp_server.py      # MCP server entry point
+├── gremln_langgraph_mcp_server.py  # LangGraph MCP server (main entry)
+├── gremln_langgraph_workflow.py    # LangGraph StateGraph workflow
+├── gremln_mcp_server_original.py   # Original FastMCP server (deprecated)
 ├── .claude/
-│   └── skills/gremln/        # Claude Code skill for perturbation analysis
+│   └── skills/gremln/              # Claude Code skill for perturbation analysis
 ├── tools/
-│   ├── loader.py             # Network/model loading utilities
-│   ├── perturb.py            # Perturbation analysis (network + embeddings)
-│   ├── model_inference.py    # GREmLN model wrapper for embeddings
-│   ├── cache.py              # Embedding similarity cache
-│   ├── gene_id_mapper.py     # Gene symbol/Ensembl ID conversion
-│   ├── lincs.py              # LINCS L1000 expression perturbation data
-│   ├── super_enhancers.py    # Super-enhancer annotations (BRD4 druggability)
+│   ├── loader.py                   # Network/model loading utilities
+│   ├── perturb.py                  # Perturbation analysis (network + embeddings)
+│   ├── model_inference.py          # GREmLN model wrapper for embeddings
+│   ├── cache.py                    # Embedding similarity cache
+│   ├── gene_id_mapper.py           # Gene symbol/Ensembl ID conversion
+│   ├── lincs.py                    # LINCS L1000 expression perturbation data
+│   ├── super_enhancers.py          # Super-enhancer annotations (BRD4 druggability)
 │   └── ppi/
-│       └── string_client.py  # STRING database API client
+│       └── string_client.py        # STRING database API client
 ├── data/
-│   ├── networks/             # Pre-computed regulatory networks (10 cell types)
-│   ├── lincs/                # LINCS L1000 knockdown expression data
-│   └── super_enhancers/      # dbSUPER super-enhancer annotations
+│   ├── networks/                   # Pre-computed regulatory networks (10 cell types)
+│   ├── lincs/                      # LINCS L1000 knockdown expression data
+│   └── super_enhancers/            # dbSUPER super-enhancer annotations
 ├── models/
-│   └── model.ckpt            # GREmLN model checkpoint (120MB)
+│   └── model.ckpt                  # GREmLN model checkpoint (120MB)
 └── cache/
-    └── gene_id_cache.pkl     # Cached gene ID mappings
+    └── gene_id_cache.pkl           # Cached gene ID mappings
 ```
 
 ## Performance
 
+### Individual Tools
 | Operation | CPU | GPU |
 |-----------|-----|-----|
 | Model loading | ~2-5s | ~0.15s |
@@ -224,14 +306,25 @@ GREmLN/
 | All-gene similarity (19K genes) | ~500ms | ~30ms |
 | Full knockdown analysis | ~3-5s | ~2s |
 
+### LangGraph Workflows
+| Workflow | Depth | Typical Time |
+|----------|-------|--------------|
+| `comprehensive_perturbation_analysis` | basic | ~3s |
+| `comprehensive_perturbation_analysis` | standard | ~5s |
+| `comprehensive_perturbation_analysis` | comprehensive | ~8-10s |
+| `comprehensive_perturbation_analysis` | + LLM insights | +5-15s (depends on model) |
+| `multi_gene_analysis` (3 genes) | standard | ~10s (parallel) |
+
 ## Requirements
 
 - Python 3.10+
 - PyTorch 2.0+ (with CUDA for GPU acceleration)
-- FastMCP
+- LangGraph (for workflow orchestration)
+- MCP (Model Context Protocol SDK)
 - pandas, numpy
 - scGraphLLM (GREmLN package from CZI)
 - requests (for Ensembl API gene ID lookups)
+- ollama (optional, for LLM-powered insights)
 
 ## Technical Details
 
@@ -325,6 +418,8 @@ For the complete roadmap including the Unified Bio-Orchestrator vision, see **[F
 
 ### Recently Completed
 
+- **LLM-Powered Biological Insights** (2025-02): Optional Ollama integration for AI-generated interpretation of analysis results
+- **LangGraph Orchestration** (2025-02): Intelligent workflow routing with parallel execution and automatic synthesis
 - **LINCS L1000 Expression Perturbation** (2025-01): Find regulatory relationships from experimental CRISPR knockdown data
 - **Super-Enhancer Annotations** (2025-01): BRD4/BET inhibitor sensitivity using dbSUPER database
 
@@ -336,7 +431,7 @@ For the complete roadmap including the Unified Bio-Orchestrator vision, see **[F
 | Expression Data Fetching | Planned | Fetch baseline expression from CellxGene Census, Human Protein Atlas |
 | Context-Aware Embeddings | Planned | Cell-type-specific gene embeddings via model forward pass |
 | Perturb_GDTransformer | Waiting | Integration when fine-tuned perturbation checkpoint becomes available |
-| Unified Bio-Orchestrator | Postponed | LangGraph-based intelligent routing across analysis tools |
+| Unified Bio-Orchestrator | Postponed | Cross-project orchestration (GREmLN + regnetagents in single server) |
 
 See `tools/expression_fetcher.py` for expression fetching implementation notes.
 

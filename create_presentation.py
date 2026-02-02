@@ -379,40 +379,41 @@ p.font.size = Pt(36)
 p.font.bold = True
 p.font.color.rgb = WHITE
 
-# Three pillars
+# Four pillars
 pillars = [
     (ACCENT_TEAL, "Regulatory\nNetworks", "Pre-computed gene\nregulatory networks from\nsingle-cell data"),
     (MID_BLUE, "AI\nEmbeddings", "256-dim gene vectors\ntrained on 11 million\nsingle cells"),
-    (ACCENT_GREEN, "External\nDatabases", "STRING protein interactions\nLINCS perturbation data\nSuper-enhancer annotations")
+    (ACCENT_GREEN, "External\nData", "STRING, LINCS,\nSuper-enhancers"),
+    (ACCENT_PURPLE, "LLM\nInsights", "Ollama-powered\nbiological interpretation")
 ]
 
 for i, (color, title, desc) in enumerate(pillars):
-    x = Inches(0.9 + i * 4.1)
+    x = Inches(0.4 + i * 3.2)
 
     # Pillar box
-    box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, Inches(1.8), Inches(3.8), Inches(3.8))
+    box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, Inches(1.8), Inches(3.0), Inches(3.8))
     box.fill.solid()
     box.fill.fore_color.rgb = color
     box.line.fill.background()
 
     # Title
-    t_box = slide.shapes.add_textbox(x, Inches(2.1), Inches(3.8), Inches(1))
+    t_box = slide.shapes.add_textbox(x, Inches(2.1), Inches(3.0), Inches(1))
     tf = t_box.text_frame
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = title
-    p.font.size = Pt(26)
+    p.font.size = Pt(22)
     p.font.bold = True
     p.font.color.rgb = WHITE
     p.alignment = PP_ALIGN.CENTER
 
     # Description
-    d_box = slide.shapes.add_textbox(x + Inches(0.2), Inches(3.3), Inches(3.4), Inches(2))
+    d_box = slide.shapes.add_textbox(x + Inches(0.1), Inches(3.3), Inches(2.8), Inches(2))
     tf = d_box.text_frame
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = desc
-    p.font.size = Pt(16)
+    p.font.size = Pt(14)
     p.font.color.rgb = WHITE
     p.alignment = PP_ALIGN.CENTER
 
@@ -482,7 +483,152 @@ add_arrow_shape(slide, Inches(6.45), Inches(5.85), "down")
 add_flow_box(slide, Inches(3.4), Inches(6.3), Inches(6.5), Inches(0.9),
              "Ranked Gene List + Actionable Recommendations", ACCENT_ORANGE, WHITE, 18)
 
-# ============ SLIDE 5: PERTURBATION ALGORITHM - VERTICAL FLOWCHART ============
+# ============ SLIDE 5: LANGGRAPH ORCHESTRATION ============
+slide = prs.slides.add_slide(prs.slide_layouts[6])
+add_gradient_background(slide, prs)
+
+header = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, Inches(1.4))
+header.fill.solid()
+header.fill.fore_color.rgb = DARK_BLUE
+header.line.fill.background()
+
+title_box = slide.shapes.add_textbox(Inches(0.6), Inches(0.4), Inches(12.133), Inches(0.9))
+tf = title_box.text_frame
+p = tf.paragraphs[0]
+p.text = "LangGraph Workflow Orchestration"
+p.font.size = Pt(36)
+p.font.bold = True
+p.font.color.rgb = WHITE
+
+# Subtitle
+sub_box = slide.shapes.add_textbox(Inches(0.6), Inches(1.5), Inches(12.133), Inches(0.5))
+tf = sub_box.text_frame
+p = tf.paragraphs[0]
+p.text = "Intelligent routing with parallel execution"
+p.font.size = Pt(20)
+p.font.italic = True
+p.font.color.rgb = MID_GRAY
+
+# StateGraph diagram - vertical flow
+# START node
+add_flow_box(slide, Inches(5.5), Inches(2.1), Inches(2.2), Inches(0.6),
+             "Gene Input", DARK_GRAY, WHITE, 14)
+
+add_arrow_shape(slide, Inches(6.45), Inches(2.75), "down")
+
+# Classify node
+add_flow_box(slide, Inches(5.0), Inches(3.0), Inches(3.2), Inches(0.6),
+             "Classify Gene Type", MID_BLUE, WHITE, 14)
+
+add_arrow_shape(slide, Inches(6.45), Inches(3.65), "down")
+
+# Router (diamond-like decision)
+router = slide.shapes.add_shape(MSO_SHAPE.DIAMOND, Inches(5.5), Inches(3.85), Inches(2.2), Inches(0.8))
+router.fill.solid()
+router.fill.fore_color.rgb = ACCENT_ORANGE
+router.line.fill.background()
+
+router_text = slide.shapes.add_textbox(Inches(5.5), Inches(4.05), Inches(2.2), Inches(0.5))
+tf = router_text.text_frame
+p = tf.paragraphs[0]
+p.text = "Route"
+p.font.size = Pt(14)
+p.font.bold = True
+p.font.color.rgb = WHITE
+p.alignment = PP_ALIGN.CENTER
+
+# Three parallel branches
+# Left: TF path
+add_arrow_shape(slide, Inches(4.3), Inches(4.25), "down")
+add_flow_box(slide, Inches(2.2), Inches(4.8), Inches(2.6), Inches(0.8),
+             "TF Analysis\n(BFS cascade)", ACCENT_TEAL, WHITE, 12)
+
+# Center: Master reg path
+add_arrow_shape(slide, Inches(6.45), Inches(4.7), "down")
+add_flow_box(slide, Inches(5.0), Inches(4.95), Inches(3.2), Inches(0.55),
+             "Master Regulator Analysis", ACCENT_GREEN, WHITE, 12)
+
+# Right: Effector path
+add_arrow_shape(slide, Inches(8.6), Inches(4.25), "down")
+add_flow_box(slide, Inches(8.4), Inches(4.8), Inches(2.6), Inches(0.8),
+             "Effector Analysis\n(PPI + routing)", LIGHT_BLUE, WHITE, 12)
+
+# Parallel batch box
+add_flow_box(slide, Inches(2.8), Inches(5.9), Inches(7.6), Inches(0.55),
+             "Parallel Batch: External APIs + Insights", MID_BLUE, WHITE, 14)
+
+add_arrow_shape(slide, Inches(6.45), Inches(6.5), "down")
+
+# Synthesize
+add_flow_box(slide, Inches(4.5), Inches(6.75), Inches(4.2), Inches(0.6),
+             "Synthesize & Report", ACCENT_GREEN, WHITE, 14)
+
+# Right side: Benefits box
+benefits_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.4), Inches(2.1), Inches(4.3), Inches(2.4))
+benefits_box.fill.solid()
+benefits_box.fill.fore_color.rgb = RGBColor(0xf0, 0xf8, 0xff)
+benefits_box.line.color.rgb = ACCENT_TEAL
+benefits_box.line.width = Pt(2)
+
+benefits_title = slide.shapes.add_textbox(Inches(0.5), Inches(2.2), Inches(4.1), Inches(0.4))
+tf = benefits_title.text_frame
+p = tf.paragraphs[0]
+p.text = "Key Benefits"
+p.font.size = Pt(16)
+p.font.bold = True
+p.font.color.rgb = DARK_BLUE
+
+benefits_content = slide.shapes.add_textbox(Inches(0.5), Inches(2.6), Inches(4.1), Inches(1.8))
+tf = benefits_content.text_frame
+tf.word_wrap = True
+
+benefits = [
+    "Intelligent gene-type routing",
+    "3-5x faster via parallelization",
+    "Optional LLM biological insights",
+    "Graceful fallback mechanisms",
+]
+
+for i, benefit in enumerate(benefits):
+    p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+    p.text = f"• {benefit}"
+    p.font.size = Pt(12)
+    p.font.color.rgb = DARK_GRAY
+    p.space_before = Pt(4) if i > 0 else Pt(0)
+
+# Performance box on right
+perf_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.8), Inches(2.1), Inches(4.0), Inches(2.4))
+perf_box.fill.solid()
+perf_box.fill.fore_color.rgb = DARK_BLUE
+perf_box.line.fill.background()
+
+perf_title = slide.shapes.add_textbox(Inches(8.9), Inches(2.2), Inches(3.8), Inches(0.4))
+tf = perf_title.text_frame
+p = tf.paragraphs[0]
+p.text = "Performance"
+p.font.size = Pt(16)
+p.font.bold = True
+p.font.color.rgb = ACCENT_TEAL
+
+perf_content = slide.shapes.add_textbox(Inches(8.9), Inches(2.6), Inches(3.8), Inches(1.8))
+tf = perf_content.text_frame
+tf.word_wrap = True
+
+perfs = [
+    ("Basic:", "~3 sec"),
+    ("Standard:", "~5 sec"),
+    ("Comprehensive:", "~8-10 sec"),
+    ("Multi-gene (3):", "~10 sec parallel"),
+]
+
+for i, (label, value) in enumerate(perfs):
+    p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+    p.text = f"{label} {value}"
+    p.font.size = Pt(12)
+    p.font.color.rgb = WHITE
+    p.space_before = Pt(4) if i > 0 else Pt(0)
+
+# ============ SLIDE 6: PERTURBATION ALGORITHM - VERTICAL FLOWCHART ============
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 add_gradient_background(slide, prs)
 
@@ -967,7 +1113,7 @@ capabilities = [
     ("Overexpression", "Model increased gene\nexpression impact", MID_BLUE),
     ("Similar Genes", "Find functionally related\ngenes via embeddings", ACCENT_GREEN),
     ("Drug Targets", "Identify network\nvulnerabilities", ACCENT_ORANGE),
-    ("Protein Interactions", "STRING database\nintegration", MID_BLUE),
+    ("LLM Insights", "AI-powered biological\ninterpretation (Ollama)", ACCENT_PURPLE),
     ("Super-Enhancers", "BRD4/BET inhibitor\nsensitivity", ACCENT_TEAL),
 ]
 
