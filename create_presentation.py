@@ -754,7 +754,7 @@ p.alignment = PP_ALIGN.CENTER
 legend_x = Inches(8.3)
 legend_y = Inches(1.2)
 
-legend_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, legend_x, legend_y, Inches(4.5), Inches(5.5))
+legend_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, legend_x, legend_y, Inches(4.5), Inches(1.9))
 legend_box.fill.solid()
 legend_box.fill.fore_color.rgb = RGBColor(0xfa, 0xfa, 0xfa)
 legend_box.line.color.rgb = LIGHT_GRAY
@@ -768,7 +768,7 @@ p.font.size = Pt(16)
 p.font.bold = True
 p.font.color.rgb = DARK_BLUE
 
-legend_content = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(0.55), Inches(4.1), Inches(4.8))
+legend_content = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(0.45), Inches(4.1), Inches(1.4))
 tf = legend_content.text_frame
 tf.word_wrap = True
 
@@ -783,27 +783,102 @@ steps_info = [
 
 for i, (title, desc, color) in enumerate(steps_info):
     p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-    p.text = title
-    p.font.size = Pt(11)
-    p.font.bold = True
+    p.text = f"{title}: {desc}"
+    p.font.size = Pt(9)
+    p.font.bold = False
     p.font.color.rgb = color
-    p.space_before = Pt(8) if i > 0 else Pt(0)
+    p.space_before = Pt(2) if i > 0 else Pt(0)
 
-    p = tf.add_paragraph()
-    p.text = desc
-    p.font.size = Pt(10)
-    p.font.color.rgb = DARK_GRAY
-    p.space_before = Pt(0)
+# Equation box at bottom of legend - Full perturbation formulas
+eq_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, legend_x + Inches(0.1), legend_y + Inches(3.1), Inches(4.3), Inches(3.5))
+eq_box.fill.solid()
+eq_box.fill.fore_color.rgb = DARK_BLUE
+eq_box.line.fill.background()
 
-# Add key insight at bottom of legend
-insight_box = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(4.4), Inches(4.1), Inches(1.0))
-tf = insight_box.text_frame
+eq_title = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(3.18), Inches(4.1), Inches(0.3))
+tf = eq_title.text_frame
+p = tf.paragraphs[0]
+p.text = "Perturbation Scoring"
+p.font.size = Pt(11)
+p.font.bold = True
+p.font.color.rgb = ACCENT_TEAL
+
+# Network Effect equation
+eq_net_label = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(3.45), Inches(4.1), Inches(0.25))
+tf = eq_net_label.text_frame
+p = tf.paragraphs[0]
+p.text = "Network Effect (BFS propagation):"
+p.font.size = Pt(9)
+p.font.color.rgb = RGBColor(0x88, 0xcc, 0xbb)
+
+eq_net = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(3.65), Inches(4.1), Inches(0.35))
+tf = eq_net.text_frame
+p = tf.paragraphs[0]
+p.text = "E_net(t) = \u220f MI(e)  for edges r\u2192t"
+p.font.size = Pt(12)
+p.font.bold = True
+p.font.color.rgb = WHITE
+p.font.name = "Consolas"
+
+# Embedding Effect equation
+eq_emb_label = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(4.0), Inches(4.1), Inches(0.25))
+tf = eq_emb_label.text_frame
+p = tf.paragraphs[0]
+p.text = "Embedding Similarity:"
+p.font.size = Pt(9)
+p.font.color.rgb = RGBColor(0xbb, 0x88, 0xdd)
+
+eq_emb = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(4.2), Inches(4.1), Inches(0.35))
+tf = eq_emb.text_frame
+p = tf.paragraphs[0]
+p.text = "E_emb(t) = cos(v_g, v_t)"
+p.font.size = Pt(12)
+p.font.bold = True
+p.font.color.rgb = WHITE
+p.font.name = "Consolas"
+
+# Combined Effect equation
+eq_comb_label = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(4.55), Inches(4.1), Inches(0.25))
+tf = eq_comb_label.text_frame
+p = tf.paragraphs[0]
+p.text = "Combined Effect:"
+p.font.size = Pt(9)
+p.font.color.rgb = RGBColor(0xff, 0xcc, 0x66)
+
+eq_comb = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(4.75), Inches(4.1), Inches(0.5))
+tf = eq_comb.text_frame
+p = tf.paragraphs[0]
+p.text = "E(t) = E_net \u00d7 (\u03b1 + (1-\u03b1) \u00d7 E_emb)"
+p.font.size = Pt(12)
+p.font.bold = True
+p.font.color.rgb = WHITE
+p.font.name = "Consolas"
+
+# Alpha value and explanation
+eq_alpha = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(5.15), Inches(4.1), Inches(0.25))
+tf = eq_alpha.text_frame
+p = tf.paragraphs[0]
+p.text = "where \u03b1 = 0.7 (network weight)"
+p.font.size = Pt(9)
+p.font.italic = True
+p.font.color.rgb = RGBColor(0xaa, 0xbb, 0xcc)
+
+# Variable definitions
+eq_def = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(5.45), Inches(4.1), Inches(1.1))
+tf = eq_def.text_frame
 tf.word_wrap = True
 p = tf.paragraphs[0]
-p.text = "Goal: Route every perturbation to GRN-active nodes for BFS propagation"
-p.font.size = Pt(10)
-p.font.italic = True
-p.font.color.rgb = MID_GRAY
+p.text = "r = Route(g) \u2192 GRN-active node"
+p.font.size = Pt(8)
+p.font.color.rgb = ACCENT_TEAL
+p = tf.add_paragraph()
+p.text = "v_g, v_t = 256-dim gene embeddings"
+p.font.size = Pt(8)
+p.font.color.rgb = RGBColor(0x99, 0xaa, 0xbb)
+p = tf.add_paragraph()
+p.text = "MI(e) = mutual information edge weight"
+p.font.size = Pt(8)
+p.font.color.rgb = RGBColor(0x99, 0xaa, 0xbb)
 
 # ============ SLIDE 6: CELL TYPES ============
 slide = prs.slides.add_slide(prs.slide_layouts[6])
