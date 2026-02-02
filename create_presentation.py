@@ -463,222 +463,252 @@ add_arrow_shape(slide, Inches(6.45), Inches(5.85), "down")
 add_flow_box(slide, Inches(3.4), Inches(6.3), Inches(6.5), Inches(0.9),
              "Ranked Gene List + Actionable Recommendations", ACCENT_ORANGE, WHITE, 18)
 
-# ============ SLIDE 5: PERTURBATION ALGORITHM ============
+# ============ SLIDE 5: PERTURBATION ALGORITHM - CASCADING FALLBACK ============
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 add_gradient_background(slide, prs)
 
-header = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, Inches(1.4))
+header = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, Inches(1.2))
 header.fill.solid()
 header.fill.fore_color.rgb = DARK_BLUE
 header.line.fill.background()
 
-title_box = slide.shapes.add_textbox(Inches(0.6), Inches(0.4), Inches(12.133), Inches(0.9))
+title_box = slide.shapes.add_textbox(Inches(0.6), Inches(0.35), Inches(12.133), Inches(0.8))
 tf = title_box.text_frame
 p = tf.paragraphs[0]
-p.text = "Perturbation Analysis Algorithm"
-p.font.size = Pt(36)
+p.text = "Perturbation Analysis: Cascading Fallback"
+p.font.size = Pt(32)
 p.font.bold = True
 p.font.color.rgb = WHITE
 
-# Step 1: Network Propagation
-add_flow_box(slide, Inches(0.5), Inches(1.6), Inches(0.8), Inches(0.8), "1", ACCENT_TEAL, WHITE, 28)
+# Define colors for each step
+STEP_COLORS = [ACCENT_TEAL, MID_BLUE, RGBColor(0x9b, 0x59, 0xb6), RGBColor(0xe6, 0x7e, 0x22), RGBColor(0x1a, 0xbc, 0x9c), RGBColor(0x95, 0xa5, 0xa6)]
 
-step1_title = slide.shapes.add_textbox(Inches(1.5), Inches(1.6), Inches(4), Inches(0.5))
-tf = step1_title.text_frame
-p = tf.paragraphs[0]
-p.text = "Network Propagation"
-p.font.size = Pt(22)
-p.font.bold = True
-p.font.color.rgb = ACCENT_TEAL
+# Helper function for decision diamond
+def add_diamond(slide, left, top, width, height, text, fill_color, text_color, font_size):
+    diamond = slide.shapes.add_shape(MSO_SHAPE.DIAMOND, left, top, width, height)
+    diamond.fill.solid()
+    diamond.fill.fore_color.rgb = fill_color
+    diamond.line.color.rgb = RGBColor(0xff, 0xff, 0xff)
+    diamond.line.width = Pt(1)
+    tf = diamond.text_frame
+    tf.word_wrap = True
+    p = tf.paragraphs[0]
+    p.text = text
+    p.font.size = Pt(font_size)
+    p.font.bold = True
+    p.font.color.rgb = text_color
+    p.alignment = PP_ALIGN.CENTER
+    return diamond
 
-step1_desc = slide.shapes.add_textbox(Inches(1.5), Inches(2.1), Inches(5), Inches(1.0))
-tf = step1_desc.text_frame
+# Layout: 6 steps in two columns
+# Column 1: Steps 1-3 (left side)
+# Column 2: Steps 4-6 (right side)
+
+col1_x = Inches(0.4)
+col2_x = Inches(6.9)
+step_width = Inches(5.8)
+row_height = Inches(1.65)
+start_y = Inches(1.35)
+
+# ===== STEP 1: GRN Edges =====
+y1 = start_y
+add_flow_box(slide, col1_x, y1, Inches(0.5), Inches(0.5), "1", STEP_COLORS[0], WHITE, 18)
+
+step1_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col1_x + Inches(0.6), y1, Inches(5.2), Inches(1.5))
+step1_box.fill.solid()
+step1_box.fill.fore_color.rgb = RGBColor(0xf0, 0xf8, 0xff)
+step1_box.line.color.rgb = STEP_COLORS[0]
+step1_box.line.width = Pt(2)
+
+step1_text = slide.shapes.add_textbox(col1_x + Inches(0.75), y1 + Inches(0.08), Inches(4.9), Inches(1.4))
+tf = step1_text.text_frame
 tf.word_wrap = True
 p = tf.paragraphs[0]
-p.text = "Walk through regulatory network using BFS. Edge weights (mutual information) determine effect strength as signal propagates."
-p.font.size = Pt(16)
-p.font.color.rgb = DARK_GRAY
-
-# Step 1 diagram - with MI values and effect calculation
-add_flow_box(slide, Inches(6.5), Inches(1.55), Inches(1.1), Inches(0.5), "MYC", ACCENT_ORANGE, WHITE, 12)
-effect1 = slide.shapes.add_textbox(Inches(6.5), Inches(2.05), Inches(1.1), Inches(0.3))
-tf = effect1.text_frame
-p = tf.paragraphs[0]
-p.text = "effect=1.0"
-p.font.size = Pt(10)
+p.text = "Check GRN Edges"
+p.font.size = Pt(14)
 p.font.bold = True
+p.font.color.rgb = STEP_COLORS[0]
+p = tf.add_paragraph()
+p.text = "Has outgoing regulatory edges?"
+p.font.size = Pt(11)
+p.font.color.rgb = DARK_GRAY
+p = tf.add_paragraph()
+p.text = "YES → Run BFS network propagation → END"
+p.font.size = Pt(10)
+p.font.color.rgb = ACCENT_GREEN
+p = tf.add_paragraph()
+p.text = "NO → network_effect = 0, continue..."
+p.font.size = Pt(10)
 p.font.color.rgb = ACCENT_ORANGE
-p.alignment = PP_ALIGN.CENTER
 
-# Arrow with MI label
-add_arrow_shape(slide, Inches(7.7), Inches(1.75), "right")
-mi1_label = slide.shapes.add_textbox(Inches(7.6), Inches(1.45), Inches(0.7), Inches(0.3))
-tf = mi1_label.text_frame
-p = tf.paragraphs[0]
-p.text = "MI=0.8"
-p.font.size = Pt(9)
-p.font.color.rgb = MID_GRAY
-p.alignment = PP_ALIGN.CENTER
+# ===== STEP 2: STRING Protein Interaction =====
+y2 = start_y + row_height
+add_flow_box(slide, col1_x, y2, Inches(0.5), Inches(0.5), "2", STEP_COLORS[1], WHITE, 18)
 
-add_flow_box(slide, Inches(8.3), Inches(1.55), Inches(1.1), Inches(0.5), "Gene B", MID_BLUE, WHITE, 12)
-effect2 = slide.shapes.add_textbox(Inches(8.3), Inches(2.05), Inches(1.1), Inches(0.3))
-tf = effect2.text_frame
-p = tf.paragraphs[0]
-p.text = "effect=0.80"
-p.font.size = Pt(10)
-p.font.bold = True
-p.font.color.rgb = MID_BLUE
-p.alignment = PP_ALIGN.CENTER
+step2_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col1_x + Inches(0.6), y2, Inches(5.2), Inches(1.5))
+step2_box.fill.solid()
+step2_box.fill.fore_color.rgb = RGBColor(0xf0, 0xf8, 0xff)
+step2_box.line.color.rgb = STEP_COLORS[1]
+step2_box.line.width = Pt(2)
 
-# Arrow with MI label
-add_arrow_shape(slide, Inches(9.5), Inches(1.75), "right")
-mi2_label = slide.shapes.add_textbox(Inches(9.4), Inches(1.45), Inches(0.7), Inches(0.3))
-tf = mi2_label.text_frame
-p = tf.paragraphs[0]
-p.text = "MI=0.5"
-p.font.size = Pt(9)
-p.font.color.rgb = MID_GRAY
-p.alignment = PP_ALIGN.CENTER
-
-add_flow_box(slide, Inches(10.1), Inches(1.55), Inches(1.1), Inches(0.5), "Gene C", LIGHT_BLUE, WHITE, 12)
-effect3 = slide.shapes.add_textbox(Inches(10.1), Inches(2.05), Inches(1.1), Inches(0.3))
-tf = effect3.text_frame
-p = tf.paragraphs[0]
-p.text = "effect=0.40"
-p.font.size = Pt(10)
-p.font.bold = True
-p.font.color.rgb = LIGHT_BLUE
-p.alignment = PP_ALIGN.CENTER
-
-# Second branch
-add_flow_box(slide, Inches(8.3), Inches(2.5), Inches(1.1), Inches(0.5), "Gene D", RGBColor(0xaa, 0xcc, 0xee), WHITE, 12)
-effect4 = slide.shapes.add_textbox(Inches(8.3), Inches(3.0), Inches(1.1), Inches(0.3))
-tf = effect4.text_frame
-p = tf.paragraphs[0]
-p.text = "effect=0.20"
-p.font.size = Pt(10)
-p.font.bold = True
-p.font.color.rgb = RGBColor(0x88, 0xaa, 0xcc)
-p.alignment = PP_ALIGN.CENTER
-
-# Diagonal arrow from MYC to Gene D
-mi3_label = slide.shapes.add_textbox(Inches(7.3), Inches(2.35), Inches(0.7), Inches(0.3))
-tf = mi3_label.text_frame
-p = tf.paragraphs[0]
-p.text = "MI=0.2"
-p.font.size = Pt(9)
-p.font.color.rgb = MID_GRAY
-p.alignment = PP_ALIGN.CENTER
-
-# Calculation explanation
-calc_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(11.3), Inches(1.5), Inches(1.8), Inches(1.1))
-calc_box.fill.solid()
-calc_box.fill.fore_color.rgb = LIGHT_GRAY
-calc_box.line.fill.background()
-
-calc_text = slide.shapes.add_textbox(Inches(11.35), Inches(1.55), Inches(1.7), Inches(1.0))
-tf = calc_text.text_frame
+step2_text = slide.shapes.add_textbox(col1_x + Inches(0.75), y2 + Inches(0.08), Inches(4.9), Inches(1.4))
+tf = step2_text.text_frame
 tf.word_wrap = True
 p = tf.paragraphs[0]
-p.text = "1.0 × 0.8 = 0.80"
-p.font.size = Pt(9)
+p.text = "STRING Protein Interaction"
+p.font.size = Pt(14)
+p.font.bold = True
+p.font.color.rgb = STEP_COLORS[1]
+p = tf.add_paragraph()
+p.text = "Protein partner with GRN edges?"
+p.font.size = Pt(11)
 p.font.color.rgb = DARK_GRAY
 p = tf.add_paragraph()
-p.text = "0.8 × 0.5 = 0.40"
-p.font.size = Pt(9)
-p.font.color.rgb = DARK_GRAY
+p.text = "YES → Route to partner → BFS → END"
+p.font.size = Pt(10)
+p.font.color.rgb = ACCENT_GREEN
 p = tf.add_paragraph()
-p.text = "1.0 × 0.2 = 0.20"
-p.font.size = Pt(9)
-p.font.color.rgb = DARK_GRAY
+p.text = "NO → continue to next fallback..."
+p.font.size = Pt(10)
+p.font.color.rgb = ACCENT_ORANGE
 
-# Step 2: Embedding Similarity
-add_flow_box(slide, Inches(0.5), Inches(3.5), Inches(0.8), Inches(0.7), "2", MID_BLUE, WHITE, 24)
+# ===== STEP 3: Embedding Similarity =====
+y3 = start_y + row_height * 2
+add_flow_box(slide, col1_x, y3, Inches(0.5), Inches(0.5), "3", STEP_COLORS[2], WHITE, 18)
 
-step2_title = slide.shapes.add_textbox(Inches(1.5), Inches(3.5), Inches(4), Inches(0.5))
-tf = step2_title.text_frame
+step3_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col1_x + Inches(0.6), y3, Inches(5.2), Inches(1.5))
+step3_box.fill.solid()
+step3_box.fill.fore_color.rgb = RGBColor(0xf5, 0xf0, 0xfa)
+step3_box.line.color.rgb = STEP_COLORS[2]
+step3_box.line.width = Pt(2)
+
+step3_text = slide.shapes.add_textbox(col1_x + Inches(0.75), y3 + Inches(0.08), Inches(4.9), Inches(1.4))
+tf = step3_text.text_frame
+tf.word_wrap = True
 p = tf.paragraphs[0]
 p.text = "Embedding Similarity"
-p.font.size = Pt(20)
-p.font.bold = True
-p.font.color.rgb = MID_BLUE
-
-step2_desc = slide.shapes.add_textbox(Inches(1.5), Inches(3.95), Inches(5), Inches(0.8))
-tf = step2_desc.text_frame
-tf.word_wrap = True
-p = tf.paragraphs[0]
-p.text = "256-dim gene vectors trained on 11M cells. High cosine similarity = functionally related, even without network edge."
 p.font.size = Pt(14)
-p.font.color.rgb = DARK_GRAY
-
-# Step 2 diagram - vectors
-vec_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.8), Inches(3.5), Inches(6), Inches(1.0))
-vec_box.fill.solid()
-vec_box.fill.fore_color.rgb = LIGHT_GRAY
-vec_box.line.fill.background()
-
-vec_text = slide.shapes.add_textbox(Inches(6.9), Inches(3.6), Inches(5.8), Inches(0.85))
-tf = vec_text.text_frame
-tf.word_wrap = True
-p = tf.paragraphs[0]
-p.text = "MYC   [0.23, -0.15, 0.87, ...]    similarity"
-p.font.size = Pt(12)
-p.font.name = "Consolas"
+p.font.bold = True
+p.font.color.rgb = STEP_COLORS[2]
+p = tf.add_paragraph()
+p.text = "Nearest neighbor with GRN edges?"
+p.font.size = Pt(11)
 p.font.color.rgb = DARK_GRAY
 p = tf.add_paragraph()
-p.text = "BRCA1 [0.21, -0.18, 0.85, ...]  →  0.94"
-p.font.size = Pt(12)
-p.font.name = "Consolas"
-p.font.color.rgb = DARK_GRAY
-
-# Step 3: Combined Scoring
-add_flow_box(slide, Inches(0.5), Inches(4.7), Inches(0.8), Inches(0.7), "3", ACCENT_GREEN, WHITE, 24)
-
-step3_title = slide.shapes.add_textbox(Inches(1.5), Inches(4.7), Inches(4), Inches(0.5))
-tf = step3_title.text_frame
-p = tf.paragraphs[0]
-p.text = "Combined Scoring"
-p.font.size = Pt(20)
-p.font.bold = True
+p.text = "YES → Route to neighbor → BFS → END"
+p.font.size = Pt(10)
 p.font.color.rgb = ACCENT_GREEN
+p = tf.add_paragraph()
+p.text = "NO → continue to next fallback..."
+p.font.size = Pt(10)
+p.font.color.rgb = ACCENT_ORANGE
 
-step3_desc = slide.shapes.add_textbox(Inches(1.5), Inches(5.15), Inches(5), Inches(0.8))
-tf = step3_desc.text_frame
+# ===== STEP 4: LINCS Signatures =====
+y4 = start_y
+add_flow_box(slide, col2_x, y4, Inches(0.5), Inches(0.5), "4", STEP_COLORS[3], WHITE, 18)
+
+step4_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col2_x + Inches(0.6), y4, Inches(5.2), Inches(1.5))
+step4_box.fill.solid()
+step4_box.fill.fore_color.rgb = RGBColor(0xff, 0xf5, 0xeb)
+step4_box.line.color.rgb = STEP_COLORS[3]
+step4_box.line.width = Pt(2)
+
+step4_text = slide.shapes.add_textbox(col2_x + Inches(0.75), y4 + Inches(0.08), Inches(4.9), Inches(1.4))
+tf = step4_text.text_frame
 tf.word_wrap = True
 p = tf.paragraphs[0]
-p.text = "Network provides structure, embeddings boost confidence. Captures both direct and indirect relationships."
+p.text = "LINCS Perturbation Signatures"
 p.font.size = Pt(14)
+p.font.bold = True
+p.font.color.rgb = STEP_COLORS[3]
+p = tf.add_paragraph()
+p.text = "Gene/neighbor has LINCS signature?"
+p.font.size = Pt(11)
 p.font.color.rgb = DARK_GRAY
+p = tf.add_paragraph()
+p.text = "YES → Map downstream → BFS → END"
+p.font.size = Pt(10)
+p.font.color.rgb = ACCENT_GREEN
+p = tf.add_paragraph()
+p.text = "NO → continue to next fallback..."
+p.font.size = Pt(10)
+p.font.color.rgb = ACCENT_ORANGE
 
-# Formula box
-formula_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.8), Inches(4.7), Inches(6), Inches(1.2))
-formula_box.fill.solid()
-formula_box.fill.fore_color.rgb = DARK_BLUE
-formula_box.line.fill.background()
+# ===== STEP 5: Super-Enhancer =====
+y5 = start_y + row_height
+add_flow_box(slide, col2_x, y5, Inches(0.5), Inches(0.5), "5", STEP_COLORS[4], WHITE, 18)
 
-formula_text = slide.shapes.add_textbox(Inches(7.0), Inches(4.85), Inches(5.6), Inches(1.0))
-tf = formula_text.text_frame
+step5_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col2_x + Inches(0.6), y5, Inches(5.2), Inches(1.5))
+step5_box.fill.solid()
+step5_box.fill.fore_color.rgb = RGBColor(0xe8, 0xf8, 0xf5)
+step5_box.line.color.rgb = STEP_COLORS[4]
+step5_box.line.width = Pt(2)
+
+step5_text = slide.shapes.add_textbox(col2_x + Inches(0.75), y5 + Inches(0.08), Inches(4.9), Inches(1.4))
+tf = step5_text.text_frame
 tf.word_wrap = True
 p = tf.paragraphs[0]
-p.text = "combined_effect ="
-p.font.size = Pt(13)
-p.font.color.rgb = WHITE
+p.text = "Super-Enhancer (Chromatin)"
+p.font.size = Pt(14)
+p.font.bold = True
+p.font.color.rgb = STEP_COLORS[4]
 p = tf.add_paragraph()
-p.text = "    0.7 × network_effect"
-p.font.size = Pt(13)
-p.font.color.rgb = ACCENT_TEAL
+p.text = "Gene associated with super-enhancer?"
+p.font.size = Pt(11)
+p.font.color.rgb = DARK_GRAY
 p = tf.add_paragraph()
-p.text = "  + 0.3 × embedding_similarity × network_effect"
-p.font.size = Pt(13)
-p.font.color.rgb = LIGHT_BLUE
+p.text = "YES → Route to SE-bound TFs → BFS → END"
+p.font.size = Pt(10)
+p.font.color.rgb = ACCENT_GREEN
+p = tf.add_paragraph()
+p.text = "NO → continue to final fallback..."
+p.font.size = Pt(10)
+p.font.color.rgb = ACCENT_ORANGE
+
+# ===== STEP 6: Embedding-Only Ranking =====
+y6 = start_y + row_height * 2
+add_flow_box(slide, col2_x, y6, Inches(0.5), Inches(0.5), "6", STEP_COLORS[5], WHITE, 18)
+
+step6_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col2_x + Inches(0.6), y6, Inches(5.2), Inches(1.5))
+step6_box.fill.solid()
+step6_box.fill.fore_color.rgb = RGBColor(0xf5, 0xf5, 0xf5)
+step6_box.line.color.rgb = STEP_COLORS[5]
+step6_box.line.width = Pt(2)
+
+step6_text = slide.shapes.add_textbox(col2_x + Inches(0.75), y6 + Inches(0.08), Inches(4.9), Inches(1.4))
+tf = step6_text.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "Minimal: Embedding-Only Ranking"
+p.font.size = Pt(14)
+p.font.bold = True
+p.font.color.rgb = STEP_COLORS[5]
+p = tf.add_paragraph()
+p.text = "No GRN, STRING, LINCS, or SE available"
+p.font.size = Pt(11)
+p.font.color.rgb = DARK_GRAY
+p = tf.add_paragraph()
+p.text = "Return embedding similarity ranking"
+p.font.size = Pt(10)
+p.font.color.rgb = MID_BLUE
+p = tf.add_paragraph()
+p.text = "→ END (lowest confidence)"
+p.font.size = Pt(10)
+p.font.color.rgb = MID_GRAY
+
+# Add flow arrows between columns
+arrow_mid = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, Inches(6.0), Inches(2.0), Inches(0.8), Inches(0.3))
+arrow_mid.fill.solid()
+arrow_mid.fill.fore_color.rgb = MID_GRAY
+arrow_mid.line.fill.background()
 
 # Bottom note
-note_box = slide.shapes.add_textbox(Inches(0.5), Inches(6.2), Inches(12.333), Inches(0.8))
+note_box = slide.shapes.add_textbox(Inches(0.4), Inches(6.4), Inches(12.5), Inches(0.5))
 tf = note_box.text_frame
 tf.word_wrap = True
 p = tf.paragraphs[0]
-p.text = "Result: Genes ranked by predicted impact. Network-only and embedding-only effects also reported separately."
-p.font.size = Pt(15)
+p.text = "Each step tries to route the perturbation to GRN-active nodes. Falls through only if no valid route found."
+p.font.size = Pt(13)
 p.font.italic = True
 p.font.color.rgb = MID_GRAY
 p.alignment = PP_ALIGN.CENTER
