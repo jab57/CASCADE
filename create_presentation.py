@@ -13,36 +13,44 @@ prs = Presentation()
 prs.slide_width = Inches(13.333)
 prs.slide_height = Inches(7.5)
 
-# Professional color scheme
-DARK_BLUE = RGBColor(0x0d, 0x2b, 0x4a)
-MID_BLUE = RGBColor(0x1a, 0x56, 0x8c)
-LIGHT_BLUE = RGBColor(0x3a, 0x8d, 0xc1)
-ACCENT_TEAL = RGBColor(0x00, 0x9b, 0x9e)
-ACCENT_GREEN = RGBColor(0x2e, 0xa0, 0x6a)
-ACCENT_ORANGE = RGBColor(0xe8, 0x6c, 0x2c)
+# Modern Professional Color Scheme - "Midnight Science"
+DARK_BLUE = RGBColor(0x1a, 0x1a, 0x2e)      # Deep midnight blue
+MID_BLUE = RGBColor(0x16, 0x21, 0x3e)       # Navy
+LIGHT_BLUE = RGBColor(0x4a, 0x69, 0xbd)     # Soft blue
+ACCENT_TEAL = RGBColor(0x00, 0xd4, 0xaa)    # Vibrant teal/mint
+ACCENT_GREEN = RGBColor(0x00, 0xc9, 0x8d)   # Emerald
+ACCENT_ORANGE = RGBColor(0xff, 0x6b, 0x6b)  # Coral red
+ACCENT_PURPLE = RGBColor(0x9d, 0x4e, 0xdd)  # Purple accent
 WHITE = RGBColor(0xff, 0xff, 0xff)
-LIGHT_GRAY = RGBColor(0xf5, 0xf7, 0xfa)
-MID_GRAY = RGBColor(0x64, 0x74, 0x87)
-DARK_GRAY = RGBColor(0x2d, 0x3a, 0x4a)
+LIGHT_GRAY = RGBColor(0xf8, 0xf9, 0xfc)     # Almost white
+MID_GRAY = RGBColor(0x6c, 0x75, 0x7d)       # Neutral gray
+DARK_GRAY = RGBColor(0x2c, 0x3e, 0x50)      # Charcoal
 
 
 def add_gradient_background(slide, prs):
-    """Add a subtle gradient-like background."""
-    # Main background
+    """Add a modern subtle background with accent."""
+    # Main background - clean white
     bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, prs.slide_height)
     bg.fill.solid()
-    bg.fill.fore_color.rgb = WHITE
+    bg.fill.fore_color.rgb = LIGHT_GRAY
     bg.line.fill.background()
 
-    # Top accent bar
-    top_bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, Inches(0.08))
-    top_bar.fill.solid()
-    top_bar.fill.fore_color.rgb = ACCENT_TEAL
-    top_bar.line.fill.background()
+    # Left accent strip - modern gradient effect
+    left_strip = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, Inches(0.12), prs.slide_height)
+    left_strip.fill.solid()
+    left_strip.fill.fore_color.rgb = ACCENT_TEAL
+    left_strip.line.fill.background()
+
+    # Bottom right decorative element
+    corner = slide.shapes.add_shape(MSO_SHAPE.RIGHT_TRIANGLE, Inches(11.5), Inches(6.3), Inches(1.833), Inches(1.2))
+    corner.fill.solid()
+    corner.fill.fore_color.rgb = RGBColor(0xe8, 0xf4, 0xf8)
+    corner.line.fill.background()
+    corner.rotation = 180
 
 
 def add_title_slide(prs, title, subtitle, tagline=None):
-    """Add an impressive title slide."""
+    """Add an impressive title slide with modern design."""
     slide_layout = prs.slide_layouts[6]
     slide = prs.slides.add_slide(slide_layout)
 
@@ -52,18 +60,29 @@ def add_title_slide(prs, title, subtitle, tagline=None):
     bg.fill.fore_color.rgb = DARK_BLUE
     bg.line.fill.background()
 
-    # Decorative diagonal accent
-    accent1 = slide.shapes.add_shape(MSO_SHAPE.PARALLELOGRAM, Inches(-2), Inches(5.5), Inches(8), Inches(2.5))
+    # Modern geometric accents - layered shapes
+    accent1 = slide.shapes.add_shape(MSO_SHAPE.PARALLELOGRAM, Inches(-3), Inches(5), Inches(10), Inches(3))
     accent1.fill.solid()
     accent1.fill.fore_color.rgb = MID_BLUE
     accent1.line.fill.background()
-    accent1.fill.fore_color.brightness = 0.1
 
-    accent2 = slide.shapes.add_shape(MSO_SHAPE.PARALLELOGRAM, Inches(8), Inches(-0.5), Inches(7), Inches(2))
+    accent2 = slide.shapes.add_shape(MSO_SHAPE.PARALLELOGRAM, Inches(7), Inches(-1), Inches(8), Inches(2.5))
     accent2.fill.solid()
     accent2.fill.fore_color.rgb = ACCENT_TEAL
     accent2.line.fill.background()
-    accent2.fill.fore_color.brightness = -0.1
+
+    # Subtle circle decoration
+    circle1 = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(10.5), Inches(5), Inches(3), Inches(3))
+    circle1.fill.solid()
+    circle1.fill.fore_color.rgb = ACCENT_PURPLE
+    circle1.fill.fore_color.brightness = 0.3
+    circle1.line.fill.background()
+
+    circle2 = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(-1), Inches(-1), Inches(2.5), Inches(2.5))
+    circle2.fill.solid()
+    circle2.fill.fore_color.rgb = ACCENT_TEAL
+    circle2.fill.fore_color.brightness = 0.4
+    circle2.line.fill.background()
 
     # Title
     title_box = slide.shapes.add_textbox(Inches(0.8), Inches(2.2), Inches(11.733), Inches(1.8))
@@ -463,255 +482,328 @@ add_arrow_shape(slide, Inches(6.45), Inches(5.85), "down")
 add_flow_box(slide, Inches(3.4), Inches(6.3), Inches(6.5), Inches(0.9),
              "Ranked Gene List + Actionable Recommendations", ACCENT_ORANGE, WHITE, 18)
 
-# ============ SLIDE 5: PERTURBATION ALGORITHM - CASCADING FALLBACK ============
+# ============ SLIDE 5: PERTURBATION ALGORITHM - VERTICAL FLOWCHART ============
 slide = prs.slides.add_slide(prs.slide_layouts[6])
 add_gradient_background(slide, prs)
 
-header = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, Inches(1.2))
+header = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, Inches(0.9))
 header.fill.solid()
 header.fill.fore_color.rgb = DARK_BLUE
 header.line.fill.background()
 
-title_box = slide.shapes.add_textbox(Inches(0.6), Inches(0.35), Inches(12.133), Inches(0.8))
+title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.22), Inches(12.333), Inches(0.6))
 tf = title_box.text_frame
 p = tf.paragraphs[0]
 p.text = "Perturbation Analysis: Cascading Fallback"
-p.font.size = Pt(32)
+p.font.size = Pt(28)
 p.font.bold = True
 p.font.color.rgb = WHITE
 
-# Define colors for each step
-STEP_COLORS = [ACCENT_TEAL, MID_BLUE, RGBColor(0x9b, 0x59, 0xb6), RGBColor(0xe6, 0x7e, 0x22), RGBColor(0x1a, 0xbc, 0x9c), RGBColor(0x95, 0xa5, 0xa6)]
+# Flowchart Colors - Modern palette
+DIAMOND_COLOR = RGBColor(0x2c, 0x3e, 0x50)  # Charcoal
+YES_COLOR = ACCENT_TEAL
+NO_COLOR = RGBColor(0x8e, 0x99, 0xa4)
+END_COLOR = ACCENT_GREEN
+BFS_COLOR = LIGHT_BLUE
 
-# Helper function for decision diamond
-def add_diamond(slide, left, top, width, height, text, fill_color, text_color, font_size):
-    diamond = slide.shapes.add_shape(MSO_SHAPE.DIAMOND, left, top, width, height)
+# Layout constants
+diamond_x = Inches(0.8)
+diamond_w = Inches(2.0)
+diamond_h = Inches(0.7)
+bfs_x = Inches(4.5)
+end_x = Inches(7.2)
+row_spacing = Inches(0.85)
+start_y = Inches(1.05)
+
+# Helper to add a decision row
+def add_decision_row(slide, y, step_num, question, action_text):
+    # Decision diamond
+    diamond = slide.shapes.add_shape(MSO_SHAPE.DIAMOND, diamond_x, y, diamond_w, diamond_h)
     diamond.fill.solid()
-    diamond.fill.fore_color.rgb = fill_color
-    diamond.line.color.rgb = RGBColor(0xff, 0xff, 0xff)
+    diamond.fill.fore_color.rgb = DIAMOND_COLOR
+    diamond.line.color.rgb = WHITE
     diamond.line.width = Pt(1)
-    tf = diamond.text_frame
+
+    # Question text (to the right of diamond, inside it won't fit well)
+    q_box = slide.shapes.add_textbox(diamond_x + Inches(0.15), y + Inches(0.18), diamond_w - Inches(0.3), diamond_h - Inches(0.2))
+    tf = q_box.text_frame
     tf.word_wrap = True
     p = tf.paragraphs[0]
-    p.text = text
-    p.font.size = Pt(font_size)
+    p.text = question
+    p.font.size = Pt(9)
     p.font.bold = True
-    p.font.color.rgb = text_color
+    p.font.color.rgb = WHITE
     p.alignment = PP_ALIGN.CENTER
-    return diamond
 
-# Layout: 6 steps in two columns
-# Column 1: Steps 1-3 (left side)
-# Column 2: Steps 4-6 (right side)
+    # Step number badge
+    badge = slide.shapes.add_shape(MSO_SHAPE.OVAL, diamond_x - Inches(0.35), y + Inches(0.2), Inches(0.32), Inches(0.32))
+    badge.fill.solid()
+    badge.fill.fore_color.rgb = ACCENT_TEAL
+    badge.line.fill.background()
+    badge_text = slide.shapes.add_textbox(diamond_x - Inches(0.35), y + Inches(0.22), Inches(0.32), Inches(0.3))
+    tf = badge_text.text_frame
+    p = tf.paragraphs[0]
+    p.text = str(step_num)
+    p.font.size = Pt(11)
+    p.font.bold = True
+    p.font.color.rgb = WHITE
+    p.alignment = PP_ALIGN.CENTER
 
-col1_x = Inches(0.4)
-col2_x = Inches(6.9)
-step_width = Inches(5.8)
-row_height = Inches(1.65)
-start_y = Inches(1.35)
+    # YES arrow pointing right
+    yes_arrow = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, diamond_x + diamond_w + Inches(0.1), y + Inches(0.25), Inches(0.5), Inches(0.22))
+    yes_arrow.fill.solid()
+    yes_arrow.fill.fore_color.rgb = YES_COLOR
+    yes_arrow.line.fill.background()
 
-# ===== STEP 1: GRN Edges =====
-y1 = start_y
-add_flow_box(slide, col1_x, y1, Inches(0.5), Inches(0.5), "1", STEP_COLORS[0], WHITE, 18)
+    # YES label
+    yes_label = slide.shapes.add_textbox(diamond_x + diamond_w + Inches(0.15), y + Inches(0.02), Inches(0.4), Inches(0.25))
+    tf = yes_label.text_frame
+    p = tf.paragraphs[0]
+    p.text = "YES"
+    p.font.size = Pt(8)
+    p.font.bold = True
+    p.font.color.rgb = YES_COLOR
 
-step1_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col1_x + Inches(0.6), y1, Inches(5.2), Inches(1.5))
-step1_box.fill.solid()
-step1_box.fill.fore_color.rgb = RGBColor(0xf0, 0xf8, 0xff)
-step1_box.line.color.rgb = STEP_COLORS[0]
-step1_box.line.width = Pt(2)
+    # Action box (Route/BFS)
+    action_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, bfs_x, y + Inches(0.1), Inches(2.5), Inches(0.5))
+    action_box.fill.solid()
+    action_box.fill.fore_color.rgb = BFS_COLOR
+    action_box.line.fill.background()
 
-step1_text = slide.shapes.add_textbox(col1_x + Inches(0.75), y1 + Inches(0.08), Inches(4.9), Inches(1.4))
-tf = step1_text.text_frame
-tf.word_wrap = True
+    action_label = slide.shapes.add_textbox(bfs_x + Inches(0.1), y + Inches(0.18), Inches(2.3), Inches(0.4))
+    tf = action_label.text_frame
+    p = tf.paragraphs[0]
+    p.text = action_text
+    p.font.size = Pt(10)
+    p.font.bold = True
+    p.font.color.rgb = WHITE
+    p.alignment = PP_ALIGN.CENTER
+
+    # Arrow to END
+    end_arrow = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, bfs_x + Inches(2.6), y + Inches(0.25), Inches(0.4), Inches(0.2))
+    end_arrow.fill.solid()
+    end_arrow.fill.fore_color.rgb = END_COLOR
+    end_arrow.line.fill.background()
+
+    # END box
+    end_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, end_x, y + Inches(0.12), Inches(0.7), Inches(0.45))
+    end_box.fill.solid()
+    end_box.fill.fore_color.rgb = END_COLOR
+    end_box.line.fill.background()
+
+    end_label = slide.shapes.add_textbox(end_x, y + Inches(0.2), Inches(0.7), Inches(0.35))
+    tf = end_label.text_frame
+    p = tf.paragraphs[0]
+    p.text = "END"
+    p.font.size = Pt(10)
+    p.font.bold = True
+    p.font.color.rgb = WHITE
+    p.alignment = PP_ALIGN.CENTER
+
+    # NO arrow pointing down (except for last row)
+    return y + diamond_h
+
+# Gene Input box at top
+input_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, diamond_x + Inches(0.3), start_y, Inches(1.4), Inches(0.45))
+input_box.fill.solid()
+input_box.fill.fore_color.rgb = ACCENT_ORANGE
+input_box.line.fill.background()
+
+input_label = slide.shapes.add_textbox(diamond_x + Inches(0.3), start_y + Inches(0.08), Inches(1.4), Inches(0.35))
+tf = input_label.text_frame
 p = tf.paragraphs[0]
-p.text = "Check GRN Edges"
-p.font.size = Pt(14)
+p.text = "Gene Input"
+p.font.size = Pt(12)
 p.font.bold = True
-p.font.color.rgb = STEP_COLORS[0]
-p = tf.add_paragraph()
-p.text = "Has outgoing regulatory edges?"
-p.font.size = Pt(11)
-p.font.color.rgb = DARK_GRAY
-p = tf.add_paragraph()
-p.text = "YES → Run BFS network propagation → END"
-p.font.size = Pt(10)
-p.font.color.rgb = ACCENT_GREEN
-p = tf.add_paragraph()
-p.text = "NO → network_effect = 0, continue..."
-p.font.size = Pt(10)
-p.font.color.rgb = ACCENT_ORANGE
+p.font.color.rgb = WHITE
+p.alignment = PP_ALIGN.CENTER
 
-# ===== STEP 2: STRING Protein Interaction =====
-y2 = start_y + row_height
-add_flow_box(slide, col1_x, y2, Inches(0.5), Inches(0.5), "2", STEP_COLORS[1], WHITE, 18)
+# Down arrow from input
+down_arrow1 = slide.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, diamond_x + Inches(0.85), start_y + Inches(0.48), Inches(0.3), Inches(0.3))
+down_arrow1.fill.solid()
+down_arrow1.fill.fore_color.rgb = NO_COLOR
+down_arrow1.line.fill.background()
 
-step2_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col1_x + Inches(0.6), y2, Inches(5.2), Inches(1.5))
-step2_box.fill.solid()
-step2_box.fill.fore_color.rgb = RGBColor(0xf0, 0xf8, 0xff)
-step2_box.line.color.rgb = STEP_COLORS[1]
-step2_box.line.width = Pt(2)
+# Decision rows
+y = start_y + Inches(0.85)
 
-step2_text = slide.shapes.add_textbox(col1_x + Inches(0.75), y2 + Inches(0.08), Inches(4.9), Inches(1.4))
-tf = step2_text.text_frame
-tf.word_wrap = True
+# Row 1: GRN edges
+add_decision_row(slide, y, 1, "GRN edges?", "BFS propagation")
+# NO arrow down
+no_arrow1 = slide.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, diamond_x + Inches(0.85), y + diamond_h + Inches(0.02), Inches(0.3), Inches(0.25))
+no_arrow1.fill.solid()
+no_arrow1.fill.fore_color.rgb = NO_COLOR
+no_arrow1.line.fill.background()
+no_label1 = slide.shapes.add_textbox(diamond_x + Inches(1.2), y + diamond_h + Inches(0.02), Inches(0.3), Inches(0.2))
+tf = no_label1.text_frame
 p = tf.paragraphs[0]
-p.text = "STRING Protein Interaction"
-p.font.size = Pt(14)
+p.text = "NO"
+p.font.size = Pt(7)
+p.font.color.rgb = NO_COLOR
+
+# Row 2: STRING
+y += row_spacing + Inches(0.1)
+add_decision_row(slide, y, 2, "STRING\npartner?", "Route → BFS")
+no_arrow2 = slide.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, diamond_x + Inches(0.85), y + diamond_h + Inches(0.02), Inches(0.3), Inches(0.25))
+no_arrow2.fill.solid()
+no_arrow2.fill.fore_color.rgb = NO_COLOR
+no_arrow2.line.fill.background()
+no_label2 = slide.shapes.add_textbox(diamond_x + Inches(1.2), y + diamond_h + Inches(0.02), Inches(0.3), Inches(0.2))
+tf = no_label2.text_frame
+p = tf.paragraphs[0]
+p.text = "NO"
+p.font.size = Pt(7)
+p.font.color.rgb = NO_COLOR
+
+# Row 3: Embedding neighbor
+y += row_spacing + Inches(0.1)
+add_decision_row(slide, y, 3, "Embedding\nneighbor?", "Route → BFS")
+no_arrow3 = slide.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, diamond_x + Inches(0.85), y + diamond_h + Inches(0.02), Inches(0.3), Inches(0.25))
+no_arrow3.fill.solid()
+no_arrow3.fill.fore_color.rgb = NO_COLOR
+no_arrow3.line.fill.background()
+no_label3 = slide.shapes.add_textbox(diamond_x + Inches(1.2), y + diamond_h + Inches(0.02), Inches(0.3), Inches(0.2))
+tf = no_label3.text_frame
+p = tf.paragraphs[0]
+p.text = "NO"
+p.font.size = Pt(7)
+p.font.color.rgb = NO_COLOR
+
+# Row 4: LINCS
+y += row_spacing + Inches(0.1)
+add_decision_row(slide, y, 4, "LINCS\nsignature?", "Map downstream → BFS")
+no_arrow4 = slide.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, diamond_x + Inches(0.85), y + diamond_h + Inches(0.02), Inches(0.3), Inches(0.25))
+no_arrow4.fill.solid()
+no_arrow4.fill.fore_color.rgb = NO_COLOR
+no_arrow4.line.fill.background()
+no_label4 = slide.shapes.add_textbox(diamond_x + Inches(1.2), y + diamond_h + Inches(0.02), Inches(0.3), Inches(0.2))
+tf = no_label4.text_frame
+p = tf.paragraphs[0]
+p.text = "NO"
+p.font.size = Pt(7)
+p.font.color.rgb = NO_COLOR
+
+# Row 5: Super-enhancer
+y += row_spacing + Inches(0.1)
+add_decision_row(slide, y, 5, "Super-\nenhancer?", "Route to TFs → BFS")
+no_arrow5 = slide.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, diamond_x + Inches(0.85), y + diamond_h + Inches(0.02), Inches(0.3), Inches(0.25))
+no_arrow5.fill.solid()
+no_arrow5.fill.fore_color.rgb = NO_COLOR
+no_arrow5.line.fill.background()
+no_label5 = slide.shapes.add_textbox(diamond_x + Inches(1.2), y + diamond_h + Inches(0.02), Inches(0.3), Inches(0.2))
+tf = no_label5.text_frame
+p = tf.paragraphs[0]
+p.text = "NO"
+p.font.size = Pt(7)
+p.font.color.rgb = NO_COLOR
+
+# Row 6: Final fallback - Embedding only (no diamond, just result)
+y += row_spacing + Inches(0.15)
+
+# Step 6 badge
+badge6 = slide.shapes.add_shape(MSO_SHAPE.OVAL, diamond_x - Inches(0.35), y + Inches(0.05), Inches(0.32), Inches(0.32))
+badge6.fill.solid()
+badge6.fill.fore_color.rgb = RGBColor(0x95, 0xa5, 0xa6)
+badge6.line.fill.background()
+badge6_text = slide.shapes.add_textbox(diamond_x - Inches(0.35), y + Inches(0.07), Inches(0.32), Inches(0.3))
+tf = badge6_text.text_frame
+p = tf.paragraphs[0]
+p.text = "6"
+p.font.size = Pt(11)
 p.font.bold = True
-p.font.color.rgb = STEP_COLORS[1]
-p = tf.add_paragraph()
-p.text = "Protein partner with GRN edges?"
-p.font.size = Pt(11)
-p.font.color.rgb = DARK_GRAY
-p = tf.add_paragraph()
-p.text = "YES → Route to partner → BFS → END"
-p.font.size = Pt(10)
-p.font.color.rgb = ACCENT_GREEN
-p = tf.add_paragraph()
-p.text = "NO → continue to next fallback..."
-p.font.size = Pt(10)
-p.font.color.rgb = ACCENT_ORANGE
+p.font.color.rgb = WHITE
+p.alignment = PP_ALIGN.CENTER
 
-# ===== STEP 3: Embedding Similarity =====
-y3 = start_y + row_height * 2
-add_flow_box(slide, col1_x, y3, Inches(0.5), Inches(0.5), "3", STEP_COLORS[2], WHITE, 18)
+# Final result box
+final_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, diamond_x, y, Inches(4.5), Inches(0.5))
+final_box.fill.solid()
+final_box.fill.fore_color.rgb = RGBColor(0x7f, 0x8c, 0x8d)
+final_box.line.fill.background()
 
-step3_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col1_x + Inches(0.6), y3, Inches(5.2), Inches(1.5))
-step3_box.fill.solid()
-step3_box.fill.fore_color.rgb = RGBColor(0xf5, 0xf0, 0xfa)
-step3_box.line.color.rgb = STEP_COLORS[2]
-step3_box.line.width = Pt(2)
-
-step3_text = slide.shapes.add_textbox(col1_x + Inches(0.75), y3 + Inches(0.08), Inches(4.9), Inches(1.4))
-tf = step3_text.text_frame
-tf.word_wrap = True
+final_label = slide.shapes.add_textbox(diamond_x + Inches(0.1), y + Inches(0.1), Inches(4.3), Inches(0.4))
+tf = final_label.text_frame
 p = tf.paragraphs[0]
-p.text = "Embedding Similarity"
-p.font.size = Pt(14)
+p.text = "Embedding-only similarity ranking"
+p.font.size = Pt(12)
 p.font.bold = True
-p.font.color.rgb = STEP_COLORS[2]
-p = tf.add_paragraph()
-p.text = "Nearest neighbor with GRN edges?"
-p.font.size = Pt(11)
-p.font.color.rgb = DARK_GRAY
-p = tf.add_paragraph()
-p.text = "YES → Route to neighbor → BFS → END"
-p.font.size = Pt(10)
-p.font.color.rgb = ACCENT_GREEN
-p = tf.add_paragraph()
-p.text = "NO → continue to next fallback..."
-p.font.size = Pt(10)
-p.font.color.rgb = ACCENT_ORANGE
+p.font.color.rgb = WHITE
+p.alignment = PP_ALIGN.CENTER
 
-# ===== STEP 4: LINCS Signatures =====
-y4 = start_y
-add_flow_box(slide, col2_x, y4, Inches(0.5), Inches(0.5), "4", STEP_COLORS[3], WHITE, 18)
+# Arrow to END
+final_arrow = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, diamond_x + Inches(4.6), y + Inches(0.15), Inches(0.4), Inches(0.2))
+final_arrow.fill.solid()
+final_arrow.fill.fore_color.rgb = RGBColor(0x95, 0xa5, 0xa6)
+final_arrow.line.fill.background()
 
-step4_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col2_x + Inches(0.6), y4, Inches(5.2), Inches(1.5))
-step4_box.fill.solid()
-step4_box.fill.fore_color.rgb = RGBColor(0xff, 0xf5, 0xeb)
-step4_box.line.color.rgb = STEP_COLORS[3]
-step4_box.line.width = Pt(2)
+# Final END box (different color - lowest confidence)
+final_end = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, diamond_x + Inches(5.1), y + Inches(0.02), Inches(1.2), Inches(0.45))
+final_end.fill.solid()
+final_end.fill.fore_color.rgb = RGBColor(0x95, 0xa5, 0xa6)
+final_end.line.fill.background()
 
-step4_text = slide.shapes.add_textbox(col2_x + Inches(0.75), y4 + Inches(0.08), Inches(4.9), Inches(1.4))
-tf = step4_text.text_frame
-tf.word_wrap = True
+final_end_label = slide.shapes.add_textbox(diamond_x + Inches(5.1), y + Inches(0.1), Inches(1.2), Inches(0.35))
+tf = final_end_label.text_frame
 p = tf.paragraphs[0]
-p.text = "LINCS Perturbation Signatures"
-p.font.size = Pt(14)
+p.text = "END"
+p.font.size = Pt(10)
 p.font.bold = True
-p.font.color.rgb = STEP_COLORS[3]
-p = tf.add_paragraph()
-p.text = "Gene/neighbor has LINCS signature?"
-p.font.size = Pt(11)
-p.font.color.rgb = DARK_GRAY
-p = tf.add_paragraph()
-p.text = "YES → Map downstream → BFS → END"
-p.font.size = Pt(10)
-p.font.color.rgb = ACCENT_GREEN
-p = tf.add_paragraph()
-p.text = "NO → continue to next fallback..."
-p.font.size = Pt(10)
-p.font.color.rgb = ACCENT_ORANGE
+p.font.color.rgb = WHITE
+p.alignment = PP_ALIGN.CENTER
 
-# ===== STEP 5: Super-Enhancer =====
-y5 = start_y + row_height
-add_flow_box(slide, col2_x, y5, Inches(0.5), Inches(0.5), "5", STEP_COLORS[4], WHITE, 18)
+# Right side: Legend/explanation box
+legend_x = Inches(8.3)
+legend_y = Inches(1.2)
 
-step5_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col2_x + Inches(0.6), y5, Inches(5.2), Inches(1.5))
-step5_box.fill.solid()
-step5_box.fill.fore_color.rgb = RGBColor(0xe8, 0xf8, 0xf5)
-step5_box.line.color.rgb = STEP_COLORS[4]
-step5_box.line.width = Pt(2)
+legend_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, legend_x, legend_y, Inches(4.5), Inches(5.5))
+legend_box.fill.solid()
+legend_box.fill.fore_color.rgb = RGBColor(0xfa, 0xfa, 0xfa)
+legend_box.line.color.rgb = LIGHT_GRAY
+legend_box.line.width = Pt(1)
 
-step5_text = slide.shapes.add_textbox(col2_x + Inches(0.75), y5 + Inches(0.08), Inches(4.9), Inches(1.4))
-tf = step5_text.text_frame
-tf.word_wrap = True
+legend_title = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(0.15), Inches(4.1), Inches(0.4))
+tf = legend_title.text_frame
 p = tf.paragraphs[0]
-p.text = "Super-Enhancer (Chromatin)"
-p.font.size = Pt(14)
+p.text = "Fallback Strategy"
+p.font.size = Pt(16)
 p.font.bold = True
-p.font.color.rgb = STEP_COLORS[4]
-p = tf.add_paragraph()
-p.text = "Gene associated with super-enhancer?"
-p.font.size = Pt(11)
-p.font.color.rgb = DARK_GRAY
-p = tf.add_paragraph()
-p.text = "YES → Route to SE-bound TFs → BFS → END"
-p.font.size = Pt(10)
-p.font.color.rgb = ACCENT_GREEN
-p = tf.add_paragraph()
-p.text = "NO → continue to final fallback..."
-p.font.size = Pt(10)
-p.font.color.rgb = ACCENT_ORANGE
+p.font.color.rgb = DARK_BLUE
 
-# ===== STEP 6: Embedding-Only Ranking =====
-y6 = start_y + row_height * 2
-add_flow_box(slide, col2_x, y6, Inches(0.5), Inches(0.5), "6", STEP_COLORS[5], WHITE, 18)
+legend_content = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(0.55), Inches(4.1), Inches(4.8))
+tf = legend_content.text_frame
+tf.word_wrap = True
 
-step6_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, col2_x + Inches(0.6), y6, Inches(5.2), Inches(1.5))
-step6_box.fill.solid()
-step6_box.fill.fore_color.rgb = RGBColor(0xf5, 0xf5, 0xf5)
-step6_box.line.color.rgb = STEP_COLORS[5]
-step6_box.line.width = Pt(2)
+steps_info = [
+    ("1. GRN Edges", "Direct regulatory targets", ACCENT_TEAL),
+    ("2. STRING", "Protein interaction partners", LIGHT_BLUE),
+    ("3. Embeddings", "Functionally similar genes", ACCENT_PURPLE),
+    ("4. LINCS", "Perturbation signatures", ACCENT_ORANGE),
+    ("5. Super-enhancer", "Chromatin-linked TFs", ACCENT_GREEN),
+    ("6. Embed-only", "Lowest confidence fallback", MID_GRAY),
+]
 
-step6_text = slide.shapes.add_textbox(col2_x + Inches(0.75), y6 + Inches(0.08), Inches(4.9), Inches(1.4))
-tf = step6_text.text_frame
+for i, (title, desc, color) in enumerate(steps_info):
+    p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+    p.text = title
+    p.font.size = Pt(11)
+    p.font.bold = True
+    p.font.color.rgb = color
+    p.space_before = Pt(8) if i > 0 else Pt(0)
+
+    p = tf.add_paragraph()
+    p.text = desc
+    p.font.size = Pt(10)
+    p.font.color.rgb = DARK_GRAY
+    p.space_before = Pt(0)
+
+# Add key insight at bottom of legend
+insight_box = slide.shapes.add_textbox(legend_x + Inches(0.2), legend_y + Inches(4.4), Inches(4.1), Inches(1.0))
+tf = insight_box.text_frame
 tf.word_wrap = True
 p = tf.paragraphs[0]
-p.text = "Minimal: Embedding-Only Ranking"
-p.font.size = Pt(14)
-p.font.bold = True
-p.font.color.rgb = STEP_COLORS[5]
-p = tf.add_paragraph()
-p.text = "No GRN, STRING, LINCS, or SE available"
-p.font.size = Pt(11)
-p.font.color.rgb = DARK_GRAY
-p = tf.add_paragraph()
-p.text = "Return embedding similarity ranking"
+p.text = "Goal: Route every perturbation to GRN-active nodes for BFS propagation"
 p.font.size = Pt(10)
-p.font.color.rgb = MID_BLUE
-p = tf.add_paragraph()
-p.text = "→ END (lowest confidence)"
-p.font.size = Pt(10)
-p.font.color.rgb = MID_GRAY
-
-# Add flow arrows between columns
-arrow_mid = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, Inches(6.0), Inches(2.0), Inches(0.8), Inches(0.3))
-arrow_mid.fill.solid()
-arrow_mid.fill.fore_color.rgb = MID_GRAY
-arrow_mid.line.fill.background()
-
-# Bottom note
-note_box = slide.shapes.add_textbox(Inches(0.4), Inches(6.4), Inches(12.5), Inches(0.5))
-tf = note_box.text_frame
-tf.word_wrap = True
-p = tf.paragraphs[0]
-p.text = "Each step tries to route the perturbation to GRN-active nodes. Falls through only if no valid route found."
-p.font.size = Pt(13)
 p.font.italic = True
 p.font.color.rgb = MID_GRAY
-p.alignment = PP_ALIGN.CENTER
 
 # ============ SLIDE 6: CELL TYPES ============
 slide = prs.slides.add_slide(prs.slide_layouts[6])
