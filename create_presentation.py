@@ -292,7 +292,7 @@ def add_flow_box(slide, x, y, width, height, text, fill_color, text_color=WHITE,
 # ============ SLIDE 1: TITLE ============
 add_title_slide(
     prs,
-    "GREmLN",
+    "PerturbAI",
     "AI-Powered Gene Perturbation Analysis",
     "Accelerating Drug Discovery with In Silico Predictions"
 )
@@ -374,7 +374,7 @@ header.line.fill.background()
 title_box = slide.shapes.add_textbox(Inches(0.6), Inches(0.4), Inches(12.133), Inches(0.9))
 tf = title_box.text_frame
 p = tf.paragraphs[0]
-p.text = "The Solution: GREmLN"
+p.text = "The Solution: PerturbAI"
 p.font.size = Pt(36)
 p.font.bold = True
 p.font.color.rgb = WHITE
@@ -1411,7 +1411,7 @@ add_arrow_shape(slide, Inches(6.3), Inches(3.0), "right")
 
 # GREmLN
 add_flow_box(slide, Inches(6.9), Inches(2.5), Inches(2.5), Inches(1.2),
-             "GREmLN\n(MCP Server)", ACCENT_TEAL, WHITE, 16)
+             "PerturbAI\n(MCP Server)", ACCENT_TEAL, WHITE, 16)
 
 add_arrow_shape(slide, Inches(9.5), Inches(3.0), "right")
 
@@ -1456,7 +1456,7 @@ header.line.fill.background()
 title_box = slide.shapes.add_textbox(Inches(0.6), Inches(0.4), Inches(12.133), Inches(0.9))
 tf = title_box.text_frame
 p = tf.paragraphs[0]
-p.text = "Why GREmLN?"
+p.text = "Why PerturbAI?"
 p.font.size = Pt(36)
 p.font.bold = True
 p.font.color.rgb = WHITE
@@ -1519,7 +1519,7 @@ add_title_slide(
 )
 
 # Save
-output_path = "GREmLN_MCP_Server_Presentation.pptx"
+output_path = "PerturbAI_Presentation.pptx"
 prs.save(output_path)
 print(f"Presentation saved to: {output_path}")
 print(f"Total slides: {len(prs.slides)}")
