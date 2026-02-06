@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "CASCADE: Computational Analysis of Simulated Cell And Drug Effects"
+type: software
+authors:
+  - family-names: Bird
+    given-names: Jose
+    orcid: "https://orcid.org/0009-0006-2744-0606"
+    affiliation: "Bird AI Solutions"
+    email: jbird@birdaisolutions.com
+repository-code: "https://github.com/jab57/CASCADE"
+license: MIT
+version: 0.1.0
+date-released: "2026-02-06"
+keywords:
+  - gene perturbation
+  - regulatory networks
+  - immuno-oncology
+  - in silico
+  - MCP
+  - LangGraph
+  - drug target discovery
+abstract: >-
+  CASCADE is an MCP server for in silico gene perturbation analysis
+  in cancer and immuno-oncology research. It provides 22 tools for
+  simulating gene knockdowns and overexpression using pre-computed
+  regulatory networks and GREmLN model embeddings across 10 immune
+  and epithelial cell types, with LangGraph-based workflow
+  orchestration for intelligent, automated analysis pipelines.

@@ -1,0 +1,45 @@
+{
+  "title": "CASCADE: Computational Analysis of Simulated Cell And Drug Effects",
+  "description": "CASCADE is a Model Context Protocol (MCP) server for in silico gene perturbation analysis in cancer and immuno-oncology research. It provides 22 tools for simulating gene knockdowns and overexpression using pre-computed regulatory networks and GREmLN model embeddings across 10 immune and epithelial cell types. Features LangGraph-based workflow orchestration with intelligent routing, parallel batch execution, and optional LLM-powered biological interpretation via Ollama.",
+  "creators": [
+    {
+      "name": "Bird, Jose",
+      "orcid": "0009-0006-2744-0606",
+      "affiliation": "Bird AI Solutions"
+    }
+  ],
+  "upload_type": "software",
+  "access_right": "open",
+  "license": {
+    "id": "MIT"
+  },
+  "keywords": [
+    "gene perturbation",
+    "regulatory networks",
+    "cancer",
+    "immuno-oncology",
+    "MCP",
+    "LangGraph",
+    "drug target discovery",
+    "gene embeddings",
+    "network analysis",
+    "in silico"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/czi-ai/GREmLN",
+      "relation": "isDerivedFrom",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://string-db.org",
+      "relation": "isSupplementedBy",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://lincsproject.org",
+      "relation": "isSupplementedBy",
+      "scheme": "url"
+    }
+  ]
+}
