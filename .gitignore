@@ -43,6 +43,7 @@ htmlcov/
 
 # Internal planning docs
 JOSS_PLAN.md
+FUTURE_ROADMAP.md
 
 # Distribution
 dist/

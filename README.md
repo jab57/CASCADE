@@ -437,6 +437,29 @@ For the complete roadmap including the Unified Bio-Orchestrator vision, see **[F
 
 See `tools/expression_fetcher.py` for expression fetching implementation notes.
 
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and the pull request process.
+
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Citation
+
+If you use CASCADE in your research, please cite:
+
+```bibtex
+@software{bird2026cascade,
+  title     = {CASCADE: An MCP Server for In Silico Gene Perturbation Analysis in Immuno-Oncology},
+  author    = {Bird, Jose},
+  year      = {2026},
+  url       = {https://github.com/jab57/CASCADE},
+  version   = {0.1.0},
+  license   = {MIT}
+}
+```
+
+A `CITATION.cff` file is included for GitHub's citation feature.
+
 ## License
 
 MIT

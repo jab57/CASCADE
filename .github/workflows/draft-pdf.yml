@@ -1,0 +1,29 @@
+name: Draft JOSS Paper PDF
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'paper.md'
+      - 'paper.bib'
+      - 'figure_architecture.*'
+  workflow_dispatch:
+
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    name: Build JOSS Paper PDF
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build draft PDF
+        uses: openjournals/paperdraft@master
+        with:
+          journal: joss
+
+      - name: Upload paper PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper
+          path: paper.pdf
