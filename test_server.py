@@ -1,4 +1,4 @@
-"""Quick test script for the GREmLN MCP server."""
+"""Quick test script for the CASCADE MCP server."""
 
 import time
 
@@ -42,7 +42,7 @@ print("\n" + "=" * 60)
 print("TESTING MODEL-BASED TOOLS")
 print("=" * 60)
 
-from tools.model_inference import GREmLNModel, get_model
+from tools.model_inference import CascadeModel, get_model
 from tools.perturb import simulate_knockdown_with_embeddings
 
 # Load model

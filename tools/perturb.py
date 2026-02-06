@@ -360,7 +360,7 @@ def get_targets(network_df: pd.DataFrame, regulator_gene: str, max_targets: int 
 def simulate_knockdown_with_embeddings(
     network_df: pd.DataFrame,
     gene: str,
-    model: "GREmLNModel",
+    model: "CascadeModel",
     depth: int = 2,
     top_k: int = 25,
     alpha: float = 0.7,
@@ -380,7 +380,7 @@ def simulate_knockdown_with_embeddings(
     Args:
         network_df: Gene regulatory network
         gene: Gene to knock down (Ensembl ID)
-        model: GREmLNModel with loaded embeddings
+        model: CascadeModel with loaded embeddings
         depth: Network propagation depth (1=direct, 2+=indirect)
         top_k: Number of top affected genes to return
         alpha: Weight for network score (1-alpha for embedding). Default 0.7
@@ -513,7 +513,7 @@ def simulate_knockdown_with_embeddings(
 def simulate_overexpression_with_embeddings(
     network_df: pd.DataFrame,
     gene: str,
-    model: "GREmLNModel",
+    model: "CascadeModel",
     fold_change: float = 2.0,
     depth: int = 2,
     top_k: int = 25,
@@ -527,7 +527,7 @@ def simulate_overexpression_with_embeddings(
     Args:
         network_df: Gene regulatory network
         gene: Gene to overexpress (Ensembl ID)
-        model: GREmLNModel with loaded embeddings
+        model: CascadeModel with loaded embeddings
         fold_change: Expression multiplier (e.g., 2.0 = 2x expression)
         depth: Network propagation depth
         top_k: Number of top affected genes to return
@@ -653,4 +653,4 @@ def simulate_overexpression_with_embeddings(
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from tools.model_inference import GREmLNModel
+    from tools.model_inference import CascadeModel

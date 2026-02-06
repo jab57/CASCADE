@@ -2,8 +2,8 @@ import os
 import gdown
 
 # --- Set the folder where you want to save the assets ---
-project_dir = r"C:\Dev\gremln"  # change to your MCP server folder
-assets_dir = os.path.join(project_dir, "gremln_assets")
+project_dir = r"C:\Dev\cascade"  # change to your MCP server folder
+assets_dir = os.path.join(project_dir, "cascade_assets")
 os.makedirs(assets_dir, exist_ok=True)
 
 # --- Google Drive folder ID (from GREmLN Quickstart) ---

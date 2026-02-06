@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Gene ID Mapper for GREmLN MCP Server
+Gene ID Mapper for CASCADE MCP Server
 Converts between gene symbols and Ensembl IDs
 
 Consistent with RegNetAgents gene_id_mapper API.

@@ -1,5 +1,5 @@
 """
-GREmLN Model Inference Module
+CASCADE Model Inference Module
 
 Provides access to learned gene embeddings from the GREmLN model checkpoint
 for enhanced perturbation analysis.
@@ -14,7 +14,7 @@ import torch
 from scGraphLLM import GeneVocab
 
 
-class GREmLNModel:
+class CascadeModel:
     """
     Wrapper for GREmLN model with gene embedding extraction.
 
@@ -39,7 +39,7 @@ class GREmLNModel:
         self._normalized_embeddings: Optional[torch.Tensor] = None
         self._loaded = False
 
-    def load(self) -> "GREmLNModel":
+    def load(self) -> "CascadeModel":
         """Load checkpoint and extract gene embeddings."""
         if self._loaded:
             return self
@@ -47,8 +47,8 @@ class GREmLNModel:
         if not self.checkpoint_path.exists():
             raise FileNotFoundError(f"Model checkpoint not found: {self.checkpoint_path}")
 
-        print(f"[GREmLN] Loading model checkpoint from {self.checkpoint_path}")
-        print(f"[GREmLN] Using device: {self.device}")
+        print(f"[CASCADE] Loading model checkpoint from {self.checkpoint_path}")
+        print(f"[CASCADE] Using device: {self.device}")
 
         checkpoint = torch.load(
             self.checkpoint_path,
@@ -69,7 +69,7 @@ class GREmLNModel:
         for key in embedding_keys:
             if key in state_dict:
                 self.gene_embeddings = state_dict[key].to(self.device)
-                print(f"[GREmLN] Found gene embeddings at '{key}'")
+                print(f"[CASCADE] Found gene embeddings at '{key}'")
                 break
 
         if self.gene_embeddings is None:
@@ -86,8 +86,8 @@ class GREmLNModel:
         )
 
         self._loaded = True
-        print(f"[GREmLN] Loaded embeddings for {self.gene_embeddings.shape[0]} genes")
-        print(f"[GREmLN] Embedding dimension: {self.gene_embeddings.shape[1]}")
+        print(f"[CASCADE] Loaded embeddings for {self.gene_embeddings.shape[0]} genes")
+        print(f"[CASCADE] Embedding dimension: {self.gene_embeddings.shape[1]}")
 
         return self
 
@@ -153,7 +153,7 @@ class GREmLNModel:
 
         # Monitor for potential artifacts
         if abs(sim) > 0.99:
-            print(f"[GREmLN] Warning: extreme similarity {sim:.4f} between {gene1} and {gene2}")
+            print(f"[CASCADE] Warning: extreme similarity {sim:.4f} between {gene1} and {gene2}")
 
         return sim
 
@@ -287,18 +287,18 @@ class GREmLNModel:
 
 
 # Module-level singleton for lazy loading
-_model_instance: Optional[GREmLNModel] = None
+_model_instance: Optional[CascadeModel] = None
 
 
-def get_model(checkpoint_path: Path | str = None) -> GREmLNModel:
+def get_model(checkpoint_path: Path | str = None) -> CascadeModel:
     """
-    Get or create the singleton GREmLNModel instance.
+    Get or create the singleton CascadeModel instance.
 
     Args:
         checkpoint_path: Path to model checkpoint (only used on first call)
 
     Returns:
-        Loaded GREmLNModel instance
+        Loaded CascadeModel instance
     """
     global _model_instance
 
@@ -307,7 +307,7 @@ def get_model(checkpoint_path: Path | str = None) -> GREmLNModel:
             from tools.loader import MODEL_PATH
             checkpoint_path = MODEL_PATH
 
-        _model_instance = GREmLNModel(checkpoint_path)
+        _model_instance = CascadeModel(checkpoint_path)
 
     _model_instance._ensure_loaded()
     return _model_instance

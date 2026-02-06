@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-GREmLN LangGraph Workflow - SKETCH/DRAFT
+CASCADE LangGraph Workflow - SKETCH/DRAFT
 =========================================
 
 Multi-agent orchestration for in silico gene perturbation analysis.
 
-This module wraps the existing GREmLN tools into a LangGraph workflow that:
+This module wraps the existing CASCADE analysis tools into a LangGraph workflow that:
 - Automatically determines the best analysis path based on gene characteristics
 - Runs independent analyses in parallel (network + embeddings + LINCS + PPI)
 - Provides intelligent suggestions and follow-up recommendations
@@ -132,7 +132,7 @@ class PerturbationAnalysisState(TypedDict):
 # WORKFLOW CLASS
 # =============================================================================
 
-class GREmLNWorkflow:
+class CascadeWorkflow:
     """
     LangGraph workflow for comprehensive gene perturbation analysis.
 
@@ -143,7 +143,7 @@ class GREmLNWorkflow:
     4. Integrates results and generates recommendations
 
     Example:
-        >>> workflow = GREmLNWorkflow()
+        >>> workflow = CascadeWorkflow()
         >>> result = await workflow.run(
         ...     gene="TP53",
         ...     cell_type="epithelial_cell",
@@ -152,8 +152,8 @@ class GREmLNWorkflow:
     """
 
     def __init__(self):
-        """Initialize workflow with GREmLN components."""
-        # Import existing GREmLN components
+        """Initialize workflow with CASCADE components."""
+        # Import existing CASCADE components
         from pathlib import Path
         from tools.loader import load_network, get_available_cell_types, MODEL_PATH
         from tools.gene_id_mapper import GeneIDMapper
@@ -178,13 +178,13 @@ class GREmLNWorkflow:
 
         # Build the workflow graph
         self.workflow = self._create_workflow()
-        logger.info("GREmLN LangGraph workflow initialized")
+        logger.info("CASCADE LangGraph workflow initialized")
 
     def _get_model(self):
         """Lazy load the GREmLN model."""
         if self._model is None:
-            from tools.model_inference import GREmLNModel
-            self._model = GREmLNModel(self.MODEL_PATH)
+            from tools.model_inference import CascadeModel
+            self._model = CascadeModel(self.MODEL_PATH)
             self._model.load()
         return self._model
 
@@ -769,11 +769,11 @@ class GREmLNWorkflow:
         }
 
     # =========================================================================
-    # ANALYSIS IMPLEMENTATIONS (Wrap existing GREmLN tools)
+    # ANALYSIS IMPLEMENTATIONS (Wrap existing CASCADE tools)
     # =========================================================================
 
     async def _run_perturbation_impl(self, state: PerturbationAnalysisState) -> Dict:
-        """Run perturbation analysis using existing GREmLN tools."""
+        """Run perturbation analysis using existing CASCADE tools."""
         from tools.loader import load_network
         from tools.perturb import (
             simulate_knockdown_with_embeddings,
@@ -814,7 +814,7 @@ class GREmLNWorkflow:
         return result
 
     async def _analyze_regulators_impl(self, state: PerturbationAnalysisState) -> Dict:
-        """Get upstream regulators using existing GREmLN tools."""
+        """Get upstream regulators using existing CASCADE tools."""
         from tools.loader import load_network
         from tools.perturb import get_regulators
 
@@ -827,7 +827,7 @@ class GREmLNWorkflow:
         return get_regulators(network_df, ensembl_id, max_regulators=50)
 
     async def _analyze_targets_impl(self, state: PerturbationAnalysisState) -> Dict:
-        """Get downstream targets using existing GREmLN tools."""
+        """Get downstream targets using existing CASCADE tools."""
         from tools.loader import load_network
         from tools.perturb import get_targets
 
@@ -1260,8 +1260,8 @@ Provide scientifically accurate, evidence-based analysis. When data is limited, 
 # =============================================================================
 
 async def main():
-    """Example usage of the GREmLN workflow."""
-    workflow = GREmLNWorkflow()
+    """Example usage of the CASCADE workflow."""
+    workflow = CascadeWorkflow()
 
     # Run comprehensive analysis
     result = await workflow.run(

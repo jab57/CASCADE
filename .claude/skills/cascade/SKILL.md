@@ -1,11 +1,11 @@
 ---
-name: gremln
-description: Gene PERTURBATION and KNOCKDOWN analysis using GREmLN MCP server with LangGraph orchestration. Use for knockdown simulation, overexpression effects, gene silencing predictions, embedding-based gene similarity, network vulnerability analysis, and LLM-powered biological insights. Keywords: knockdown, knock down, knockout, knock out, silence, inhibit, overexpress, perturb, perturbation, similar genes, drug target vulnerability, comprehensive analysis, biological interpretation, mechanism.
+name: cascade
+description: Gene PERTURBATION and KNOCKDOWN analysis using CASCADE MCP server with LangGraph orchestration. Use for knockdown simulation, overexpression effects, gene silencing predictions, embedding-based gene similarity, network vulnerability analysis, and LLM-powered biological insights. Keywords: knockdown, knock down, knockout, knock out, silence, inhibit, overexpress, perturb, perturbation, similar genes, drug target vulnerability, comprehensive analysis, biological interpretation, mechanism.
 ---
 
-# GREmLN Gene Perturbation Analysis
+# CASCADE Gene Perturbation Analysis
 
-**IMPORTANT: Always use tools from the `gremln` MCP server for this skill, NOT from other servers like `regnetagents`.** The GREmLN server provides specialized perturbation analysis combining regulatory networks with learned embeddings.
+**IMPORTANT: Always use tools from the `cascade` MCP server for this skill, NOT from other servers like `regnetagents`.** The CASCADE server provides specialized perturbation analysis combining regulatory networks with learned embeddings.
 
 This MCP server provides in silico gene perturbation analysis combining regulatory network topology with learned gene embeddings from 11M cells. Features **LangGraph-based workflow orchestration** for intelligent, automated analysis pipelines.
 

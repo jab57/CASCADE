@@ -1,5 +1,5 @@
 """
-GREmLN Perturbation Analysis MCP Server
+CASCADE Perturbation Analysis MCP Server
 
 Provides tools for in silico gene perturbation analysis using
 pre-computed gene regulatory networks and GREmLN model embeddings.
@@ -32,7 +32,7 @@ from tools.super_enhancers import (
 )
 
 # Initialize MCP server
-mcp = FastMCP("gremln_mcp_server")
+mcp = FastMCP("cascade_mcp_server")
 
 BASE_DIR = Path(__file__).parent
 NETWORKS_DIR = BASE_DIR / "data" / "networks"
@@ -41,17 +41,17 @@ NETWORKS_DIR = BASE_DIR / "data" / "networks"
 gene_mapper = GeneIDMapper()
 
 # Global model instance (lazy loaded)
-_gremln_model = None
+_cascade_model = None
 
 
 def get_model():
-    """Get or create the singleton GREmLNModel instance."""
-    global _gremln_model
-    if _gremln_model is None:
-        from tools.model_inference import GREmLNModel
-        _gremln_model = GREmLNModel(MODEL_PATH)
-        _gremln_model.load()
-    return _gremln_model
+    """Get or create the singleton CascadeModel instance."""
+    global _cascade_model
+    if _cascade_model is None:
+        from tools.model_inference import CascadeModel
+        _cascade_model = CascadeModel(MODEL_PATH)
+        _cascade_model.load()
+    return _cascade_model
 
 
 @mcp.tool()
@@ -636,7 +636,7 @@ def get_protein_interactions(
 @mcp.tool()
 def get_model_status() -> dict:
     """
-    Check GREmLN model status and GPU availability.
+    Check CASCADE model status and GPU availability.
 
     Returns information about whether the model is loaded, GPU availability,
     and the number of genes in the model vocabulary.
@@ -668,7 +668,7 @@ def get_gene_similarity(gene1: str, gene2: str) -> dict:
     """
     Get embedding similarity between two genes.
 
-    Uses the GREmLN model's learned gene representations to compute
+    Uses the CASCADE model's learned gene representations to compute
     cosine similarity. Higher similarity indicates genes that behave
     similarly across cell types.
 

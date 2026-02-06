@@ -1,5 +1,5 @@
 """
-Network and model loading utilities for GREmLN perturbation analysis.
+Network and model loading utilities for CASCADE perturbation analysis.
 """
 
 from pathlib import Path
@@ -59,7 +59,7 @@ def get_available_cell_types(networks_dir: Path | str = NETWORKS_DIR) -> list[st
     return sorted(cell_types)
 
 
-def load_gremln_model(model_path: Path | str = MODEL_PATH):
+def load_cascade_model(model_path: Path | str = MODEL_PATH):
     """
     Load GREmLN model checkpoint (optional, for advanced embedding-based analysis).
 
@@ -76,7 +76,7 @@ def load_gremln_model(model_path: Path | str = MODEL_PATH):
         raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"[GREmLN] Loading model on: {device}")
+    print(f"[CASCADE] Loading model on: {device}")
 
     # Load checkpoint - the actual class depends on what's in the checkpoint
     checkpoint = torch.load(model_path, map_location=device)

@@ -1,5 +1,5 @@
 """
-Generate an impressive customer-facing PowerPoint presentation for GREmLN MCP Server
+Generate an impressive customer-facing PowerPoint presentation for CASCADE MCP Server
 """
 
 from pptx import Presentation
@@ -1409,7 +1409,7 @@ add_flow_box(slide, Inches(3.7), Inches(2.5), Inches(2.5), Inches(1.2),
 
 add_arrow_shape(slide, Inches(6.3), Inches(3.0), "right")
 
-# GREmLN
+# CASCADE
 add_flow_box(slide, Inches(6.9), Inches(2.5), Inches(2.5), Inches(1.2),
              "PerturbAI\n(MCP Server)", ACCENT_TEAL, WHITE, 16)
 

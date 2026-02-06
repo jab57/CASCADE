@@ -1,4 +1,6 @@
-# GREmLN MCP Server
+# CASCADE MCP Server
+
+**Computational Analysis of Simulated Cell And Drug Effects**
 
 A Model Context Protocol (MCP) server for **in silico gene perturbation analysis** using pre-computed gene regulatory networks and GREmLN model embeddings. Features **LangGraph-based workflow orchestration** for intelligent, automated analysis pipelines.
 
@@ -11,7 +13,7 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│              GREmLN LangGraph MCP Server                        │
+│              CASCADE LangGraph MCP Server                       │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │              LangGraph StateGraph                        │   │
@@ -148,13 +150,13 @@ pip install torch --index-url https://download.pytorch.org/whl/cu124 --force-rei
 
 ```bash
 # LangGraph-based server (recommended)
-python gremln_langgraph_mcp_server.py
+python cascade_langgraph_mcp_server.py
 
 # With LLM insights enabled (requires Ollama running)
-USE_LLM_INSIGHTS=true python gremln_langgraph_mcp_server.py
+USE_LLM_INSIGHTS=true python cascade_langgraph_mcp_server.py
 
 # Original FastMCP server (deprecated, kept for reference)
-python gremln_mcp_server_original.py
+python cascade_mcp_server_original.py
 ```
 
 ### LLM Insights Configuration (Optional)
@@ -180,9 +182,9 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 ```json
 {
   "mcpServers": {
-    "GREmLN": {
-      "command": "C:/Dev/GREmLN/env/Scripts/python.exe",
-      "args": ["C:/Dev/GREmLN/gremln_langgraph_mcp_server.py"]
+    "CASCADE": {
+      "command": "C:/Dev/CASCADE/env/Scripts/python.exe",
+      "args": ["C:/Dev/CASCADE/cascade_langgraph_mcp_server.py"]
     }
   }
 }
@@ -190,7 +192,7 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/App
 
 ### Claude Code Skill
 
-The repo includes a skill at `.claude/skills/gremln/SKILL.md` that teaches Claude Code when and how to use GREmLN tools. It triggers automatically on keywords like "knockdown", "knockout", "perturbation", "overexpress", "similar genes", etc.
+The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Claude Code when and how to use CASCADE tools. It triggers automatically on keywords like "knockdown", "knockout", "perturbation", "overexpress", "similar genes", etc.
 
 ### Example Prompts
 
@@ -270,12 +272,12 @@ The repo includes a skill at `.claude/skills/gremln/SKILL.md` that teaches Claud
 ## Project Structure
 
 ```
-GREmLN/
-├── gremln_langgraph_mcp_server.py  # LangGraph MCP server (main entry)
-├── gremln_langgraph_workflow.py    # LangGraph StateGraph workflow
-├── gremln_mcp_server_original.py   # Original FastMCP server (deprecated)
+CASCADE/
+├── cascade_langgraph_mcp_server.py  # LangGraph MCP server (main entry)
+├── cascade_langgraph_workflow.py    # LangGraph StateGraph workflow
+├── cascade_mcp_server_original.py   # Original FastMCP server (deprecated)
 ├── .claude/
-│   └── skills/gremln/              # Claude Code skill for perturbation analysis
+│   └── skills/cascade/              # Claude Code skill for perturbation analysis
 ├── tools/
 │   ├── loader.py                   # Network/model loading utilities
 │   ├── perturb.py                  # Perturbation analysis (network + embeddings)
@@ -431,7 +433,7 @@ For the complete roadmap including the Unified Bio-Orchestrator vision, see **[F
 | Expression Data Fetching | Planned | Fetch baseline expression from CellxGene Census, Human Protein Atlas |
 | Context-Aware Embeddings | Planned | Cell-type-specific gene embeddings via model forward pass |
 | Perturb_GDTransformer | Waiting | Integration when fine-tuned perturbation checkpoint becomes available |
-| Unified Bio-Orchestrator | Postponed | Cross-project orchestration (GREmLN + regnetagents in single server) |
+| Unified Bio-Orchestrator | Postponed | Cross-project orchestration (CASCADE + RegNetAgents in single server) |
 
 See `tools/expression_fetcher.py` for expression fetching implementation notes.
 

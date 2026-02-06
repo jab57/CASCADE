@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Optional
 import pandas as pd
 
 if TYPE_CHECKING:
-    from tools.model_inference import GREmLNModel
+    from tools.model_inference import CascadeModel
 
 
 class EmbeddingCache:
@@ -21,12 +21,12 @@ class EmbeddingCache:
     recomputing cosine similarities on every request.
     """
 
-    def __init__(self, model: "GREmLNModel", cache_size: int = 1000):
+    def __init__(self, model: "CascadeModel", cache_size: int = 1000):
         """
         Initialize the embedding cache.
 
         Args:
-            model: GREmLNModel instance for computing similarities
+            model: CascadeModel instance for computing similarities
             cache_size: Maximum number of genes to cache similarities for
         """
         self.model = model
@@ -149,12 +149,12 @@ class EmbeddingCache:
 _embedding_cache: Optional[EmbeddingCache] = None
 
 
-def get_embedding_cache(model: "GREmLNModel" = None) -> EmbeddingCache:
+def get_embedding_cache(model: "CascadeModel" = None) -> EmbeddingCache:
     """
     Get or create the singleton EmbeddingCache instance.
 
     Args:
-        model: GREmLNModel instance (required on first call)
+        model: CascadeModel instance (required on first call)
 
     Returns:
         EmbeddingCache instance

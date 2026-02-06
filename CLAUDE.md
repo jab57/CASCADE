@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-GREmLN MCP Server provides **in silico gene perturbation analysis** for cancer/immuno-oncology research. It exposes tools via Model Context Protocol (MCP) for simulating gene knockdowns/overexpression using pre-computed regulatory networks and GREmLN model embeddings.
+CASCADE (Computational Analysis of Simulated Cell And Drug Effects) MCP Server provides **in silico gene perturbation analysis** for cancer/immuno-oncology research. It exposes tools via Model Context Protocol (MCP) for simulating gene knockdowns/overexpression using pre-computed regulatory networks and GREmLN model embeddings.
 
 ## Architecture
 
@@ -17,8 +17,8 @@ The project now uses a **LangGraph-based orchestration layer** that automaticall
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              GREmLN LangGraph MCP Server                    │
-│              gremln_langgraph_mcp_server.py                 │
+│              CASCADE LangGraph MCP Server                    │
+│              cascade_langgraph_mcp_server.py                 │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │         LangGraph StateGraph Workflow               │   │
@@ -56,18 +56,18 @@ pip install langgraph           # Required for orchestration
 pip install torch --index-url https://download.pytorch.org/whl/cu124 --force-reinstall  # GPU
 
 # Run the LangGraph MCP server (recommended)
-python gremln_langgraph_mcp_server.py
+python cascade_langgraph_mcp_server.py
 ```
 
 ## Core Files
 
 ### LangGraph Orchestration (NEW)
-- `gremln_langgraph_mcp_server.py` - MCP server with 22 tools, LangGraph orchestration
-- `gremln_langgraph_workflow.py` - Core workflow: state schema, routing logic, batch processing
+- `cascade_langgraph_mcp_server.py` - MCP server with 22 tools, LangGraph orchestration
+- `cascade_langgraph_workflow.py` - Core workflow: state schema, routing logic, batch processing
 
 ### Tool Implementations
 - `tools/perturb.py` - Network propagation algorithms (`_propagate_effect` BFS, knockdown/overexpression)
-- `tools/model_inference.py` - `GREmLNModel` class for embedding extraction and similarity
+- `tools/model_inference.py` - `CascadeModel` class for embedding extraction and similarity
 - `tools/cache.py` - Embedding similarity cache for performance
 - `tools/gene_id_mapper.py` - Gene symbol ↔ Ensembl ID conversion
 - `tools/lincs.py` - LINCS L1000 experimental knockdown data
@@ -114,7 +114,7 @@ The workflow supports optional LLM-powered biological interpretation via Ollama:
 
 ```bash
 # Enable LLM insights
-USE_LLM_INSIGHTS=true python gremln_langgraph_mcp_server.py
+USE_LLM_INSIGHTS=true python cascade_langgraph_mcp_server.py
 ```
 
 **Environment Variables:**

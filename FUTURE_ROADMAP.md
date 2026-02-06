@@ -1,12 +1,12 @@
-# GREmLN Future Roadmap: Unified Bio-Orchestrator
+# CASCADE Future Roadmap: Unified Bio-Orchestrator
 
-> **STATUS UPDATE (2025-02)**: LangGraph orchestration has been implemented for GREmLN. The Unified Bio-Orchestrator (cross-project integration with regnetagents) remains postponed.
+> **STATUS UPDATE (2025-02)**: LangGraph orchestration has been implemented for CASCADE. The Unified Bio-Orchestrator (cross-project integration with RegNetAgents) remains postponed.
 
 ## Architecture Options
 
 | Aspect | Option 1: Two Separate Servers | Option 2: One Integrated Server |
 |--------|--------------------------------|---------------------------------|
-| **MCP Servers** | 2 (regnetagents + GREmLN) | 1 (Bio-Orchestrator) |
+| **MCP Servers** | 2 (RegNetAgents + CASCADE) | 1 (Bio-Orchestrator) |
 | **Orchestration** | Claude conversation-level | LangGraph StateGraph |
 | **Tool Chaining** | Manual (user/Claude decides) | Automatic (gene-type routing) |
 | **State Management** | None (stateless tools) | Unified state across analyses |
@@ -28,7 +28,7 @@
            ┌───────────┴───────────┐
            ▼                       ▼
 ┌─────────────────────┐   ┌─────────────────────┐
-│   regnetagents      │   │      GREmLN         │
+│   RegNetAgents      │   │      CASCADE        │
 │    MCP Server       │   │    MCP Server       │
 │                     │   │                     │
 │ - Network analysis  │   │ - Perturbation sim  │
@@ -37,20 +37,20 @@
 │ - LangGraph workflow│   │ - Smart suggestions │
 └─────────────────────┘   └─────────────────────┘
 
-Location: c:\Dev\regnetagents   Location: c:\Dev\GREmLN
+Location: c:\Dev\RegNetAgents   Location: c:\Dev\CASCADE
 Status: Frozen (no changes)     Status: Active development
 ```
 
 ### Current Capabilities
 
-**regnetagents MCP Server:**
+**RegNetAgents MCP Server:**
 - `comprehensive_gene_analysis` - Full LangGraph workflow
 - `multi_gene_analysis` - Parallel gene processing
 - `pathway_focused_analysis` - Reactome integration
 - Domain-specific agents (cancer, drug, clinical, systems biology)
 
-**GREmLN MCP Server:**
-- `analyze_gene_knockdown` / `analyze_gene_overexpression` - Perturbation analysis (network + embeddings)
+**CASCADE MCP Server:**
+- `analyze_gene_knockdown` / `analyze_gene_overexpression` - Perturbation analysis (network + GREmLN embeddings)
 - `get_gene_metadata` - Gene type classification
 - `get_protein_interactions` - STRING database
 - `find_similar_genes` - Embedding-based similarity
@@ -73,11 +73,11 @@ The new `gene_metadata` and `suggestions` fields help Claude make these decision
 
 ### Partial Solution: Claude Code Skill (Implemented 2025-01)
 
-The GREmLN skill (`.claude/skills/gremln/SKILL.md`) provides workflow guidance to Claude Code, teaching it:
+The CASCADE skill (`.claude/skills/cascade/SKILL.md`) provides workflow guidance to Claude Code, teaching it:
 - When to use knockdown vs PPI analysis
 - How to handle effector genes (scaffold proteins)
 - Suggested tool chaining (e.g., empty knockdown → check metadata → use PPI)
-- Trigger keywords to distinguish from other MCP servers (regnetagents)
+- Trigger keywords to distinguish from other MCP servers (RegNetAgents)
 
 This reduces manual intervention but doesn't fully automate the orchestration. Option 2 remains the long-term vision for seamless single-tool analysis.
 
@@ -107,7 +107,7 @@ This reduces manual intervention but doesn't fully automate the orchestration. O
 │            ┌─────────────┴─────────────┐                   │
 │            ▼                           ▼                    │
 │   ┌─────────────────┐         ┌─────────────────┐          │
-│   │  regnetagents   │         │     GREmLN      │          │
+│   │  RegNetAgents   │         │    CASCADE       │          │
 │   │  (as library)   │         │  (as library)   │          │
 │   └─────────────────┘         └─────────────────┘          │
 └─────────────────────────────────────────────────────────────┘
@@ -132,16 +132,16 @@ class UnifiedBioState(TypedDict):
     analysis_type: str  # "mutation", "overexpression", "pathway"
 
     # Gene Classification
-    gene_metadata: dict  # From GREmLN get_gene_metadata
+    gene_metadata: dict  # From CASCADE get_gene_metadata
     is_transcription_factor: bool
     known_complexes: list[str]
 
     # Analysis Results
-    network_context: dict      # From regnetagents
-    perturbation_results: dict # From GREmLN
-    ppi_data: dict             # From GREmLN STRING
-    pathway_enrichment: dict   # From regnetagents
-    embedding_similar: list    # From GREmLN
+    network_context: dict      # From RegNetAgents
+    perturbation_results: dict # From CASCADE
+    ppi_data: dict             # From CASCADE STRING
+    pathway_enrichment: dict   # From RegNetAgents
+    embedding_similar: list    # From CASCADE (GREmLN embeddings)
 
     # Routing State
     analyses_completed: list[str]
@@ -162,7 +162,7 @@ class UnifiedBioState(TypedDict):
                            ▼
                 ┌──────────────────────┐
                 │  assess_gene_type    │
-                │  (calls GREmLN       │
+                │  (calls CASCADE      │
                 │   get_gene_metadata) │
                 └──────────┬───────────┘
                            ▼
@@ -204,11 +204,11 @@ class UnifiedBioState(TypedDict):
 
 1. **Python Environment Compatibility**
    - Both projects use Python 3.10+
-   - Verify no dependency conflicts between regnetagents and GREmLN
+   - Verify no dependency conflicts between RegNetAgents and CASCADE
 
 2. **Import Strategy**
-   - regnetagents: Import `RegNetAgentsWorkflow` class directly
-   - GREmLN: Import tool functions from `tools/` modules
+   - RegNetAgents: Import `RegNetAgentsWorkflow` class directly
+   - CASCADE: Import tool functions from `tools/` modules
    - Avoid MCP-over-MCP calls (use direct Python imports)
 
 3. **State Management**
@@ -219,10 +219,10 @@ class UnifiedBioState(TypedDict):
 
 1. **Where does orchestrator live?**
    - New standalone project (`c:\Dev\bio-orchestrator`) - *Recommended*
-   - Inside GREmLN as optional module
-   - Inside regnetagents as extension
+   - Inside CASCADE as optional module
+   - Inside RegNetAgents as extension
 
-2. **How to handle regnetagents being frozen?**
+2. **How to handle RegNetAgents being frozen?**
    - Import as-is without modification
    - Create wrapper classes if needed
    - Fork if changes become necessary
@@ -244,7 +244,7 @@ class UnifiedBioState(TypedDict):
 ### Phase 1: Foundation
 - [ ] Create new project structure
 - [ ] Set up shared state schema
-- [ ] Import regnetagents and GREmLN as libraries
+- [ ] Import RegNetAgents and CASCADE as libraries
 - [ ] Basic LangGraph workflow skeleton
 
 ### Phase 2: Gene Type Routing
@@ -329,19 +329,19 @@ Added optional Ollama integration for AI-generated interpretation of perturbatio
 - Default OFF to avoid latency for quick queries
 
 **Files:**
-- `gremln_langgraph_workflow.py` - Added `_synthesize_insights` node, `_call_llm_synthesis` method
-- `gremln_langgraph_mcp_server.py` - Added `include_llm_insights` parameter to tool schema
+- `cascade_langgraph_workflow.py` - Added `_synthesize_insights` node, `_call_llm_synthesis` method
+- `cascade_langgraph_mcp_server.py` - Added `include_llm_insights` parameter to tool schema
 - `.env.example` - LLM configuration template
 
 ---
 
 ### Completed: LangGraph Orchestration (2025-02-02)
 
-Implemented LangGraph-based workflow orchestration within GREmLN MCP server:
+Implemented LangGraph-based workflow orchestration within CASCADE MCP server:
 
 **New Files:**
-- `gremln_langgraph_workflow.py` - Core LangGraph StateGraph workflow
-- `gremln_langgraph_mcp_server.py` - MCP server exposing 22 tools
+- `cascade_langgraph_workflow.py` - Core LangGraph StateGraph workflow
+- `cascade_langgraph_mcp_server.py` - MCP server exposing 22 tools
 
 **Key Features:**
 - **Intelligent Routing**: Automatically selects analysis strategy based on gene type (master_regulator, transcription_factor, effector, isolated)
@@ -358,7 +358,7 @@ Implemented LangGraph-based workflow orchestration within GREmLN MCP server:
 - Comprehensive analysis: ~8-10s
 - Multi-gene parallel (3 genes): ~10s
 
-**Note:** This addresses the "GREmLN-only" orchestration need. The Unified Bio-Orchestrator (Option 2 - cross-project integration with regnetagents) remains postponed.
+**Note:** This addresses the "CASCADE-only" orchestration need. The Unified Bio-Orchestrator (Option 2 - cross-project integration with RegNetAgents) remains postponed.
 
 ---
 
@@ -432,6 +432,7 @@ Added tools to identify BRD4/BET inhibitor sensitive genes:
 
 | Date | Change |
 |------|--------|
+| 2025-02-06 | Renamed project from GREmLN to CASCADE |
 | 2025-02-02 | Added LLM-powered biological insights (Ollama integration) |
 | 2025-02-02 | Added LangGraph orchestration (COMPLETE), updated architecture diagrams |
 | 2025-02-01 | Added status summary table, Expression Data Fetching section, task checklists |

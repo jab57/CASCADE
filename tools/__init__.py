@@ -1,4 +1,4 @@
-"""GREmLN MCP Server Tools Package."""
+"""CASCADE MCP Server Tools Package."""
 
 from tools.loader import load_network, get_available_cell_types, MODEL_PATH
 from tools.gene_id_mapper import GeneIDMapper, get_mapper
@@ -10,7 +10,7 @@ from tools.perturb import (
     simulate_knockdown_with_embeddings,
     simulate_overexpression_with_embeddings,
 )
-from tools.model_inference import GREmLNModel, get_model
+from tools.model_inference import CascadeModel, get_model
 from tools.cache import EmbeddingCache, get_embedding_cache
 
 __all__ = [
@@ -30,7 +30,7 @@ __all__ = [
     "simulate_knockdown_with_embeddings",
     "simulate_overexpression_with_embeddings",
     # Model inference
-    "GREmLNModel",
+    "CascadeModel",
     "get_model",
     # Caching
     "EmbeddingCache",

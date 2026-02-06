@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-GREmLN LangGraph-Powered MCP Server - SKETCH/DRAFT
-===================================================
+CASCADE LangGraph-Powered MCP Server - SKETCH/DRAFT
+====================================================
 
-Model Context Protocol (MCP) server that exposes GREmLN perturbation analysis
+Model Context Protocol (MCP) server that exposes CASCADE perturbation analysis
 through LangGraph workflow orchestration.
 
 This server provides high-level analysis tools that automatically orchestrate
@@ -49,7 +49,7 @@ from pydantic import AnyUrl
 import mcp.types as types
 
 # Import our LangGraph workflow
-from gremln_langgraph_workflow import GREmLNWorkflow, CellType, PerturbationType
+from cascade_langgraph_workflow import CascadeWorkflow, CellType, PerturbationType
 
 # Configure logging
 logging.basicConfig(
@@ -59,7 +59,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize the server
-server = Server("gremln-langgraph-server")
+server = Server("cascade-langgraph-server")
 
 # Global workflow instance (singleton)
 workflow_instance = None
@@ -69,8 +69,8 @@ async def get_workflow():
     """Get or create the global workflow instance."""
     global workflow_instance
     if workflow_instance is None:
-        logger.info("Initializing GREmLN LangGraph workflow...")
-        workflow_instance = GREmLNWorkflow()
+        logger.info("Initializing CASCADE LangGraph workflow...")
+        workflow_instance = CascadeWorkflow()
         logger.info("Workflow ready")
     return workflow_instance
 
@@ -521,7 +521,7 @@ async def handle_list_tools() -> list[Tool]:
         Tool(
             name="get_model_status",
             description="""
-            Check GREmLN model and GPU status.
+            Check CASCADE model and GPU status.
 
             Returns:
             - Whether model is loaded
@@ -885,9 +885,9 @@ async def _quick_perturbation(args: dict) -> dict:
 
     # Try with embeddings
     try:
-        from tools.model_inference import GREmLNModel
+        from tools.model_inference import CascadeModel
         from tools.loader import MODEL_PATH
-        model = GREmLNModel(MODEL_PATH)
+        model = CascadeModel(MODEL_PATH)
         model.load()
 
         if perturbation_type == "knockdown":
@@ -1394,7 +1394,7 @@ async def _get_gene_similarity(args: dict) -> dict:
 
 
 async def _get_model_status(args: dict) -> dict:
-    """Check GREmLN model and GPU status."""
+    """Check CASCADE model and GPU status."""
     import torch
 
     workflow = await get_workflow()
@@ -1703,7 +1703,7 @@ async def _check_genes_super_enhancers(args: dict) -> dict:
 
 async def main():
     """Run the MCP server."""
-    logger.info("Starting GREmLN LangGraph MCP Server...")
+    logger.info("Starting CASCADE LangGraph MCP Server...")
 
     # Initialize workflow eagerly to avoid lazy-load hanging in MCP context
     logger.info("Pre-initializing workflow...")
@@ -1715,7 +1715,7 @@ async def main():
             read_stream,
             write_stream,
             InitializationOptions(
-                server_name="gremln-langgraph-server",
+                server_name="cascade-langgraph-server",
                 server_version="1.0.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
