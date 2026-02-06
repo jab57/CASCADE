@@ -12,6 +12,8 @@ from tools.perturb import (
     simulate_overexpression,
     get_regulators,
     get_targets,
+    simulate_knockdown_with_embeddings,
+    simulate_overexpression_with_embeddings,
 )
 
 
@@ -212,3 +214,106 @@ class TestGetTargets:
     def test_no_targets(self, mock_mapper_fn, mock_network_df):
         result = get_targets(mock_network_df, "ENSG_DOWNSTREAM1")
         assert result["status"] == "not_found"
+
+
+class TestKnockdownWithEmbeddings:
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_basic_embedding_knockdown(self, mock_mapper_fn, mock_cache_fn, mock_network_df, mock_cascade_model):
+        mapper = MagicMock()
+        mapper.ensembl_to_symbol.side_effect = lambda x: x.replace("ENSG_", "")
+        mock_mapper_fn.return_value = mapper
+
+        # Wire the cache to use the mock model's similarities
+        mock_cache = MagicMock()
+        mock_cache.get_similarities.side_effect = mock_cascade_model.get_all_similarities
+        mock_cache_fn.return_value = mock_cache
+
+        result = simulate_knockdown_with_embeddings(
+            mock_network_df, "ENSG_TF1", mock_cascade_model, depth=2, top_k=10
+        )
+        assert result["status"] == "complete"
+        assert result["perturbation_type"] == "knockdown_with_embeddings"
+        assert result["total_affected_genes"] > 0
+        assert "method" in result
+
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_embedding_knockdown_gene_not_in_vocab(self, mock_mapper_fn, mock_cache_fn, mock_network_df, mock_cascade_model):
+        result = simulate_knockdown_with_embeddings(
+            mock_network_df, "ENSG_NONEXISTENT", mock_cascade_model
+        )
+        assert result["status"] == "error"
+        assert "not found in model vocabulary" in result["error"]
+
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_embedding_knockdown_includes_combined_scores(self, mock_mapper_fn, mock_cache_fn, mock_network_df, mock_cascade_model):
+        mapper = MagicMock()
+        mapper.ensembl_to_symbol.side_effect = lambda x: x.replace("ENSG_", "")
+        mock_mapper_fn.return_value = mapper
+
+        mock_cache = MagicMock()
+        mock_cache.get_similarities.side_effect = mock_cascade_model.get_all_similarities
+        mock_cache_fn.return_value = mock_cache
+
+        result = simulate_knockdown_with_embeddings(
+            mock_network_df, "ENSG_TF1", mock_cascade_model, depth=2
+        )
+        for gene in result["top_affected_genes"]:
+            assert "combined_effect" in gene
+            assert "network_effect" in gene
+            assert "embedding_similarity" in gene
+            assert "source" in gene
+
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_embedding_knockdown_similarity_failure(self, mock_mapper_fn, mock_cache_fn, mock_network_df, mock_cascade_model):
+        mock_cache = MagicMock()
+        mock_cache.get_similarities.return_value = None
+        mock_cache_fn.return_value = mock_cache
+
+        result = simulate_knockdown_with_embeddings(
+            mock_network_df, "ENSG_TF1", mock_cascade_model
+        )
+        assert result["status"] == "error"
+
+
+class TestOverexpressionWithEmbeddings:
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_basic_embedding_overexpression(self, mock_mapper_fn, mock_cache_fn, mock_network_df, mock_cascade_model):
+        mapper = MagicMock()
+        mapper.ensembl_to_symbol.side_effect = lambda x: x.replace("ENSG_", "")
+        mock_mapper_fn.return_value = mapper
+
+        mock_cache = MagicMock()
+        mock_cache.get_similarities.side_effect = mock_cascade_model.get_all_similarities
+        mock_cache_fn.return_value = mock_cache
+
+        result = simulate_overexpression_with_embeddings(
+            mock_network_df, "ENSG_TF1", mock_cascade_model, fold_change=2.0
+        )
+        assert result["status"] == "complete"
+        assert result["perturbation_type"] == "overexpression_with_embeddings"
+        assert result["fold_change"] == 2.0
+
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_embedding_overexpression_gene_not_in_vocab(self, mock_mapper_fn, mock_cache_fn, mock_network_df, mock_cascade_model):
+        result = simulate_overexpression_with_embeddings(
+            mock_network_df, "ENSG_NONEXISTENT", mock_cascade_model
+        )
+        assert result["status"] == "error"
+
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_embedding_overexpression_similarity_failure(self, mock_mapper_fn, mock_cache_fn, mock_network_df, mock_cascade_model):
+        mock_cache = MagicMock()
+        mock_cache.get_similarities.return_value = None
+        mock_cache_fn.return_value = mock_cache
+
+        result = simulate_overexpression_with_embeddings(
+            mock_network_df, "ENSG_TF1", mock_cascade_model
+        )
+        assert result["status"] == "error"
