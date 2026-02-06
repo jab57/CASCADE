@@ -41,6 +41,9 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
+# Internal planning docs
+JOSS_PLAN.md
+
 # Distribution
 dist/
 build/
