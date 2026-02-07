@@ -1,10 +1,9 @@
 ---
-title: 'CASCADE: An MCP Server for In Silico Gene Perturbation Analysis in Immuno-Oncology'
+title: 'CASCADE: An MCP Server for Automated Gene Perturbation Analysis'
 tags:
   - Python
   - gene perturbation
   - regulatory networks
-  - immuno-oncology
   - Model Context Protocol
   - LangGraph
 authors:
@@ -20,56 +19,53 @@ bibliography: paper.bib
 
 # Summary
 
-CASCADE (Computational Analysis of Simulated Cell And Drug Effects) is a Python-based Model Context Protocol (MCP) server that enables *in silico* gene perturbation analysis for cancer and immuno-oncology research. It provides 22 tools for simulating gene knockdowns and overexpression across 10 immune and epithelial cell types, using pre-computed gene regulatory networks derived from single-cell RNA sequencing data and 256-dimensional gene embeddings learned from 11 million cells via the GREmLN model [@gremln]. CASCADE integrates external data sources including protein-protein interactions from STRING [@szklarczyk2023], experimental CRISPR knockdown signatures from LINCS L1000 [@subramanian2017], and super-enhancer annotations from dbSUPER [@khan2016]. A LangGraph-based workflow orchestration layer [@langgraph] automatically classifies genes by network role, routes analyses accordingly, and executes independent analysis steps in parallel, producing comprehensive reports with therapeutic targeting suggestions.
+CASCADE (Computational Analysis of Simulated Cell And Drug Effects) is a Python server that exposes *in silico* gene perturbation analysis as structured tools via the Model Context Protocol (MCP) [@mcp]. Given a gene and cell type, CASCADE simulates knockdown or overexpression effects by propagating signals through pre-computed regulatory networks, queries external databases for corroborating evidence, and returns a structured report. A LangGraph-based workflow [@langgraph] automates the full analysis pipeline---gene resolution, role classification, parallel data retrieval, and report generation---so that a single tool call replaces what would otherwise require manual orchestration of multiple databases and analysis scripts.
+
+CASCADE supports 10 immune and epithelial cell types, integrates protein-protein interactions from STRING [@szklarczyk2023], experimental knockdown signatures from LINCS L1000 [@subramanian2017], and super-enhancer annotations from dbSUPER [@khan2016], and optionally incorporates pre-trained gene embeddings from the GREmLN model [@gremln] to enhance predictions beyond static network topology.
 
 # Statement of Need
 
-Computational biologists studying gene regulatory networks in cancer and immunology face a fragmented tooling landscape. Simulating the downstream consequences of perturbing a gene---whether through CRISPR knockout, RNAi knockdown, or pharmacological inhibition---requires combining network topology analysis, gene embedding similarity, protein interaction data, and experimental perturbation signatures from separate tools and databases. Researchers must manually orchestrate these analyses, interpret cross-database results, and synthesize findings into actionable biological insights.
+Simulating the downstream effects of gene perturbation---whether through CRISPR knockout, RNAi, or pharmacological inhibition---requires combining regulatory network analysis, protein interaction data, and experimental perturbation signatures from separate tools and databases. Researchers must manually query each source, reconcile gene identifiers across databases, and synthesize cross-database results into a coherent interpretation.
 
-Existing tools address individual aspects of this problem: network inference packages reconstruct regulatory networks [@aibar2017], perturbation prediction models forecast expression changes [@roohani2024], and protein interaction databases catalog physical associations [@szklarczyk2023]. However, no tool combines these capabilities into a unified, conversational interface that an LLM-powered research assistant can invoke programmatically.
+Existing tools address individual aspects of this workflow: network inference packages reconstruct regulatory networks [@aibar2017], perturbation models forecast expression changes [@roohani2024], and interaction databases catalog physical associations [@szklarczyk2023]. However, no tool unifies these capabilities behind a single programmatic interface that automates the full analysis pipeline.
 
-CASCADE addresses this gap by exposing perturbation analysis as MCP tools [@mcp] that any MCP-compatible client can call. The LangGraph orchestration layer eliminates manual workflow management: a single call to `comprehensive_perturbation_analysis` automatically resolves gene identifiers, classifies the gene's network role (master regulator, transcription factor, or effector), selects appropriate analyses, executes them in parallel, and synthesizes a report with therapeutic recommendations. This enables researchers to ask natural-language questions---such as "What happens if we knock down TP53 in CD8 T cells?"---and receive structured, multi-source analyses within seconds.
+CASCADE fills this gap by providing an MCP server that any compatible client can call. A single request to `comprehensive_perturbation_analysis` triggers the complete workflow: resolve gene identifiers, classify the gene's regulatory role, select and execute appropriate analyses in parallel, and return a structured multi-source report. This eliminates manual orchestration and provides reproducible, deterministic results for any supported gene and cell type.
 
-# Architecture and Design
+# Architecture
 
-CASCADE follows a layered architecture (\autoref{fig:architecture}). The MCP server layer exposes 22 tools organized into six categories: workflow orchestration, perturbation analysis, gene similarity, network vulnerability, experimental data (LINCS), and super-enhancer/druggability assessment.
+CASCADE follows a layered design (\autoref{fig:architecture}). The MCP server exposes 22 tools organized into six categories: workflow orchestration, perturbation simulation, gene similarity, network vulnerability, experimental data, and druggability assessment.
 
-![CASCADE architecture. An MCP client sends requests to the CASCADE server, which routes them through a LangGraph StateGraph workflow. The workflow classifies the gene, selects analyses based on gene role and requested depth, and executes independent analysis batches in parallel. Core analysis tools operate on pre-computed regulatory networks and GREmLN embeddings, while external data modules query STRING, LINCS, and dbSUPER.\label{fig:architecture}](figure_architecture.png)
+![CASCADE architecture. An MCP client sends a request to the CASCADE server, which routes it through a LangGraph workflow. The workflow classifies the gene, selects analyses based on gene role and depth, and executes independent batches in parallel. Analysis tools operate on pre-computed regulatory networks and gene embeddings, while external modules query STRING, LINCS, and dbSUPER.\label{fig:architecture}](figure_architecture.png)
 
-The LangGraph workflow operates as a state machine with conditional routing. Upon receiving a gene and cell type, the workflow:
+The LangGraph workflow operates as a directed acyclic graph with conditional routing:
 
-1. **Resolves** the gene identifier (symbol or Ensembl ID) via Ensembl REST API with local caching.
-2. **Classifies** the gene's role by counting its targets and regulators in the cell-type-specific network: master regulators (>50 targets), transcription factors (10--50), minor regulators (1--10), effectors (regulated but non-regulating), or isolated.
-3. **Routes** to appropriate analysis batches based on gene role and requested depth (basic, focused, or comprehensive).
-4. **Executes** up to three parallel batches: core analysis (perturbation, regulators, targets), external data (STRING PPI, LINCS knockdown effects, super-enhancers), and insight generation (embedding similarity, vulnerability scoring, cross-cell comparison).
-5. **Synthesizes** results into a structured report with therapeutic targeting suggestions.
+1. **Resolve** the gene identifier (symbol or Ensembl ID) via the Ensembl REST API with local caching.
+2. **Classify** the gene's regulatory role by counting its targets and regulators in the cell-type-specific network.
+3. **Route** to appropriate analysis batches based on gene role and requested depth (basic, focused, or comprehensive).
+4. **Execute** up to three parallel batches: core analysis (perturbation propagation, regulators, targets), external data (STRING PPI, LINCS effects, super-enhancers), and insights (embedding similarity, vulnerability, cross-cell comparison).
+5. **Generate** a structured report aggregating all results.
 
-## Perturbation Scoring
+Network perturbation effects are computed via breadth-first propagation through directed regulatory edges weighted by mutual information. When gene embeddings are available, network scores are combined with embedding-based similarity to capture functional relationships beyond static network topology. Full algorithmic details are provided in the repository documentation.
 
-Network effects are computed via breadth-first search (BFS) propagation through directed regulatory edges weighted by mutual information. For embedding-enhanced analysis, network and embedding signals are combined:
+# Functionality
 
-$$\text{effect}_\text{combined} = \alpha \cdot \text{effect}_\text{network} + (1 - \alpha) \cdot s_{ij} \cdot \text{effect}_\text{network}$$
+CASCADE can be installed and used as follows:
 
-where $\alpha = 0.7$ by default and $s_{ij}$ is the cosine similarity between gene embeddings. Genes with high embedding similarity ($s_{ij} \geq 0.3$) but no direct network connection are reported as potential indirect effects, enabling discovery of relationships absent from the static network.
+```bash
+pip install -r requirements.txt
+python cascade_langgraph_mcp_server.py
+```
 
-## Network Vulnerability Scoring
+Once running, any MCP-compatible client can call CASCADE tools. For example, a request to `comprehensive_perturbation_analysis` with `gene="TP53"` and `cell_type="cd8_t_cells"` returns a structured JSON report containing predicted downstream effects, protein interaction partners, experimental knockdown corroboration from LINCS, super-enhancer status, and similar genes by embedding.
 
-For drug target prioritization, CASCADE computes a vulnerability score:
+The workflow is deterministic: the same gene, cell type, and depth parameters always produce identical results, as all analysis steps use fixed pre-computed networks and embeddings with no stochastic components.
 
-$$V_g = h_g + 0.3 \cdot c_g + 10 \cdot \bar{w}_g + \frac{5}{r_g + 1}$$
+# Software Availability
 
-where $h_g$ is the hub score (direct target count), $c_g$ is the cascade reach (second-order targets), $\bar{w}_g$ is mean outgoing edge weight, and $r_g$ is the upstream regulator count. Genes with high vulnerability and few regulators represent high-value therapeutic targets because the network cannot easily compensate for their loss.
-
-# Key Features
-
-- **10 cell-type-specific regulatory networks** covering epithelial cells, CD4/CD8 T cells, B cells, NK cells, NKT cells, monocytes (CD14/CD16), dendritic cells, and erythrocytes.
-- **Embedding-enhanced predictions** using 256-dimensional gene representations learned from 11 million single cells, capturing functional relationships beyond static network topology.
-- **Multi-source integration** combining network propagation, STRING protein interactions, LINCS L1000 experimental knockdown data, and dbSUPER super-enhancer annotations for druggability assessment.
-- **Intelligent routing** that automatically adapts analysis strategy based on gene classification---transcription factors receive knockdown/target analysis while effector genes receive PPI-focused analysis.
-- **Optional LLM synthesis** via Ollama integration for generating narrative biological interpretations of analysis results.
+CASCADE is available at [https://github.com/jab57/CASCADE](https://github.com/jab57/CASCADE) under the MIT license. The repository includes 141 automated tests achieving 76% code coverage, continuous integration via GitHub Actions, and documentation for installation, usage, and contributing.
 
 # Acknowledgements
 
-CASCADE builds upon the GREmLN model and gene embeddings developed by the Chan Zuckerberg Initiative AI team. We acknowledge the STRING Consortium, the LINCS Program, and dbSUPER for providing the external datasets integrated into CASCADE. CASCADE uses PyTorch [@pytorch] for model inference and LangGraph for workflow orchestration.
+CASCADE uses pre-trained gene embeddings from the GREmLN model developed by the Chan Zuckerberg Initiative AI team. We acknowledge the STRING Consortium, the LINCS Program, and dbSUPER for providing the external datasets integrated into CASCADE. CASCADE uses PyTorch [@pytorch] for model inference and LangGraph for workflow orchestration.
 
 # References
