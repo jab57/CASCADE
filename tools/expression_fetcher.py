@@ -103,8 +103,7 @@ class ExpressionFetcher:
         TODO: Implement actual data fetching
         """
         raise NotImplementedError(
-            "Expression fetching not yet implemented. "
-            "See FUTURE_ROADMAP.md for planned approach."
+            "Expression fetching not yet implemented."
         )
 
     def _fetch_from_cellxgene(self, cell_type: str) -> pd.DataFrame:

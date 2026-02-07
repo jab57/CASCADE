@@ -416,8 +416,6 @@ Where:
 
 ## Roadmap
 
-For the complete roadmap including the Unified Bio-Orchestrator vision, see **[FUTURE_ROADMAP.md](FUTURE_ROADMAP.md)**.
-
 ### Recently Completed
 
 - **LLM-Powered Biological Insights** (2025-02): Optional Ollama integration for AI-generated interpretation of analysis results
