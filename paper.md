@@ -66,6 +66,6 @@ CASCADE is available at [https://github.com/jab57/CASCADE](https://github.com/ja
 
 # Acknowledgements
 
-CASCADE uses pre-trained gene embeddings from the GREmLN model developed by the Chan Zuckerberg Initiative AI team. We acknowledge the STRING Consortium, the LINCS Program, and dbSUPER for providing the external datasets integrated into CASCADE. CASCADE uses PyTorch [@pytorch] for model inference and LangGraph for workflow orchestration.
+CASCADE uses pre-trained gene embeddings from the GREmLN model developed by the Chan Zuckerberg Initiative AI team. We acknowledge the STRING Consortium, the LINCS Program, and dbSUPER for providing the external datasets integrated into CASCADE. CASCADE uses PyTorch [@pytorch] for model inference and LangGraph for workflow orchestration. Development was assisted by AI coding tools (Claude Code).
 
 # References
