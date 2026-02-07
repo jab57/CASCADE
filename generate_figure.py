@@ -37,7 +37,7 @@ def arrow(x1, y1, x2, y2, color='#7F8C8D', style='->', lw=1.5):
                 zorder=1)
 
 # === Row 1: MCP Client ===
-box(3, 6.7, 4, 0.5, C_CLIENT, 'MCP Client (Claude Desktop / LLM)', fontsize=9)
+box(3, 6.7, 4, 0.5, C_CLIENT, 'MCP Client', fontsize=9)
 
 # Arrow down
 arrow(5, 6.7, 5, 6.4)
@@ -98,7 +98,7 @@ arrow(4.8, 3.3, 5.2, 3.3)
 
 # === Row 4: Data sources ===
 # Tool modules
-box(0.5, 0.5, 2.5, 1.1, C_TOOLS, 'Core Tools\nperturb.py\nmodel_inference.py\ncache.py\ngene_id_mapper.py', fontsize=6.5)
+box(0.5, 0.5, 2.5, 1.1, C_TOOLS, 'Core Tools\nNetwork Propagation\nGene Embeddings\nSimilarity Cache\nGene ID Resolution', fontsize=6.5)
 
 # External APIs
 box(3.8, 0.5, 2.5, 1.1, C_EXTERNAL, 'External Data\nSTRING DB\nLINCS L1000\ndbSUPER\nEnsembl API', fontsize=6.5)
@@ -118,7 +118,7 @@ legend_items = [
     mpatches.Patch(color=C_BATCH, label='Parallel batch execution'),
     mpatches.Patch(color=C_REPORT, label='Report synthesis'),
 ]
-ax.legend(handles=legend_items, loc='lower center', ncol=4, fontsize=7,
+ax.legend(handles=legend_items, loc='lower center', ncol=4, fontsize=8,
           frameon=True, fancybox=True, framealpha=0.9,
           bbox_to_anchor=(0.5, -0.02))
 
