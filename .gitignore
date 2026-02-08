@@ -42,7 +42,7 @@ htmlcov/
 .ipynb_checkpoints/
 
 # Internal planning docs
-JOSS_PLAN.md
+JOSS_DEVELOPMENT_PLAN.md
 FUTURE_ROADMAP.md
 
 # Distribution
