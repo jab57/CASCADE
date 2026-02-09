@@ -330,6 +330,17 @@ CASCADE/
 
 ## Technical Details
 
+### Regulatory Networks
+
+CASCADE's cell-type-specific regulatory networks are inferred from single-cell RNA-seq data. Each directed edge (`regulator → target`) is a statistically inferred regulatory relationship with the following attributes:
+
+- **mi** (mutual information): how strongly the regulator's mRNA level predicts the target's mRNA level across cells
+- **scc** (Spearman correlation): direction and strength of the expression relationship
+- **count**: reproducibility of the edge across bootstrap iterations
+- **log_p**: statistical significance
+
+These edges capture real co-expression-based regulatory relationships. However, because inference is based on mRNA co-variation, the networks may not include regulatory relationships where the transcription factor's activity is controlled post-translationally rather than at the mRNA level (e.g., TP53, whose protein is stabilized by phosphorylation rather than transcriptionally upregulated).
+
 ### Gene Embeddings
 
 The GREmLN model contains a gene embedding table with 256-dimensional vectors for ~19,247 genes. These embeddings were learned during pre-training on 11 million single cells and capture functional relationships between genes.
