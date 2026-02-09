@@ -44,6 +44,7 @@ The LangGraph workflow operates as a directed acyclic graph with conditional rou
 3. **Route** to appropriate analysis batches based on gene role and requested depth (basic, focused, or comprehensive).
 4. **Execute** up to three parallel batches: core analysis (perturbation propagation, regulators, targets), external data (STRING PPI, LINCS effects, super-enhancers), and insights (embedding similarity, vulnerability, cross-cell comparison).
 5. **Generate** a structured report aggregating all results.
+6. **Synthesize** (optional) LLM-powered biological interpretation via a local or cloud Ollama instance, producing a narrative summary of mechanism, therapeutic implications, and suggested follow-up experiments.
 
 Network perturbation effects are computed via breadth-first propagation through directed regulatory edges weighted by mutual information. When gene embeddings are available, network scores are combined with embedding-based similarity to capture functional relationships beyond static network topology. Full algorithmic details are provided in the repository documentation.
 
@@ -58,7 +59,7 @@ python cascade_langgraph_mcp_server.py
 
 Once running, any MCP-compatible client can call CASCADE tools. For example, a request to `comprehensive_perturbation_analysis` with `gene="TP53"` and `cell_type="cd8_t_cells"` returns a structured JSON report containing predicted downstream effects, protein interaction partners, experimental knockdown corroboration from LINCS, super-enhancer status, and similar genes by embedding.
 
-The workflow is deterministic: the same gene, cell type, and depth parameters always produce identical results, as all analysis steps use fixed pre-computed networks and embeddings with no stochastic components.
+The core workflow is deterministic: the same gene, cell type, and depth parameters always produce identical analytical results, as all analysis steps use fixed pre-computed networks and embeddings with no stochastic components. When the optional LLM synthesis step is enabled, CASCADE passes the structured results to a language model (configurable via Ollama) that generates a narrative biological interpretation including mechanistic summaries, therapeutic implications, affected pathways, and suggested follow-up experiments. This agentic layer augments---but does not replace---the deterministic analysis, and is disabled by default to preserve reproducibility.
 
 # Software Availability
 
