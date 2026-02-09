@@ -1,9 +1,10 @@
 ---
-title: 'CASCADE: An MCP Server for Automated Gene Perturbation Analysis'
+title: 'CASCADE: Agentic In Silico Gene Perturbation Analysis via the Model Context Protocol'
 tags:
   - Python
   - gene perturbation
   - regulatory networks
+  - agentic AI
   - Model Context Protocol
   - LangGraph
 authors:
@@ -25,11 +26,11 @@ CASCADE supports 10 immune and epithelial cell types, integrates protein-protein
 
 # Statement of Need
 
-Simulating the downstream effects of gene perturbation---whether through CRISPR knockout, RNAi, or pharmacological inhibition---requires combining regulatory network analysis, protein interaction data, and experimental perturbation signatures from separate tools and databases. Researchers must manually query each source, reconcile gene identifiers across databases, and synthesize cross-database results into a coherent interpretation.
+Simulating the downstream effects of gene perturbation---whether through CRISPR knockout, RNAi, or pharmacological inhibition---requires combining regulatory network analysis, protein interaction data, and experimental perturbation signatures from separate tools and databases. Researchers must manually query each source, reconcile gene identifiers across naming conventions (HUGO symbols, Ensembl IDs), and synthesize cross-database results into a coherent interpretation.
 
-Existing tools address individual aspects of this workflow: network inference packages reconstruct regulatory networks [@aibar2017], perturbation models forecast expression changes [@roohani2024], and interaction databases catalog physical associations [@szklarczyk2023]. However, no tool unifies these capabilities behind a single programmatic interface that automates the full analysis pipeline.
+Existing tools address individual aspects of this workflow: SCENIC reconstructs regulatory networks but does not simulate perturbation effects [@aibar2017]; GEARS forecasts expression changes but requires Perturb-seq training data and single-cell RNA-seq input [@roohani2024]; and interaction databases catalog physical associations but leave interpretation to the user [@szklarczyk2023]. No existing tool unifies perturbation simulation, multi-database evidence gathering, and structured reporting behind a single programmatic interface.
 
-CASCADE fills this gap by providing an MCP server that any compatible client can call. A single request to `comprehensive_perturbation_analysis` triggers the complete workflow: resolve gene identifiers, classify the gene's regulatory role, select and execute appropriate analyses in parallel, and return a structured multi-source report. This eliminates manual orchestration and provides reproducible, deterministic results for any supported gene and cell type.
+CASCADE fills this gap by exposing the full analysis pipeline as an MCP server [@mcp]---an open protocol that allows AI assistants to call external tools. This means a researcher can ask an AI assistant *"What happens if I knock down MYC in CD8+ T cells?"* and receive a structured multi-source report without writing code, reconciling identifiers, or querying databases manually. The agentic workflow autonomously resolves gene identifiers, classifies the gene's regulatory role, selects and executes appropriate analyses in parallel, and returns deterministic, reproducible results. CASCADE requires no single-cell RNA-seq input and no model training, making it accessible to researchers who lack computational infrastructure for tools like GEARS or CellOracle [@kamimoto2023].
 
 # Architecture
 
@@ -37,16 +38,17 @@ CASCADE follows a layered design (\autoref{fig:architecture}). The MCP server ex
 
 ![CASCADE architecture. An MCP client sends a request to the CASCADE server, which routes it through a LangGraph workflow. The workflow classifies the gene, selects analyses based on gene role and depth, and executes independent batches in parallel. Analysis tools operate on pre-computed regulatory networks and gene embeddings, while external modules query STRING, LINCS, and dbSUPER.\label{fig:architecture}](figure_architecture.png)
 
-The LangGraph workflow operates as a directed acyclic graph with conditional routing:
+The agentic workflow, built on LangGraph [@langgraph], autonomously coordinates the analysis pipeline:
 
 1. **Resolve** the gene identifier (symbol or Ensembl ID) via the Ensembl REST API with local caching.
-2. **Classify** the gene's regulatory role by counting its targets and regulators in the cell-type-specific network.
-3. **Route** to appropriate analysis batches based on gene role and requested depth (basic, focused, or comprehensive).
-4. **Execute** up to three parallel batches: core analysis (perturbation propagation, regulators, targets), external data (STRING PPI, LINCS effects, super-enhancers), and insights (embedding similarity, vulnerability, cross-cell comparison).
-5. **Generate** a structured report aggregating all results.
-6. **Synthesize** (optional) LLM-powered biological interpretation via a local or cloud Ollama instance, producing a narrative summary of mechanism, therapeutic implications, and suggested follow-up experiments.
+2. **Classify** the gene's regulatory role (master regulator, transcription factor, effector, or isolated) from the cell-type-specific network.
+3. **Route** to appropriate analyses based on gene role and requested depth---for example, a transcription factor triggers full downstream propagation, while an effector gene prioritizes protein interaction and upstream regulator analysis.
+4. **Execute** independent analyses in parallel: perturbation simulation, STRING protein interactions, LINCS experimental knockdown signatures, super-enhancer status, embedding-based gene similarity, and cross-cell-type comparison.
+5. **Report** structured JSON results that the calling AI assistant can interpret and present to the researcher.
 
-Network perturbation effects are computed via breadth-first propagation through directed regulatory edges weighted by mutual information. When gene embeddings are available, network scores are combined with embedding-based similarity to capture functional relationships beyond static network topology. Full algorithmic details are provided in the repository documentation.
+Optionally, an LLM synthesis step generates a narrative biological interpretation of the structured results.
+
+Network perturbation effects are computed via breadth-first propagation through directed regulatory edges weighted by mutual information. When pre-trained gene embeddings are available, network-derived scores are combined with embedding-based similarity to capture functional relationships beyond static topology.
 
 # Functionality
 
@@ -59,11 +61,11 @@ python cascade_langgraph_mcp_server.py
 
 Once running, any MCP-compatible client can call CASCADE tools. For example, a request to `comprehensive_perturbation_analysis` with `gene="TP53"` and `cell_type="cd8_t_cells"` returns a structured JSON report containing predicted downstream effects, protein interaction partners, experimental knockdown corroboration from LINCS, super-enhancer status, and similar genes by embedding.
 
-The core workflow is deterministic: the same gene, cell type, and depth parameters always produce identical analytical results, as all analysis steps use fixed pre-computed networks and embeddings with no stochastic components. When the optional LLM synthesis step is enabled, CASCADE passes the structured results to a language model (configurable via Ollama) that generates a narrative biological interpretation including mechanistic summaries, therapeutic implications, affected pathways, and suggested follow-up experiments. This agentic layer augments---but does not replace---the deterministic analysis, and is disabled by default to preserve reproducibility.
+The core workflow is deterministic: the same gene, cell type, and depth parameters always produce identical analytical results, as all analysis steps use fixed pre-computed networks and embeddings with no stochastic components. Because CASCADE communicates via MCP, the structured results are directly available to the AI assistant that initiated the request, enabling conversational follow-up---a researcher can refine the analysis, compare cell types, or explore related genes without leaving the conversation.
 
 # Software Availability
 
-CASCADE is available at [https://github.com/jab57/CASCADE](https://github.com/jab57/CASCADE) under the MIT license. The repository includes 141 automated tests achieving 76% code coverage, continuous integration via GitHub Actions, and documentation for installation, usage, and contributing.
+CASCADE is available at [https://github.com/jab57/CASCADE](https://github.com/jab57/CASCADE) under the MIT license. The repository includes automated tests covering network propagation, embedding similarity, LINCS queries, gene identifier resolution, and MCP tool registration, with continuous integration via GitHub Actions and documentation for installation, usage, and contributing.
 
 # Acknowledgements
 
