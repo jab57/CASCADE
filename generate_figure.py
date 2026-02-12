@@ -94,7 +94,7 @@ ax.text(5.0, 4.92, 'Parallel Execution', ha='center', va='center',
 box(0.9, 4.05, 2.6, 0.7, C_BATCH,
     'Batch Core\nPerturbation | Regulators | Targets', fontsize=6.5)
 box(3.7, 4.05, 2.6, 0.7, C_BATCH,
-    'Batch External\nSTRING PPI | LINCS | Super-Enh', fontsize=6.5)
+    'Batch External\nSTRING PPI | LINCS | Super-Enh | DoRothEA', fontsize=6.5)
 box(6.5, 4.05, 2.6, 0.7, C_BATCH,
     'Batch Insights\nSimilarity | Vulnerability | Cross-Cell', fontsize=6.5)
 
@@ -118,17 +118,17 @@ arrow(4.8, 3.22, 5.2, 3.22)
 # === Row 4: Data sources (aligned under their batch nodes) ===
 
 # Network Resources (left, under Batch Core) — dashed border = local
-box(0.5, 0.5, 2.8, 1.1, C_LOCAL,
+box(0.5, 0.35, 2.8, 1.25, C_LOCAL,
     'Network Resources\n10 Regulatory Networks\nNetwork Propagation\nGene ID Resolution',
     fontsize=6.5, linestyle='dashed', edgecolor=C_LOCAL)
 
 # Runtime APIs (center, under Batch External) — solid border = external
-box(3.7, 0.5, 2.6, 1.1, C_EXTERNAL,
-    'Runtime APIs\nSTRING DB\nLINCS L1000\ndbSUPER\nEnsembl API',
+box(3.7, 0.35, 2.6, 1.25, C_EXTERNAL,
+    'Runtime APIs\nSTRING DB\nLINCS L1000\ndbSUPER\nDoRothEA\nEnsembl API',
     fontsize=6.5, edgecolor='#C0392B', lw=1.8)
 
 # Embedding Resources (right, under Batch Insights) — dashed border = local
-box(6.7, 0.5, 2.8, 1.1, C_EMBED,
+box(6.7, 0.35, 2.8, 1.25, C_EMBED,
     'Embedding Resources\nGREmLN Checkpoint\nGene Embeddings\nSimilarity Cache',
     fontsize=6.5, linestyle='dashed', edgecolor=C_EMBED)
 
