@@ -111,6 +111,7 @@ class PerturbationAnalysisState(TypedDict):
     ppi_interactions: Optional[Dict]            # STRING protein interactions
     lincs_effects: Optional[Dict]               # LINCS knockdown effects
     super_enhancer_status: Optional[Dict]       # Super-enhancer info (BET sensitivity)
+    dorothea_regulons: Optional[Dict]           # DoRothEA TF regulon validation
 
     # === Cross-Cell Analysis ===
     cross_cell_comparison: Optional[Dict]       # Same gene across cell types
@@ -126,6 +127,100 @@ class PerturbationAnalysisState(TypedDict):
     # === LLM Insights (Optional) ===
     include_llm_insights: bool                  # Whether to generate LLM synthesis
     llm_insights: Optional[Dict]                # LLM-generated biological interpretation
+
+
+# =============================================================================
+# EVIDENCE SYNTHESIS HELPERS
+# =============================================================================
+
+def _build_role_context(gene_role: str, total_affected: int, ppi_count: int,
+                        agreement_count: int, dorothea_validated: bool = False) -> Dict[str, str]:
+    """Return context string and primary evidence source based on gene role."""
+    if gene_role in ("master_regulator", "transcription_factor", "minor_regulator"):
+        primary = "network_propagation"
+        if agreement_count > 0:
+            context = (f"This {gene_role.replace('_', ' ')}'s transcriptional effects "
+                      f"are captured by network propagation, with {agreement_count} "
+                      f"prediction(s) experimentally confirmed by LINCS knockdown data.")
+            primary = "network_propagation + lincs_experimental"
+        else:
+            context = (f"This {gene_role.replace('_', ' ')}'s effects are predicted by "
+                      f"network propagation ({total_affected} affected genes). "
+                      f"No overlapping LINCS experimental data available for validation.")
+        if dorothea_validated:
+            context += " TF classification confirmed by DoRothEA curated regulons."
+            primary += " + dorothea"
+    elif gene_role == "effector":
+        primary = "string_ppi" if ppi_count > 0 else "embedding_similarity"
+        context = (f"This gene has no transcriptional targets in the network (effector role). "
+                  f"Network propagation is uninformative. "
+                  f"{'STRING protein interactions' if ppi_count > 0 else 'Embedding similarity'} "
+                  f"provides the most relevant evidence for this gene type.")
+    elif gene_role == "isolated":
+        primary = "string_ppi" if ppi_count > 0 else "embedding_similarity"
+        context = (f"This gene is not present in the cell-type regulatory network. "
+                  f"Network-based analyses (propagation, regulators, targets) are unavailable. "
+                  f"{'STRING protein interactions' if ppi_count > 0 else 'Embedding similarity'} "
+                  f"provides the most relevant evidence.")
+    else:
+        primary = "unknown"
+        context = "Gene role could not be determined."
+    return {"context": context, "primary": primary}
+
+
+def _build_key_findings(gene_role: str, multi_source: list, agreements: list,
+                        disagreements: list, total_affected: int, ppi_count: int,
+                        lincs_count: int, dorothea_validated: bool = False) -> List[str]:
+    """Generate human-readable key findings from synthesis results."""
+    findings = []
+
+    if len(multi_source) > 0:
+        findings.append(
+            f"{len(multi_source)} gene(s) supported by multiple independent evidence sources."
+        )
+
+    if len(agreements) > 0:
+        findings.append(
+            f"{len(agreements)} gene(s) confirmed by both network propagation and "
+            f"LINCS experimental knockdown data (directional agreement)."
+        )
+
+    if len(disagreements) > 0:
+        findings.append(
+            f"{len(disagreements)} gene(s) show directional disagreement between "
+            f"network prediction and LINCS experimental data — requires investigation."
+        )
+    elif len(agreements) > 0:
+        findings.append("No directional disagreements between network and experimental evidence.")
+
+    # PPI-only genes (in STRING but not network propagation)
+    ppi_only = [g for g in multi_source
+                if "string_ppi" in g["sources"] and "network_propagation" not in g["sources"]]
+    if ppi_only:
+        findings.append(
+            f"STRING identifies {len(ppi_only)} protein interaction partner(s) "
+            f"not detected at the mRNA level by network propagation."
+        )
+
+    if gene_role in ("effector", "isolated") and total_affected == 0:
+        if ppi_count > 0:
+            findings.append(
+                f"Gene has no transcriptional targets but {ppi_count} STRING protein "
+                f"interaction partners — protein-level evidence is primary."
+            )
+        else:
+            findings.append(
+                "Gene has no transcriptional targets and no STRING interactions. "
+                "Embedding similarity is the only available evidence source."
+            )
+
+    if dorothea_validated:
+        findings.append(
+            "TF classification validated by DoRothEA curated regulons (multi-evidence: "
+            "literature, ChIP-seq, motifs)."
+        )
+
+    return findings
 
 
 # =============================================================================
@@ -462,7 +557,7 @@ class CascadeWorkflow:
 
         else:  # comprehensive
             # Comprehensive: Everything relevant to gene role
-            required = {"perturbation", "regulators", "similar"}
+            required = {"perturbation", "regulators", "similar", "dorothea"}
 
             if gene_role in [GeneRole.MASTER_REGULATOR.value, GeneRole.TRANSCRIPTION_FACTOR.value]:
                 required.update({"targets", "vulnerability", "lincs"})
@@ -494,8 +589,8 @@ class CascadeWorkflow:
                 "next_actions": ["batch_core"]
             }
 
-        # External batch: ppi + lincs + super_enhancers
-        external_pending = pending & {"ppi", "lincs", "super_enhancers"}
+        # External batch: ppi + lincs + super_enhancers + dorothea
+        external_pending = pending & {"ppi", "lincs", "super_enhancers", "dorothea"}
         if len(external_pending) > 1:
             return {
                 "current_step": "decide_next_steps",
@@ -614,6 +709,10 @@ class CascadeWorkflow:
             tasks.append(self._check_super_enhancers_impl(state))
             task_names.append("super_enhancers")
 
+        if "dorothea" not in completed:
+            tasks.append(self._fetch_dorothea_impl(state))
+            task_names.append("dorothea")
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         updates = {
@@ -631,6 +730,8 @@ class CascadeWorkflow:
                 updates["lincs_effects"] = result
             elif name == "super_enhancers":
                 updates["super_enhancer_status"] = result
+            elif name == "dorothea":
+                updates["dorothea_regulons"] = result
 
         return updates
 
@@ -873,6 +974,23 @@ class CascadeWorkflow:
             logger.error(f"Super-enhancer error: {e}")
             return {"error": str(e), "has_super_enhancer": False}
 
+    async def _fetch_dorothea_impl(self, state: PerturbationAnalysisState) -> Dict:
+        """Fetch DoRothEA TF regulon data."""
+        from tools.dorothea import get_tf_targets, validate_tf_classification
+
+        gene_symbol = state.get("gene_symbol", state["gene"])
+
+        try:
+            targets = get_tf_targets(gene_symbol, confidence_levels=["A", "B", "C"], top_k=50)
+            validation = validate_tf_classification(gene_symbol)
+            return {
+                "targets": targets,
+                "validation": validation,
+            }
+        except Exception as e:
+            logger.error(f"DoRothEA error: {e}")
+            return {"error": str(e), "targets": [], "validation": {}}
+
     async def _find_similar_genes_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Find similar genes using embeddings."""
         ensembl_id = state["ensembl_id"]
@@ -954,6 +1072,144 @@ class CascadeWorkflow:
         }
 
     # =========================================================================
+    # EVIDENCE SYNTHESIS
+    # =========================================================================
+
+    def _synthesize_evidence(self, state: PerturbationAnalysisState) -> Dict:
+        """Cross-reference genes across all evidence sources and produce synthesis."""
+        from collections import defaultdict
+
+        evidence = defaultdict(lambda: {"sources": [], "evidence": {}})
+
+        # --- 1. Collect gene appearances across sources ---
+
+        # Network propagation (perturbation_result -> top_affected_genes)
+        perturbation = state.get("perturbation_result") or {}
+        for gene in perturbation.get("top_affected_genes", []):
+            sym = gene["symbol"].upper()
+            evidence[sym]["sources"].append("network_propagation")
+            evidence[sym]["evidence"]["network"] = {
+                "effect": gene.get("predicted_effect") or gene.get("combined_effect"),
+                "direction": gene["direction"],
+                "magnitude": gene.get("magnitude")
+            }
+
+        # STRING PPI (ppi_interactions -> interactions)
+        ppi = state.get("ppi_interactions") or {}
+        for interaction in ppi.get("interactions", []):
+            sym = interaction["partner"].upper()
+            evidence[sym]["sources"].append("string_ppi")
+            evidence[sym]["evidence"]["string"] = {
+                "combined_score": interaction["combined_score"]
+            }
+
+        # LINCS experimental (lincs_effects — LIST on success, DICT on error)
+        lincs = state.get("lincs_effects")
+        lincs_list = lincs if isinstance(lincs, list) else []
+        for entry in lincs_list:
+            sym = entry["gene"].upper()
+            evidence[sym]["sources"].append("lincs_experimental")
+            evidence[sym]["evidence"]["lincs"] = {
+                "effect": entry["effect"],
+                "direction": entry["direction"]
+            }
+
+        # Embedding similarity (similar_genes -> similar_genes)
+        similar = state.get("similar_genes") or {}
+        for gene in similar.get("similar_genes", []):
+            sym = gene["gene_symbol"].upper()
+            evidence[sym]["sources"].append("embedding_similarity")
+            evidence[sym]["evidence"]["embedding"] = {
+                "similarity": gene["similarity"]
+            }
+
+        # Regulators (regulators_analysis -> regulators)
+        regs = state.get("regulators_analysis") or {}
+        for reg in regs.get("regulators", []):
+            sym = reg["symbol"].upper()
+            evidence[sym]["sources"].append("network_regulators")
+            evidence[sym]["evidence"]["regulator"] = {
+                "edge_weight": reg["edge_weight"]
+            }
+
+        # Targets (targets_analysis -> targets)
+        tgts = state.get("targets_analysis") or {}
+        for tgt in tgts.get("targets", []):
+            sym = tgt["symbol"].upper()
+            evidence[sym]["sources"].append("network_targets")
+            evidence[sym]["evidence"]["target"] = {
+                "edge_weight": tgt["edge_weight"]
+            }
+
+        # DoRothEA regulons (dorothea_regulons -> targets)
+        dorothea = state.get("dorothea_regulons") or {}
+        dorothea_targets = dorothea.get("targets") or []
+        for dt in dorothea_targets:
+            if isinstance(dt, dict) and "target" in dt:
+                sym = dt["target"].upper()
+                evidence[sym]["sources"].append("dorothea_regulon")
+                evidence[sym]["evidence"]["dorothea"] = {
+                    "mor": dt.get("mor"),
+                    "confidence": dt.get("confidence")
+                }
+
+        # --- 2. Filter to multi-source genes ---
+        multi_source = []
+        for sym, data in evidence.items():
+            if len(data["sources"]) >= 2:
+                entry = {
+                    "symbol": sym,
+                    "sources": sorted(data["sources"]),
+                    "source_count": len(data["sources"]),
+                    "evidence": data["evidence"]
+                }
+                multi_source.append(entry)
+
+        multi_source.sort(key=lambda x: x["source_count"], reverse=True)
+
+        # --- 3. Check directional agreement (network vs LINCS) ---
+        agreements = []
+        disagreements = []
+        for gene_data in multi_source:
+            ev = gene_data["evidence"]
+            if "network" in ev and "lincs" in ev:
+                net_dir = ev["network"]["direction"]
+                lincs_dir = ev["lincs"]["direction"]
+                sym = gene_data["symbol"]
+                if net_dir == lincs_dir:
+                    agreements.append(f"{sym}: network {net_dir} + LINCS {lincs_dir}")
+                else:
+                    disagreements.append(f"{sym}: network {net_dir} vs LINCS {lincs_dir}")
+
+        # --- 4. Gene-role context ---
+        gene_role = state.get("gene_role", "unknown")
+        total_affected = perturbation.get("total_affected_genes", 0)
+        ppi_count = ppi.get("count", len(ppi.get("interactions", [])))
+
+        dorothea_validation = dorothea.get("validation") or {}
+        dorothea_validated = dorothea_validation.get("is_known_tf", False)
+
+        role_context = _build_role_context(
+            gene_role, total_affected, ppi_count, len(agreements), dorothea_validated
+        )
+
+        # --- 5. Build key findings ---
+        key_findings = _build_key_findings(
+            gene_role, multi_source, agreements, disagreements,
+            total_affected, ppi_count, len(lincs_list), dorothea_validated
+        )
+
+        return {
+            "gene_role_context": role_context["context"],
+            "primary_evidence_source": role_context["primary"],
+            "multi_source_genes": multi_source,
+            "multi_source_gene_count": len(multi_source),
+            "source_agreements": agreements,
+            "source_disagreements": disagreements,
+            "key_findings": key_findings
+        }
+
+    # =========================================================================
     # REPORT GENERATION
     # =========================================================================
 
@@ -986,6 +1242,20 @@ class CascadeWorkflow:
                 "priority": "medium"
             })
 
+        # Based on DoRothEA validation
+        dorothea = state.get("dorothea_regulons") or {}
+        dorothea_validation = dorothea.get("validation") or {}
+        if dorothea_validation.get("is_known_tf") and dorothea_validation.get("best_confidence") in ("A", "B"):
+            suggestions.append({
+                "action": "Target known regulon members",
+                "reason": (
+                    f"{gene_symbol} is a DoRothEA-validated TF (confidence {dorothea_validation['best_confidence']}) "
+                    f"with {dorothea_validation.get('total_targets', 0)} curated targets — "
+                    f"consider targeting downstream regulon members"
+                ),
+                "priority": "medium"
+            })
+
         # Based on vulnerability
         vuln = state.get("vulnerability_analysis") or {}
         if vuln.get("therapeutic_potential") == "high":
@@ -995,19 +1265,29 @@ class CascadeWorkflow:
                 "priority": "high"
             })
 
+        # Synthesize cross-source evidence
+        evidence_synthesis = self._synthesize_evidence(state)
+
         # Calculate execution time
         metadata = state.get("analysis_metadata", {})
         start_time = metadata.get("start_time", time.time())
         execution_time = time.time() - start_time
 
+        # Build summary with optional DoRothEA validation
+        summary = {
+            "gene": gene_symbol,
+            "ensembl_id": state.get("ensembl_id"),
+            "cell_type": state.get("cell_type"),
+            "gene_role": gene_role,
+            "perturbation_type": state.get("perturbation_type")
+        }
+        if dorothea_validation.get("is_known_tf"):
+            summary["dorothea_validated"] = True
+            summary["dorothea_confidence"] = dorothea_validation.get("best_confidence")
+
         report = {
-            "summary": {
-                "gene": gene_symbol,
-                "ensembl_id": state.get("ensembl_id"),
-                "cell_type": state.get("cell_type"),
-                "gene_role": gene_role,
-                "perturbation_type": state.get("perturbation_type")
-            },
+            "summary": summary,
+            "evidence_synthesis": evidence_synthesis,
             "perturbation_effects": state.get("perturbation_result"),
             "network_analysis": {
                 "context": state.get("network_context"),  # Always available (num_targets, num_regulators)
@@ -1018,7 +1298,8 @@ class CascadeWorkflow:
             "external_data": {
                 "protein_interactions": state.get("ppi_interactions"),
                 "lincs_knockdown": state.get("lincs_effects"),
-                "super_enhancers": state.get("super_enhancer_status")
+                "super_enhancers": state.get("super_enhancer_status"),
+                "dorothea_regulons": state.get("dorothea_regulons")
             },
             "embedding_analysis": {
                 "similar_genes": state.get("similar_genes"),
@@ -1238,6 +1519,7 @@ Provide scientifically accurate, evidence-based analysis. When data is limited, 
             "ppi_interactions": None,
             "lincs_effects": None,
             "super_enhancer_status": None,
+            "dorothea_regulons": None,
             "cross_cell_comparison": None,
             "vulnerability_analysis": None,
             "therapeutic_suggestions": None,

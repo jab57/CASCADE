@@ -218,7 +218,7 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 - "Get high-confidence interactions for TP53"
 - "What protein interactions would be disrupted if I knock down BRCA1?"
 
-## Available MCP Tools (22 total)
+## Available MCP Tools (25 total)
 
 ### Workflow Tools (LangGraph Orchestration)
 | Tool | Description |
@@ -269,6 +269,13 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 | `check_super_enhancer` | Check if a gene has super-enhancers (BRD4/BET inhibitor sensitive) |
 | `check_genes_super_enhancers` | Screen multiple genes for super-enhancer status |
 
+### DoRothEA TF Regulon Validation
+| Tool | Description |
+|------|-------------|
+| `get_dorothea_regulon` | Get curated TF regulon targets with confidence levels (A-E) |
+| `validate_tf_classification` | Validate gene as known TF against DoRothEA curated regulons |
+| `get_dorothea_stats` | Get DoRothEA dataset statistics |
+
 ## Project Structure
 
 ```
@@ -286,6 +293,7 @@ CASCADE/
 │   ├── gene_id_mapper.py           # Gene symbol/Ensembl ID conversion
 │   ├── lincs.py                    # LINCS L1000 expression perturbation data
 │   ├── super_enhancers.py          # Super-enhancer annotations (BRD4 druggability)
+│   ├── dorothea.py                # DoRothEA TF regulon validation (via decoupler)
 │   └── ppi/
 │       └── string_client.py        # STRING database API client
 ├── data/

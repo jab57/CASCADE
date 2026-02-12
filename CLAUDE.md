@@ -62,7 +62,7 @@ python cascade_langgraph_mcp_server.py
 ## Core Files
 
 ### LangGraph Orchestration (NEW)
-- `cascade_langgraph_mcp_server.py` - MCP server with 22 tools, LangGraph orchestration
+- `cascade_langgraph_mcp_server.py` - MCP server with 25 tools, LangGraph orchestration
 - `cascade_langgraph_workflow.py` - Core workflow: state schema, routing logic, batch processing
 
 ### Tool Implementations
@@ -72,6 +72,7 @@ python cascade_langgraph_mcp_server.py
 - `tools/gene_id_mapper.py` - Gene symbol ↔ Ensembl ID conversion
 - `tools/lincs.py` - LINCS L1000 experimental knockdown data
 - `tools/super_enhancers.py` - BRD4/BET inhibitor sensitivity (dbSUPER)
+- `tools/dorothea.py` - DoRothEA TF regulon validation (via decoupler)
 - `tools/ppi/string_client.py` - STRING database API client
 
 ## LangGraph Workflow
@@ -83,6 +84,7 @@ python cascade_langgraph_mcp_server.py
 - ensembl_id, gene_symbol, gene_role                  # resolved
 - perturbation_result, regulators_analysis, targets_analysis  # core
 - ppi_interactions, lincs_effects, super_enhancer_status      # external
+- dorothea_regulons                                          # TF regulon validation
 - similar_genes, vulnerability_analysis, cross_cell_comparison # insights
 - comprehensive_report, therapeutic_suggestions               # output
 - llm_insights                                        # LLM-generated interpretation

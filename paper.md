@@ -34,16 +34,16 @@ CASCADE fills this gap by exposing the full analysis pipeline as an MCP server [
 
 # Architecture
 
-CASCADE follows a layered design (\autoref{fig:architecture}). The MCP server exposes 22 tools organized into six categories: workflow orchestration, perturbation simulation, gene similarity, network vulnerability, experimental data, and druggability assessment.
+CASCADE follows a layered design (\autoref{fig:architecture}). The MCP server exposes 25 tools organized into seven categories: workflow orchestration, perturbation simulation, gene similarity, network vulnerability, experimental data, druggability assessment, and TF regulon validation.
 
-![CASCADE architecture. An MCP client sends a request to the CASCADE server, which routes it through a LangGraph workflow. The workflow classifies the gene, selects analyses based on gene role and depth, and executes independent batches in parallel. Analysis tools operate on pre-computed regulatory networks and gene embeddings, while external modules query STRING, LINCS, and dbSUPER.\label{fig:architecture}](figure_architecture.png)
+![CASCADE architecture. An MCP client sends a request to the CASCADE server, which routes it through a LangGraph workflow. The workflow classifies the gene, selects analyses based on gene role and depth, and executes independent batches in parallel. Analysis tools operate on pre-computed regulatory networks and gene embeddings, while external modules query STRING, LINCS, dbSUPER, and DoRothEA.\label{fig:architecture}](figure_architecture.png)
 
 The agentic workflow, built on LangGraph [@langgraph], autonomously coordinates the analysis pipeline:
 
 1. **Resolve** the gene identifier (symbol or Ensembl ID) via the Ensembl REST API with local caching.
 2. **Classify** the gene's regulatory role (master regulator, transcription factor, effector, or isolated) from the cell-type-specific network.
 3. **Route** to appropriate analyses based on gene role and requested depth---for example, a transcription factor triggers full downstream propagation, while an effector gene prioritizes protein interaction and upstream regulator analysis.
-4. **Execute** independent analyses in parallel: perturbation simulation, STRING protein interactions, LINCS experimental knockdown signatures, super-enhancer status, embedding-based gene similarity, and cross-cell-type comparison.
+4. **Execute** independent analyses in parallel: perturbation simulation, STRING protein interactions, LINCS experimental knockdown signatures, super-enhancer status, DoRothEA TF regulon validation, embedding-based gene similarity, and cross-cell-type comparison.
 5. **Report** structured JSON results aggregating all analyses into a single response.
 6. **Synthesize** a narrative biological interpretation by passing the structured results to a configurable LLM (local or cloud Ollama), combining mechanism summaries, therapeutic implications, and suggested follow-up experiments into a coherent report. When no LLM is available, the structured results from step 5 remain fully usable by the calling AI assistant.
 

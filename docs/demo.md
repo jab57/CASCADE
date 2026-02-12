@@ -174,7 +174,7 @@ You are a computational biologist at a biotech company evaluating targets for a 
 
 When walking someone through this demo, emphasize:
 
-1. **One question, six databases.** A single natural language query triggers parallel analysis across regulatory networks, gene embeddings, STRING, LINCS, dbSUPER, and Ensembl. No scripting, no identifier reconciliation.
+1. **One question, seven databases.** A single natural language query triggers parallel analysis across regulatory networks, gene embeddings, STRING, LINCS, dbSUPER, DoRothEA, and Ensembl. No scripting, no identifier reconciliation.
 
 2. **Cell-type-specific biology.** The same gene behaves differently in different immune cell types. CASCADE has pre-computed networks for 10 cell types relevant to immuno-oncology.
 

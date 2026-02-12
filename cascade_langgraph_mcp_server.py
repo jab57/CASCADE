@@ -733,6 +733,85 @@ async def handle_list_tools() -> list[Tool]:
                 },
                 "required": ["genes"]
             }
+        ),
+
+        # =====================================================================
+        # DOROTHEA TF REGULON TOOLS
+        # =====================================================================
+
+        Tool(
+            name="get_dorothea_regulon",
+            description="""
+            Get curated TF regulon targets from DoRothEA.
+
+            DoRothEA provides multi-evidence transcription factor regulons with
+            confidence levels A-E (A=highest: literature + ChIP-seq + motifs).
+
+            Use this to:
+            - Find known targets of a transcription factor
+            - Validate network-predicted TF-target relationships
+            - Get confidence-weighted regulatory evidence
+
+            Returns targets with mode of regulation (activation/repression)
+            and confidence level.
+            """,
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gene": {
+                        "type": "string",
+                        "description": "Transcription factor gene symbol (e.g., TP53, MYC)"
+                    },
+                    "confidence_levels": {
+                        "type": "array",
+                        "items": {"type": "string", "enum": ["A", "B", "C", "D", "E"]},
+                        "description": "Confidence levels to include (default: A, B, C)",
+                        "default": ["A", "B", "C"]
+                    }
+                },
+                "required": ["gene"]
+            }
+        ),
+
+        Tool(
+            name="validate_tf_classification",
+            description="""
+            Validate whether a gene is a known transcription factor using DoRothEA.
+
+            CASCADE classifies TFs using network topology (target count thresholds).
+            This tool cross-references against DoRothEA's curated multi-evidence
+            TF regulons to confirm or refute the classification.
+
+            Returns:
+            - Whether the gene is a known TF in DoRothEA
+            - Best confidence level (A-E)
+            - Number of targets per confidence level
+            - Evidence summary
+            """,
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gene": {
+                        "type": "string",
+                        "description": "Gene symbol to validate as TF"
+                    }
+                },
+                "required": ["gene"]
+            }
+        ),
+
+        Tool(
+            name="get_dorothea_stats",
+            description="""
+            Get statistics about the DoRothEA TF regulon dataset.
+
+            Shows total interactions, unique TFs, unique targets, and
+            interaction counts per confidence level.
+            """,
+            inputSchema={
+                "type": "object",
+                "properties": {}
+            }
         )
     ]
 
@@ -815,6 +894,16 @@ async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent
 
         elif name == "check_genes_super_enhancers":
             result = await _check_genes_super_enhancers(arguments)
+
+        # DoRothEA tools
+        elif name == "get_dorothea_regulon":
+            result = await _get_dorothea_regulon(arguments)
+
+        elif name == "validate_tf_classification":
+            result = await _validate_tf_classification(arguments)
+
+        elif name == "get_dorothea_stats":
+            result = await _get_dorothea_stats(arguments)
 
         else:
             result = {"error": f"Unknown tool: {name}"}
@@ -1695,6 +1784,57 @@ async def _check_genes_super_enhancers(args: dict) -> dict:
         return {"error": str(e)}
     except Exception as e:
         return {"error": f"Super-enhancer check failed: {str(e)}"}
+
+
+# =============================================================================
+# DOROTHEA IMPLEMENTATIONS
+# =============================================================================
+
+async def _get_dorothea_regulon(args: dict) -> dict:
+    """Get DoRothEA TF regulon targets."""
+    from tools.dorothea import get_tf_targets
+
+    gene = args["gene"]
+    confidence_levels = args.get("confidence_levels", ["A", "B", "C"])
+
+    try:
+        results = get_tf_targets(gene, confidence_levels=confidence_levels, top_k=50)
+        # Check if results contain an error dict
+        if results and isinstance(results[0], dict) and "error" in results[0]:
+            return {"error": results[0]["error"]}
+        return {
+            "gene": gene,
+            "confidence_levels": confidence_levels,
+            "targets_found": len(results),
+            "targets": results,
+            "data_source": "DoRothEA via decoupler-py"
+        }
+    except Exception as e:
+        return {"error": f"DoRothEA query failed: {str(e)}"}
+
+
+async def _validate_tf_classification(args: dict) -> dict:
+    """Validate TF classification against DoRothEA."""
+    from tools.dorothea import validate_tf_classification
+
+    gene = args["gene"]
+
+    try:
+        result = validate_tf_classification(gene)
+        result["data_source"] = "DoRothEA via decoupler-py"
+        return result
+    except Exception as e:
+        return {"error": f"DoRothEA validation failed: {str(e)}"}
+
+
+async def _get_dorothea_stats(args: dict) -> dict:
+    """Get DoRothEA dataset statistics."""
+    from tools.dorothea import get_dorothea_stats
+
+    try:
+        return get_dorothea_stats()
+    except Exception as e:
+        return {"error": f"DoRothEA stats failed: {str(e)}"}
 
 
 # =============================================================================
