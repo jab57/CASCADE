@@ -37,16 +37,13 @@ class TestGetTFTargets:
         assert "BAX" in target_genes
         assert "MDM2" in target_genes
 
-    def test_confidence_filtering(self, patch_dorothea_data):
+    def test_confidence_filtering(self, mock_dorothea_df):
         """When filtering for A-only, TP53 should have 2 targets (CDKN1A, BAX)."""
-        # Need to let actual filtering work
-        dorothea_module._dorothea_data = patch_dorothea_data
-        with patch("tools.dorothea.load_dorothea_regulons",
-                    side_effect=dorothea_module.load_dorothea_regulons):
-            results = get_tf_targets("TP53", confidence_levels=["A"])
-            assert len(results) == 2
-            for r in results:
-                assert r["confidence"] == "A"
+        dorothea_module._dorothea_data = mock_dorothea_df
+        results = get_tf_targets("TP53", confidence_levels=["A"])
+        assert len(results) == 2
+        for r in results:
+            assert r["confidence"] == "A"
 
     def test_case_insensitive(self, patch_dorothea_data):
         results = get_tf_targets("tp53")
