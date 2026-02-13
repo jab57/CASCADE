@@ -178,7 +178,7 @@ When walking someone through this demo, emphasize:
 
 2. **Cell-type-specific biology.** The same gene behaves differently in different immune cell types. CASCADE has pre-computed networks for 10 cell types relevant to immuno-oncology.
 
-3. **AI interprets, not just retrieves.** The optional LLM synthesis turns structured JSON into biological narratives with mechanism summaries, therapeutic implications, and follow-up suggestions.
+3. **AI interprets, not just retrieves.** The LLM synthesis turns structured JSON into biological narratives with mechanism summaries, therapeutic implications, and follow-up suggestions.
 
 4. **Conversational follow-up.** Because CASCADE is an MCP server, the AI assistant maintains context across the conversation. Each question builds on the last.
 

@@ -57,6 +57,9 @@ pip install -r requirements.txt
 pip install langgraph           # Required for orchestration
 pip install torch --index-url https://download.pytorch.org/whl/cu124 --force-reinstall  # GPU
 
+# Verify installation
+python verify_installation.py --offline
+
 # Run the LangGraph MCP server (recommended)
 python cascade_langgraph_mcp_server.py
 ```
@@ -66,6 +69,7 @@ python cascade_langgraph_mcp_server.py
 ### LangGraph Orchestration (NEW)
 - `cascade_langgraph_mcp_server.py` - MCP server with 25 tools, LangGraph orchestration
 - `cascade_langgraph_workflow.py` - Core workflow: state schema, routing logic, batch processing
+- `verify_installation.py` - Installation smoke test (networks, model, perturbation, embeddings)
 
 ### Tool Implementations
 - `tools/perturb.py` - Network propagation algorithms (`_propagate_effect` BFS, knockdown/overexpression)
@@ -112,9 +116,9 @@ Networks in `data/networks/`: epithelial_cell, cd4_t_cells, cd8_t_cells, cd14_mo
 
 Located at `models/model.ckpt` (~120MB). Pre-loaded on server startup. Contains embeddings for ~19,247 genes.
 
-## LLM Insights (Optional)
+## LLM Insights
 
-The workflow supports optional LLM-powered biological interpretation via Ollama:
+The workflow supports LLM-powered biological interpretation via Ollama (local or cloud; adaptable to other LLM providers):
 
 ```bash
 # Enable LLM insights
@@ -122,7 +126,7 @@ USE_LLM_INSIGHTS=true python cascade_langgraph_mcp_server.py
 ```
 
 **Environment Variables:**
-- `USE_LLM_INSIGHTS` - Enable/disable LLM synthesis (default: false)
+- `USE_LLM_INSIGHTS` - Enable LLM synthesis globally (default: false; can also enable per-request)
 - `OLLAMA_HOST` - Local Ollama URL (default: http://localhost:11434)
 - `OLLAMA_API_KEY` - If set, uses Ollama Cloud instead of local
 - `OLLAMA_MODEL` - Model to use (default: llama3.1:8b)
@@ -136,7 +140,7 @@ USE_LLM_INSIGHTS=true python cascade_langgraph_mcp_server.py
 - **Eager initialization**: Workflow pre-loads on server startup to avoid lazy-load delays
 - **Parallel execution**: Independent analyses batched for concurrent execution
 - **Automatic routing**: Gene type determines analysis path (TF → knockdown, effector → PPI)
-- **LLM insights optional**: Disabled by default to avoid latency; enable with `include_llm_insights=True`
+- **LLM insights**: Requires Ollama running; enable per-request with `include_llm_insights=True` or globally with `USE_LLM_INSIGHTS=true`
 - **Graceful fallback**: Embedding model falls back to network-only if unavailable; LLM returns structured data if Ollama unavailable
 - All tools accept gene symbols (MYC) or Ensembl IDs (ENSG...) - resolved internally
 - Results include both `ensembl_id` and `symbol` for each gene

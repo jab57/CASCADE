@@ -49,7 +49,7 @@ The agentic workflow, built on LangGraph [@langgraph], autonomously coordinates 
 3. **Route** to appropriate analyses based on gene role and requested depth---for example, a transcription factor triggers full downstream propagation, while an effector gene prioritizes protein interaction and upstream regulator analysis.
 4. **Execute** independent analyses in parallel: perturbation simulation, STRING protein interactions, LINCS experimental knockdown signatures, super-enhancer status, DoRothEA TF regulon validation [@garcia-alonso2019], embedding-based gene similarity, and cross-cell-type comparison.
 5. **Report** structured JSON results aggregating all analyses into a single response.
-6. **Synthesize** a narrative biological interpretation by passing the structured results to a configurable LLM (local or cloud Ollama), combining mechanism summaries, therapeutic implications, and suggested follow-up experiments into a coherent report. When no LLM is available, the structured results from step 5 remain fully usable by the calling AI assistant.
+6. **Synthesize** a narrative biological interpretation by passing the structured results to a configurable LLM (Ollama local or cloud by default; the LLM integration is modular and can be adapted to other providers), combining mechanism summaries, therapeutic implications, and suggested follow-up experiments into a coherent report. When no LLM is configured, the structured results from step 5 remain fully usable by the calling AI assistant.
 
 Network perturbation effects are computed via breadth-first propagation through directed regulatory edges weighted by mutual information. When pre-trained gene embeddings are available, network-derived scores are combined with embedding-based similarity to capture functional relationships beyond static topology.
 
@@ -61,6 +61,7 @@ CASCADE can be installed and used as follows:
 
 ```bash
 pip install -r requirements.txt
+python verify_installation.py   # smoke-test: networks, model, perturbation
 python cascade_langgraph_mcp_server.py
 ```
 

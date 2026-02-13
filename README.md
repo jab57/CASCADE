@@ -43,7 +43,7 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 - **Intelligent Routing**: Automatically selects analysis strategy based on gene type
 - **Parallel Execution**: Independent analyses run concurrently (3-5x faster)
 - **Automatic Synthesis**: Generates comprehensive reports with actionable recommendations
-- **LLM-Powered Insights**: Optional Ollama integration for biological interpretation of results
+- **LLM-Powered Insights**: Biological interpretation via configurable LLM (Ollama local/cloud by default; adaptable to other providers)
 - **Graceful Degradation**: Falls back to network-only if embeddings unavailable
 
 ## Features
@@ -67,8 +67,8 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 - **Gene Similarity**: Compute functional similarity between genes using learned embeddings
 - **Similar Gene Discovery**: Find functionally related genes even without direct network connections
 
-### LLM-Powered Biological Insights (Optional)
-- **Narrative Synthesis**: Ollama-powered interpretation of analysis results
+### LLM-Powered Biological Insights
+- **Narrative Synthesis**: LLM-powered interpretation of analysis results
 - **Mechanism Explanation**: Automatic generation of biological mechanism summaries
 - **Therapeutic Implications**: AI-generated drug development relevance
 - **Pathway Identification**: Automated identification of key affected pathways
@@ -165,8 +165,22 @@ pip install -r requirements.txt
 # For GPU support (recommended), install PyTorch with CUDA
 pip install torch --index-url https://download.pytorch.org/whl/cu124 --force-reinstall
 
-# Optional: Install Ollama for LLM-powered insights
+# Install Ollama for LLM-powered biological insights
 # Download from https://ollama.ai and run: ollama pull llama3.1:8b
+```
+
+### Verify Installation
+
+After installing, run the verification script to confirm everything works:
+
+```bash
+python verify_installation.py
+```
+
+This checks core dependencies, loads all 10 cell-type networks, verifies the model checkpoint, tests gene ID mapping (via Ensembl API), runs a perturbation simulation, and validates embedding similarity search. To skip internet-dependent checks:
+
+```bash
+python verify_installation.py --offline
 ```
 
 ## Usage
@@ -177,16 +191,16 @@ pip install torch --index-url https://download.pytorch.org/whl/cu124 --force-rei
 # LangGraph-based server (recommended)
 python cascade_langgraph_mcp_server.py
 
-# With LLM insights enabled (requires Ollama running)
+# With LLM insights enabled
 USE_LLM_INSIGHTS=true python cascade_langgraph_mcp_server.py
 
 # Original FastMCP server (deprecated, kept for reference)
 python cascade_mcp_server_original.py
 ```
 
-### LLM Insights Configuration (Optional)
+### LLM Insights Configuration
 
-Copy `.env.example` to `.env` and configure:
+CASCADE uses Ollama (local or cloud) by default for LLM-powered biological insights. The LLM integration is modular and can be adapted to other providers. Copy `.env.example` to `.env` and configure:
 
 ```bash
 # Enable LLM-powered biological insights
@@ -309,6 +323,7 @@ CASCADE/
 ├── cascade_langgraph_mcp_server.py  # LangGraph MCP server (main entry)
 ├── cascade_langgraph_workflow.py    # LangGraph StateGraph workflow
 ├── cascade_mcp_server_original.py   # Original FastMCP server (deprecated)
+├── verify_installation.py           # Installation verification script
 ├── .claude/
 │   └── skills/cascade/              # Claude Code skill for perturbation analysis
 ├── tools/
@@ -360,7 +375,7 @@ CASCADE/
 - pandas, numpy
 - scGraphLLM (GREmLN package from CZI)
 - requests (for Ensembl API gene ID lookups)
-- ollama (optional, for LLM-powered insights)
+- Ollama (local or cloud) for LLM-powered biological insights; adaptable to other LLM providers
 
 ## Technical Details
 

@@ -126,7 +126,7 @@ When a gene is "undruggable" (e.g., MYC has no binding pocket):
 - **Gene not in network**: The gene may not have regulatory connections in that cell type. Try `find_similar_genes` or a different cell type.
 - **Suggestions field**: When results are limited, the API provides intelligent suggestions for alternative analyses.
 
-## LLM Insights (Optional)
+## LLM Insights
 
 When `include_llm_insights=true` is passed to `comprehensive_perturbation_analysis`, the response includes:
 - **mechanism_summary**: 2-3 sentence explanation of what the perturbation does mechanistically

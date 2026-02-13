@@ -49,6 +49,12 @@ Thank you for your interest in contributing to CASCADE! This document provides g
    python download_gremln_assets.py
    ```
 
+5. **Verify installation:**
+
+   ```bash
+   python verify_installation.py --offline
+   ```
+
 ### Running Tests
 
 ```bash
