@@ -43,20 +43,31 @@ def load_dorothea_regulons(levels: list[str] | None = None) -> pd.DataFrame:
     except ImportError:
         raise ImportError(
             "decoupler package not installed. "
-            "Install with: pip install decoupler>=1.6"
+            "Install with: pip install decoupler>=2.0"
         )
 
     print("[DoRothEA] Loading TF regulons from decoupler...")
 
     try:
-        df = dc.get_dorothea(organism="human")
+        # decoupler 2.x uses dc.op.dorothea(); 1.x used dc.get_dorothea()
+        if hasattr(dc, "op") and hasattr(dc.op, "dorothea"):
+            df = dc.op.dorothea(organism="human")
+        elif hasattr(dc, "get_dorothea"):
+            df = dc.get_dorothea(organism="human")
+        else:
+            raise AttributeError(
+                "Could not find DoRothEA accessor in decoupler. "
+                f"Version: {getattr(dc, '__version__', 'unknown')}"
+            )
     except Exception as e:
         raise RuntimeError(
             f"Failed to fetch DoRothEA regulons: {e}. "
             "Check your internet connection or try again later."
         )
 
-    # Standardize column names (decoupler returns source, target, confidence, mor)
+    # Standardize column names
+    # decoupler 2.x returns: source, target, weight, confidence
+    # decoupler 1.x returned: source, target, mor, confidence
     expected_cols = {"source", "target", "confidence"}
     if not expected_cols.issubset(set(df.columns)):
         raise ValueError(
@@ -64,8 +75,10 @@ def load_dorothea_regulons(levels: list[str] | None = None) -> pd.DataFrame:
             f"got {set(df.columns)}"
         )
 
-    # Ensure mor column exists (mode of regulation: +1 activation, -1 repression)
-    if "mor" not in df.columns:
+    # Normalize mode-of-regulation column name (2.x uses "weight", 1.x used "mor")
+    if "weight" in df.columns and "mor" not in df.columns:
+        df = df.rename(columns={"weight": "mor"})
+    elif "mor" not in df.columns:
         df["mor"] = 1.0
 
     print(f"[DoRothEA] Loaded {len(df):,} TF-target interactions")

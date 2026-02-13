@@ -17,7 +17,7 @@ gremln @ git+https://github.com/czi-ai/GREmLN.git
 langgraph
 
 # TF regulon validation (DoRothEA)
-decoupler>=1.6
+decoupler>=2.0
 
 # LLM insights (optional - for biological interpretation)
 ollama>=0.1.0

@@ -10,8 +10,17 @@ from tools.perturb import (
     simulate_knockdown_with_embeddings,
     simulate_overexpression_with_embeddings,
 )
-from tools.model_inference import CascadeModel, get_model
-from tools.cache import EmbeddingCache, get_embedding_cache
+
+# Lazy imports for torch-dependent modules so that non-torch tools
+# (dorothea, lincs, super_enhancers, etc.) remain importable without torch
+try:
+    from tools.model_inference import CascadeModel, get_model
+    from tools.cache import EmbeddingCache, get_embedding_cache
+except ImportError:
+    CascadeModel = None
+    get_model = None
+    EmbeddingCache = None
+    get_embedding_cache = None
 
 __all__ = [
     # Loader
