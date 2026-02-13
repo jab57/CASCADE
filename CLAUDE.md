@@ -40,7 +40,9 @@ The project now uses a **LangGraph-based orchestration layer** that automaticall
 │   ┌─────────────────┐         ┌─────────────────┐          │
 │   │  tools/ modules │         │  External APIs  │          │
 │   │  (perturb.py,   │         │  (STRING, LINCS,│          │
-│   │   model, etc.)  │         │   Ensembl)      │          │
+│   │   model, etc.)  │         │   dbSUPER,      │          │
+│   │                 │         │   DoRothEA,     │          │
+│   │                 │         │   Ensembl)      │          │
 │   └─────────────────┘         └─────────────────┘          │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -99,7 +101,7 @@ The `_decide_next_steps()` function determines analysis path based on:
 ### Parallel Batch Processing
 Independent analyses run concurrently:
 - `batch_core_analysis`: perturbation + regulators + targets
-- `batch_external_data`: PPI + LINCS + super-enhancers
+- `batch_external_data`: PPI + LINCS + super-enhancers + DoRothEA
 - `batch_insights`: similar genes + vulnerability + cross-cell
 
 ## Supported Cell Types

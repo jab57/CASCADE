@@ -22,7 +22,7 @@ keywords:
   - drug target discovery
 abstract: >-
   CASCADE is an MCP server for in silico gene perturbation analysis
-  in cancer and immuno-oncology research. It provides 22 tools for
+  in cancer and immuno-oncology research. It provides 25 tools for
   simulating gene knockdowns and overexpression using pre-computed
   regulatory networks and GREmLN model embeddings across 10 immune
   and epithelial cell types, with LangGraph-based workflow

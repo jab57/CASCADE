@@ -31,7 +31,9 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 │  │ Network  │         │  Embeddings  │         │ External │   │
 │  │ Analysis │         │   (GREmLN)   │         │   APIs   │   │
 │  │ (BFS)    │         │   256-dim    │         │ (STRING, │   │
-│  └──────────┘         └──────────────┘         │  LINCS)  │   │
+│  └──────────┘         └──────────────┘         │  LINCS,  │   │
+│                                                │ dbSUPER, │   │
+│                                                │ DoRothEA)│   │
 │                                                └──────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -78,6 +80,21 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 - **Drug Target Comparison**: Compare candidate genes to identify best therapeutic targets
 - **Master Regulator Detection**: Identify genes that control large portions of the network
 
+### Experimental Perturbation Data (LINCS L1000)
+- **Knockdown Effects**: Query experimental CRISPR knockdown signatures to validate network predictions
+- **Expression Regulators**: Find genes whose knockdown affects a target gene's expression
+- **Directional Filtering**: Filter by up- or down-regulation
+
+### Super-Enhancer / BRD4 Druggability (dbSUPER)
+- **Super-Enhancer Detection**: Check if a gene is driven by super-enhancers
+- **BET Inhibitor Sensitivity**: Identify genes targetable by BRD4/BET inhibitors (JQ1, OTX015)
+- **Batch Screening**: Screen multiple genes for super-enhancer associations
+
+### TF Regulon Validation (DoRothEA)
+- **Curated Regulons**: Query multi-evidence TF-target relationships with confidence levels (A-E)
+- **TF Classification Validation**: Cross-reference network-derived TF classifications against curated regulons
+- **Evidence Integration**: Combine literature, ChIP-seq, and motif evidence
+
 ### Protein-Protein Interactions (STRING Database)
 - **Interaction Partners**: Query physical and functional protein interactions from STRING
 - **Confidence Scoring**: Filter by experimental evidence, database annotations, or text mining
@@ -99,13 +116,21 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 
 ## How It Works
 
-The server provides three types of analysis:
+The server provides analysis across several categories:
 
-1. **Perturbation analysis** (`analyze_gene_knockdown`, `analyze_gene_overexpression`): Combines BFS propagation through the regulatory network with gene embeddings learned from 11 million cells. This discovers both direct network effects and indirect functional relationships. Falls back to network-only if model is unavailable.
+1. **Perturbation simulation** (`comprehensive_perturbation_analysis`, `quick_perturbation`): Combines BFS propagation through the regulatory network with gene embeddings learned from 11 million cells. Discovers both direct network effects and indirect functional relationships. Falls back to network-only if model is unavailable.
 
 2. **Vulnerability analysis** (`analyze_network_vulnerability`, `compare_gene_vulnerability`): Identifies critical network nodes (hub genes, master regulators) for drug target discovery. Ranks genes by downstream impact if disrupted.
 
 3. **Protein-protein interactions** (`get_protein_interactions`): Queries STRING database for physical and functional protein interactions. Explains what happens at the protein level after perturbation.
+
+4. **Experimental corroboration** (`get_knockdown_effects`, `find_expression_regulators`): Queries LINCS L1000 CRISPR knockdown signatures to validate or complement network predictions with experimental data.
+
+5. **Druggability assessment** (`check_super_enhancer`): Checks super-enhancer annotations from dbSUPER to identify BRD4/BET inhibitor sensitivity.
+
+6. **TF regulon validation** (`get_dorothea_regulon`, `validate_tf_classification`): Cross-references network-derived TF classifications against DoRothEA curated multi-evidence regulons.
+
+7. **Gene similarity** (`find_similar_genes`, `get_gene_similarity`): Computes functional similarity using GREmLN embeddings to discover pathway members and alternative targets.
 
 ## Supported Cell Types
 
@@ -225,14 +250,15 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 |------|-------------|
 | `comprehensive_perturbation_analysis` | **Main entry point** - Full automated workflow with intelligent routing. Supports `include_llm_insights=true` for AI-powered biological interpretation |
 | `multi_gene_analysis` | Analyze multiple genes in parallel |
+| `cross_cell_comparison` | Compare how a gene behaves across all available cell types |
+| `therapeutic_target_discovery` | Find upstream regulators, interaction partners, and druggability for a gene of interest |
 
 ### Perturbation Analysis Tools
 | Tool | Description |
 |------|-------------|
+| `quick_perturbation` | Fast knockdown/overexpression without full workflow context |
 | `list_cell_types` | List available cell types with networks |
 | `get_gene_metadata` | Get gene classification (TF, effector, scaffold) and analysis recommendations |
-| `analyze_gene_knockdown` | Simulate gene knockdown using network + embeddings |
-| `analyze_gene_overexpression` | Simulate overexpression using network + embeddings |
 | `find_gene_regulators` | Find upstream regulators of a gene |
 | `find_gene_targets` | Find downstream targets of a regulator |
 | `lookup_gene` | Convert between symbol and Ensembl ID |
@@ -320,10 +346,10 @@ CASCADE/
 | Workflow | Depth | Typical Time |
 |----------|-------|--------------|
 | `comprehensive_perturbation_analysis` | basic | ~3s |
-| `comprehensive_perturbation_analysis` | standard | ~5s |
 | `comprehensive_perturbation_analysis` | comprehensive | ~8-10s |
+| `comprehensive_perturbation_analysis` | focused | ~5s |
 | `comprehensive_perturbation_analysis` | + LLM insights | +5-15s (depends on model) |
-| `multi_gene_analysis` (3 genes) | standard | ~10s (parallel) |
+| `multi_gene_analysis` (3 genes) | basic | ~10s (parallel) |
 
 ## Requirements
 
@@ -389,19 +415,19 @@ Result: {
 }
 
 Step 2: Simulate knockdown (returns suggestions since no targets)
-> analyze_gene_knockdown("APC", cell_type="epithelial_cell")
+> quick_perturbation("APC", cell_type="epithelial_cell")
 Result: {
   "total_affected_genes": 0,
   "suggestions": [
     {"action": "get_protein_interactions", "priority": "high"},
     {"action": "analyze_functional_partners",
      "genes": ["CTNNB1", "AXIN1", "GSK3B", "CSNK1A1"],
-     "recommended_followup": "Run analyze_gene_overexpression on CTNNB1..."}
+     "recommended_followup": "Run overexpression on CTNNB1..."}
   ]
 }
 
 Step 3: Follow suggestions - analyze CTNNB1 (the key functional partner)
-> analyze_gene_overexpression("CTNNB1", cell_type="epithelial_cell")
+> quick_perturbation("CTNNB1", cell_type="epithelial_cell", perturbation_type="overexpression")
 Result: 2,739 genes affected (MYC, CCND1, GLUT1, etc.)
 
 Interpretation: APC normally degrades β-catenin via the destruction complex.
@@ -432,27 +458,6 @@ Where:
 - High vulnerability = Gene is critical to network (good drug target)
 - Master regulators (high hub score, low regulator count) = High-value therapeutic targets
 - Downstream effectors (many regulators, few targets) = Lower priority targets
-
-## Roadmap
-
-### Recently Completed
-
-- **LLM-Powered Biological Insights** (2025-02): Optional Ollama integration for AI-generated interpretation of analysis results
-- **LangGraph Orchestration** (2025-02): Intelligent workflow routing with parallel execution and automatic synthesis
-- **LINCS L1000 Expression Perturbation** (2025-01): Find regulatory relationships from experimental CRISPR knockdown data
-- **Super-Enhancer Annotations** (2025-01): BRD4/BET inhibitor sensitivity using dbSUPER database
-
-### Planned Features
-
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Raw LINCS Integration | Planned | Full LINCS L1000 data from clue.io for better coverage (e.g., BRD4 → MYC) |
-| Expression Data Fetching | Planned | Fetch baseline expression from CellxGene Census, Human Protein Atlas |
-| Context-Aware Embeddings | Planned | Cell-type-specific gene embeddings via model forward pass |
-| Perturb_GDTransformer | Waiting | Integration when fine-tuned perturbation checkpoint becomes available |
-| Unified Bio-Orchestrator | Postponed | Cross-project orchestration (CASCADE + RegNetAgents in single server) |
-
-See `tools/expression_fetcher.py` for expression fetching implementation notes.
 
 ## Contributing
 

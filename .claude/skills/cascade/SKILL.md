@@ -14,10 +14,11 @@ This MCP server provides in silico gene perturbation analysis combining regulato
 ### Workflow Tools (LangGraph Orchestration) - **Use These First**
 - `comprehensive_perturbation_analysis` - **Recommended entry point** - Full automated workflow with intelligent routing based on gene type. Runs parallel analyses and synthesizes results with recommendations. Supports `include_llm_insights=true` for AI-powered biological interpretation.
 - `multi_gene_analysis` - Analyze multiple genes in parallel (e.g., compare TP53, MYC, BRCA1)
+- `cross_cell_comparison` - Compare how a gene behaves across all available cell types
+- `therapeutic_target_discovery` - Find upstream regulators, interaction partners, and druggability for a gene of interest
 
 ### Perturbation Analysis
-- `analyze_gene_knockdown` - Simulate gene silencing, predict downstream effects
-- `analyze_gene_overexpression` - Simulate increased gene expression
+- `quick_perturbation` - Fast knockdown/overexpression without full workflow context
 - `find_gene_regulators` - Find upstream transcription factors controlling a gene
 - `find_gene_targets` - Find downstream targets of a regulator
 - `get_gene_metadata` - Classify gene type (master_regulator, transcription_factor, effector, isolated)
@@ -30,6 +31,7 @@ This MCP server provides in silico gene perturbation analysis combining regulato
 - `get_gene_similarity` - Cosine similarity between two genes
 - `find_similar_genes` - Find functionally related genes beyond network edges
 - `get_model_status` - Check if embeddings model is loaded
+- `get_embedding_cache_stats` - Check embedding cache performance
 
 ### Protein-Protein Interactions
 - `get_protein_interactions` - Query STRING database for physical/functional interactions
@@ -42,6 +44,11 @@ This MCP server provides in silico gene perturbation analysis combining regulato
 ### Super-Enhancer / BRD4 Druggability
 - `check_super_enhancer` - Check if a gene has super-enhancers (BRD4/BET inhibitor sensitive)
 - `check_genes_super_enhancers` - Screen multiple genes for super-enhancer status
+
+### DoRothEA TF Regulon Validation
+- `get_dorothea_regulon` - Get curated TF regulon targets with confidence levels (A-E)
+- `validate_tf_classification` - Validate gene as known TF against DoRothEA curated regulons
+- `get_dorothea_stats` - Get DoRothEA dataset statistics
 
 ### Utilities
 - `list_cell_types` - Show available cell type networks
@@ -56,7 +63,7 @@ epithelial_cell, cd4_t_cells, cd8_t_cells, cd14_monocytes, cd16_monocytes, cd20_
 ### Quick Start (Recommended)
 For most gene analysis tasks, start with the comprehensive workflow:
 ```
-comprehensive_perturbation_analysis(gene="TP53", cell_type="epithelial_cell", analysis_depth="standard")
+comprehensive_perturbation_analysis(gene="TP53", cell_type="epithelial_cell", analysis_depth="comprehensive")
 ```
 This automatically handles gene classification, routing, parallel analysis, and synthesis.
 
@@ -74,7 +81,7 @@ This adds mechanism summaries, therapeutic implications, and follow-up suggestio
 ### Understanding Gene Function
 **Option A (Automated):** Use `comprehensive_perturbation_analysis` - it handles routing automatically
 **Option B (Manual):**
-1. Start with `analyze_gene_knockdown` or `analyze_gene_overexpression`
+1. Start with `quick_perturbation` (supports knockdown or overexpression)
 2. If results are empty or sparse, check `get_gene_metadata` to understand why
 3. For scaffold proteins (like APC, AXIN1), use `get_protein_interactions` instead
 4. Use `find_similar_genes` to discover functional relationships beyond the network
@@ -88,7 +95,7 @@ multi_gene_analysis(genes=["TP53", "MYC", "BRCA1"], cell_type="epithelial_cell")
 ### Regulatory Cascade Analysis
 1. `find_gene_regulators` - identify upstream transcription factors
 2. `find_gene_targets` - map downstream effects
-3. Chain with `analyze_gene_knockdown` on key regulators to predict cascade effects
+3. Chain with `quick_perturbation` on key regulators to predict cascade effects
 
 ### Cross-Cell-Type Comparison
 Run the same analysis across multiple cell types to identify cell-type-specific effects (e.g., compare knockdown effects in cd8_t_cells vs nk_cells)
@@ -139,6 +146,6 @@ When `include_llm_insights=true` is passed to `comprehensive_perturbation_analys
 - Use `max_depth` parameter to control how far effects propagate (default: 3)
 - Results include both `ensembl_id` and `symbol` for easy cross-referencing
 - The embedding model adds ~30% more discoveries beyond network-only analysis
-- `analysis_depth` options: "basic" (~3s), "standard" (~5s), "comprehensive" (~8-10s)
+- `analysis_depth` options: "basic" (~3s), "focused" (~5s), "comprehensive" (~8-10s)
 - LLM insights add ~5-15s depending on model and complexity
 - Use `multi_gene_analysis` when comparing multiple candidates - runs in parallel
