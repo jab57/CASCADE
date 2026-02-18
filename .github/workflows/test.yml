@@ -29,7 +29,7 @@ jobs:
           pip install pytest pytest-cov pytest-asyncio
 
       - name: Run tests
-        run: pytest tests/ --cov=tools --cov-report=xml --cov-report=term-missing -v
+        run: pytest tests/ --cov=tools --cov=cascade_langgraph_workflow --cov=cascade_langgraph_mcp_server --cov-report=xml --cov-report=term-missing -v
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4

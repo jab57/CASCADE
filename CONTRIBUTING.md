@@ -61,8 +61,8 @@ Thank you for your interest in contributing to CASCADE! This document provides g
 # Run all tests
 pytest tests/ -v
 
-# Run with coverage
-pytest tests/ --cov=tools --cov-report=term-missing
+# Run with coverage (tools + workflow + MCP server)
+pytest tests/ --cov=tools --cov=cascade_langgraph_workflow --cov=cascade_langgraph_mcp_server --cov-report=term-missing
 
 # Run a specific test file
 pytest tests/test_perturb.py -v

@@ -474,6 +474,15 @@ Where:
 - Master regulators (high hub score, low regulator count) = High-value therapeutic targets
 - Downstream effectors (many regulators, few targets) = Lower priority targets
 
+## Running Tests
+
+```bash
+pip install pytest pytest-cov pytest-asyncio
+pytest tests/ -v
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for coverage commands and testing guidelines.
+
 ## Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and the pull request process.

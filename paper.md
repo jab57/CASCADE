@@ -75,7 +75,7 @@ CASCADE enables non-computational researchers to perform multi-source gene pertu
 
 # Software Availability
 
-CASCADE is available at [https://github.com/jab57/CASCADE](https://github.com/jab57/CASCADE) under the MIT license. The repository includes automated tests covering network propagation, embedding similarity, LINCS queries, gene identifier resolution, DoRothEA regulon validation, and MCP tool registration, with continuous integration via GitHub Actions and documentation for installation, usage, and contributing.
+CASCADE is available at [https://github.com/jab57/CASCADE](https://github.com/jab57/CASCADE) under the MIT license. The repository includes automated tests covering network propagation, embedding similarity, LINCS queries, gene identifier resolution, DoRothEA regulon validation, MCP tool registration, and workflow orchestration logic, with continuous integration via GitHub Actions and documentation for installation, usage, and contributing.
 
 # AI Usage Disclosure
 
