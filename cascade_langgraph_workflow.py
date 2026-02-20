@@ -28,6 +28,7 @@ import asyncio
 import logging
 import os
 import json
+import threading
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -262,6 +263,7 @@ class CascadeWorkflow:
         self.gene_mapper = GeneIDMapper()
         self.string_client = get_string_client()
         self._model = None  # Lazy loaded
+        self._model_lock = threading.Lock()  # Thread-safe lazy init
 
         # LLM configuration (Ollama)
         self.use_llm = os.getenv('USE_LLM_INSIGHTS', 'false').lower() == 'true'
@@ -276,11 +278,12 @@ class CascadeWorkflow:
         logger.info("CASCADE LangGraph workflow initialized")
 
     def _get_model(self):
-        """Lazy load the GREmLN model."""
-        if self._model is None:
-            from tools.model_inference import CascadeModel
-            self._model = CascadeModel(self.MODEL_PATH)
-            self._model.load()
+        """Lazy load the GREmLN model (thread-safe via lock)."""
+        with self._model_lock:
+            if self._model is None:
+                from tools.model_inference import CascadeModel
+                self._model = CascadeModel(self.MODEL_PATH)
+                self._model.load()
         return self._model
 
     def _initialize_ollama(self) -> bool:
@@ -344,6 +347,7 @@ class CascadeWorkflow:
 
         # === Stage 2: Routing ===
         workflow.add_node("decide_next_steps", self._decide_next_steps)
+        workflow.add_node("run_all_batches", self._run_all_batches)
 
         # === Stage 3: Core Analysis (can run in parallel) ===
         workflow.add_node("batch_core_analysis", self._batch_core_analysis)
@@ -381,7 +385,10 @@ class CascadeWorkflow:
             "decide_next_steps",
             self._route_next_action,
             {
-                # Batch processing routes
+                # Concurrent all-batch route (comprehensive mode)
+                "run_all_batches": "run_all_batches",
+
+                # Batch processing routes (focused/basic or leftover single batches)
                 "batch_core": "batch_core_analysis",
                 "batch_external": "batch_external_data",
                 "batch_insights": "batch_insights",
@@ -402,6 +409,9 @@ class CascadeWorkflow:
                 "error": "handle_error"
             }
         )
+
+        # All-batch node flows back to routing (handles any remaining single items)
+        workflow.add_edge("run_all_batches", "decide_next_steps")
 
         # Batch nodes flow back to routing
         workflow.add_edge("batch_core_analysis", "decide_next_steps")
@@ -581,24 +591,37 @@ class CascadeWorkflow:
 
         # === Group into batches for parallel execution ===
 
-        # Core batch: perturbation + regulators + targets
         core_pending = pending & {"perturbation", "regulators", "targets"}
+        external_pending = pending & {"ppi", "lincs", "super_enhancers", "dorothea"}
+        insights_pending = pending & {"similar", "vulnerability", "cross_cell"}
+
+        # Count how many batch groups have work to do
+        batch_groups_with_work = sum([
+            len(core_pending) > 0,
+            len(external_pending) > 0,
+            len(insights_pending) > 0,
+        ])
+
+        # If multiple batch groups are pending, run them all concurrently
+        if batch_groups_with_work > 1:
+            return {
+                "current_step": "decide_next_steps",
+                "next_actions": ["run_all_batches"]
+            }
+
+        # Single batch group remaining — run its individual batch node
         if len(core_pending) > 1:
             return {
                 "current_step": "decide_next_steps",
                 "next_actions": ["batch_core"]
             }
 
-        # External batch: ppi + lincs + super_enhancers + dorothea
-        external_pending = pending & {"ppi", "lincs", "super_enhancers", "dorothea"}
         if len(external_pending) > 1:
             return {
                 "current_step": "decide_next_steps",
                 "next_actions": ["batch_external"]
             }
 
-        # Insights batch: similar + vulnerability + cross_cell
-        insights_pending = pending & {"similar", "vulnerability", "cross_cell"}
         if len(insights_pending) > 1:
             return {
                 "current_step": "decide_next_steps",
@@ -625,6 +648,7 @@ class CascadeWorkflow:
 
         # Map action names to node names
         action_map = {
+            "run_all_batches": "run_all_batches",
             "batch_core": "batch_core",
             "batch_external": "batch_external",
             "batch_insights": "batch_insights",
@@ -775,6 +799,39 @@ class CascadeWorkflow:
 
         return updates
 
+    async def _run_all_batches(self, state: PerturbationAnalysisState) -> Dict:
+        """Run all three batch groups concurrently via asyncio.gather.
+
+        Called when multiple batch groups are pending (typical for comprehensive
+        depth). Dispatches core, external, and insights analyses simultaneously
+        instead of routing through decide_next_steps three times.
+        """
+        logger.info("Running all batch groups concurrently")
+
+        results = await asyncio.gather(
+            self._batch_core_analysis(state),
+            self._batch_external_data(state),
+            self._batch_insights(state),
+            return_exceptions=True
+        )
+
+        # Merge updates from all three batches
+        merged: Dict = {"current_step": "run_all_batches"}
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Batch error in run_all_batches: {result}")
+                continue
+            merged.update(result)
+
+        # Union of all completed_actions from the three batches
+        all_completed: set = set(state.get("completed_actions", []))
+        for result in results:
+            if isinstance(result, dict):
+                all_completed.update(result.get("completed_actions", []))
+        merged["completed_actions"] = list(all_completed)
+
+        return merged
+
     # =========================================================================
     # INDIVIDUAL ANALYSIS NODE WRAPPERS
     # =========================================================================
@@ -886,33 +943,33 @@ class CascadeWorkflow:
         cell_type = state.get("cell_type", "epithelial_cell")
         ensembl_id = state["ensembl_id"]
         perturbation_type = state.get("perturbation_type", "knockdown")
-
         network_path = self.NETWORKS_DIR / cell_type / "network.tsv"
-        network_df = load_network(network_path)
 
-        # Try with embeddings, fall back to network-only
-        try:
-            model = self._get_model()
-            if perturbation_type == "knockdown":
-                result = simulate_knockdown_with_embeddings(
-                    network_df, ensembl_id, model,
-                    depth=2, top_k=25, alpha=0.7
-                )
-            else:
-                result = simulate_overexpression_with_embeddings(
-                    network_df, ensembl_id, model,
-                    fold_change=2.0, depth=2, top_k=25, alpha=0.7
-                )
-            result["embedding_enhanced"] = True
-        except Exception as e:
-            logger.warning(f"Model unavailable, using network-only: {e}")
-            if perturbation_type == "knockdown":
-                result = simulate_knockdown(network_df, ensembl_id, depth=2, top_k=25)
-            else:
-                result = simulate_overexpression(network_df, ensembl_id, fold_change=2.0, depth=2, top_k=25)
-            result["embedding_enhanced"] = False
+        def _sync():
+            network_df = load_network(network_path)
+            try:
+                model = self._get_model()
+                if perturbation_type == "knockdown":
+                    result = simulate_knockdown_with_embeddings(
+                        network_df, ensembl_id, model,
+                        depth=2, top_k=25, alpha=0.7
+                    )
+                else:
+                    result = simulate_overexpression_with_embeddings(
+                        network_df, ensembl_id, model,
+                        fold_change=2.0, depth=2, top_k=25, alpha=0.7
+                    )
+                result["embedding_enhanced"] = True
+            except Exception as e:
+                logger.warning(f"Model unavailable, using network-only: {e}")
+                if perturbation_type == "knockdown":
+                    result = simulate_knockdown(network_df, ensembl_id, depth=2, top_k=25)
+                else:
+                    result = simulate_overexpression(network_df, ensembl_id, fold_change=2.0, depth=2, top_k=25)
+                result["embedding_enhanced"] = False
+            return result
 
-        return result
+        return await asyncio.to_thread(_sync)
 
     async def _analyze_regulators_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Get upstream regulators using existing CASCADE tools."""
@@ -921,11 +978,13 @@ class CascadeWorkflow:
 
         cell_type = state.get("cell_type", "epithelial_cell")
         ensembl_id = state["ensembl_id"]
-
         network_path = self.NETWORKS_DIR / cell_type / "network.tsv"
-        network_df = load_network(network_path)
 
-        return get_regulators(network_df, ensembl_id, max_regulators=50)
+        def _sync():
+            network_df = load_network(network_path)
+            return get_regulators(network_df, ensembl_id, max_regulators=50)
+
+        return await asyncio.to_thread(_sync)
 
     async def _analyze_targets_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Get downstream targets using existing CASCADE tools."""
@@ -934,21 +993,27 @@ class CascadeWorkflow:
 
         cell_type = state.get("cell_type", "epithelial_cell")
         ensembl_id = state["ensembl_id"]
-
         network_path = self.NETWORKS_DIR / cell_type / "network.tsv"
-        network_df = load_network(network_path)
 
-        return get_targets(network_df, ensembl_id, max_targets=50)
+        def _sync():
+            network_df = load_network(network_path)
+            return get_targets(network_df, ensembl_id, max_targets=50)
+
+        return await asyncio.to_thread(_sync)
 
     async def _fetch_ppi_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Fetch protein-protein interactions from STRING."""
         gene_symbol = state.get("gene_symbol", state["gene"])
+        string_client = self.string_client
 
-        try:
-            return self.string_client.get_interactions(gene_symbol, min_score=400, limit=25)
-        except Exception as e:
-            logger.error(f"STRING API error: {e}")
-            return {"error": str(e), "interactions": []}
+        def _sync():
+            try:
+                return string_client.get_interactions(gene_symbol, min_score=400, limit=25)
+            except Exception as e:
+                logger.error(f"STRING API error: {e}")
+                return {"error": str(e), "interactions": []}
+
+        return await asyncio.to_thread(_sync)
 
     async def _fetch_lincs_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Fetch LINCS knockdown effects."""
@@ -956,11 +1021,14 @@ class CascadeWorkflow:
 
         gene_symbol = state.get("gene_symbol", state["gene"])
 
-        try:
-            return get_knockdown_effects(gene_symbol, direction="any", top_k=20)
-        except Exception as e:
-            logger.error(f"LINCS error: {e}")
-            return {"error": str(e), "effects": []}
+        def _sync():
+            try:
+                return get_knockdown_effects(gene_symbol, direction="any", top_k=20)
+            except Exception as e:
+                logger.error(f"LINCS error: {e}")
+                return {"error": str(e), "effects": []}
+
+        return await asyncio.to_thread(_sync)
 
     async def _check_super_enhancers_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Check super-enhancer status."""
@@ -968,11 +1036,14 @@ class CascadeWorkflow:
 
         gene_symbol = state.get("gene_symbol", state["gene"])
 
-        try:
-            return get_super_enhancer_info(gene_symbol)
-        except Exception as e:
-            logger.error(f"Super-enhancer error: {e}")
-            return {"error": str(e), "has_super_enhancer": False}
+        def _sync():
+            try:
+                return get_super_enhancer_info(gene_symbol)
+            except Exception as e:
+                logger.error(f"Super-enhancer error: {e}")
+                return {"error": str(e), "has_super_enhancer": False}
+
+        return await asyncio.to_thread(_sync)
 
     async def _fetch_dorothea_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Fetch DoRothEA TF regulon data."""
@@ -980,44 +1051,47 @@ class CascadeWorkflow:
 
         gene_symbol = state.get("gene_symbol", state["gene"])
 
-        try:
-            targets = get_tf_targets(gene_symbol, confidence_levels=["A", "B", "C"], top_k=50)
-            validation = validate_tf_classification(gene_symbol)
-            return {
-                "targets": targets,
-                "validation": validation,
-            }
-        except Exception as e:
-            logger.error(f"DoRothEA error: {e}")
-            return {"error": str(e), "targets": [], "validation": {}}
+        def _sync():
+            try:
+                targets = get_tf_targets(gene_symbol, confidence_levels=["A", "B", "C"], top_k=50)
+                validation = validate_tf_classification(gene_symbol)
+                return {"targets": targets, "validation": validation}
+            except Exception as e:
+                logger.error(f"DoRothEA error: {e}")
+                return {"error": str(e), "targets": [], "validation": {}}
+
+        return await asyncio.to_thread(_sync)
 
     async def _find_similar_genes_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Find similar genes using embeddings."""
         ensembl_id = state["ensembl_id"]
+        gene_mapper = self.gene_mapper
 
-        try:
-            model = self._get_model()
-            if not model.is_gene_in_vocab(ensembl_id):
-                return {"error": f"Gene {ensembl_id} not in model vocabulary"}
+        def _sync():
+            try:
+                model = self._get_model()
+                if not model.is_gene_in_vocab(ensembl_id):
+                    return {"error": f"Gene {ensembl_id} not in model vocabulary"}
 
-            similar_df = model.get_top_similar_genes(ensembl_id, top_k=20)
-            if similar_df is None:
-                return {"error": "Could not compute similarities"}
+                similar_df = model.get_top_similar_genes(ensembl_id, top_k=20)
+                if similar_df is None:
+                    return {"error": "Could not compute similarities"}
 
-            similar_genes = []
-            for _, row in similar_df.iterrows():
-                target_ensembl = row["ensembl_id"]
-                symbol = self.gene_mapper.ensembl_to_symbol(target_ensembl) or target_ensembl
-                similar_genes.append({
-                    "gene_symbol": symbol,
-                    "ensembl_id": target_ensembl,
-                    "similarity": round(row["similarity"], 4)
-                })
+                similar_genes = []
+                for _, row in similar_df.iterrows():
+                    target_ensembl = row["ensembl_id"]
+                    symbol = gene_mapper.ensembl_to_symbol(target_ensembl) or target_ensembl
+                    similar_genes.append({
+                        "gene_symbol": symbol,
+                        "ensembl_id": target_ensembl,
+                        "similarity": round(row["similarity"], 4)
+                    })
+                return {"similar_genes": similar_genes}
+            except Exception as e:
+                logger.error(f"Similarity error: {e}")
+                return {"error": str(e), "similar_genes": []}
 
-            return {"similar_genes": similar_genes}
-        except Exception as e:
-            logger.error(f"Similarity error: {e}")
-            return {"error": str(e), "similar_genes": []}
+        return await asyncio.to_thread(_sync)
 
     async def _analyze_vulnerability_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Analyze network vulnerability for therapeutic targeting."""
@@ -1048,28 +1122,25 @@ class CascadeWorkflow:
 
         ensembl_id = state["ensembl_id"]
         gene_symbol = state.get("gene_symbol", state["gene"])
+        networks_dir = self.NETWORKS_DIR
 
-        results = {}
-        for cell_type in CellType:
-            network_path = self.NETWORKS_DIR / cell_type.value / "network.tsv"
-            if not network_path.exists():
-                continue
+        def _sync():
+            results = {}
+            for cell_type in CellType:
+                network_path = networks_dir / cell_type.value / "network.tsv"
+                if not network_path.exists():
+                    continue
+                network_df = load_network(network_path)
+                targets = network_df[network_df["regulator"] == ensembl_id]
+                regulators = network_df[network_df["target"] == ensembl_id]
+                results[cell_type.value] = {
+                    "num_targets": len(targets),
+                    "num_regulators": len(regulators),
+                    "in_network": len(targets) > 0 or len(regulators) > 0
+                }
+            return {"gene": gene_symbol, "cell_type_comparison": results}
 
-            network_df = load_network(network_path)
-
-            targets = network_df[network_df["regulator"] == ensembl_id]
-            regulators = network_df[network_df["target"] == ensembl_id]
-
-            results[cell_type.value] = {
-                "num_targets": len(targets),
-                "num_regulators": len(regulators),
-                "in_network": len(targets) > 0 or len(regulators) > 0
-            }
-
-        return {
-            "gene": gene_symbol,
-            "cell_type_comparison": results
-        }
+        return await asyncio.to_thread(_sync)
 
     # =========================================================================
     # EVIDENCE SYNTHESIS

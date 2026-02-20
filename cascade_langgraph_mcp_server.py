@@ -937,19 +937,14 @@ async def _comprehensive_analysis(args: dict) -> dict:
 async def _quick_perturbation(args: dict) -> dict:
     """Run quick perturbation without full workflow."""
     from tools.loader import load_network
-    from tools.gene_id_mapper import GeneIDMapper
     from tools.perturb import (
         simulate_knockdown_with_embeddings,
         simulate_overexpression_with_embeddings,
         simulate_knockdown,
         simulate_overexpression
     )
-    from pathlib import Path
 
-    BASE_DIR = Path(__file__).parent
-    NETWORKS_DIR = BASE_DIR / "data" / "networks"
-
-    gene_mapper = GeneIDMapper()
+    workflow = await get_workflow()
 
     gene = args["gene"]
     cell_type = args.get("cell_type", "epithelial_cell")
@@ -957,27 +952,24 @@ async def _quick_perturbation(args: dict) -> dict:
     depth = args.get("depth", 2)
     top_k = args.get("top_k", 25)
 
-    # Resolve gene
+    # Resolve gene using the workflow's shared mapper (no duplicate GeneIDMapper init)
     if gene.upper().startswith("ENSG"):
         ensembl_id = gene.upper()
     else:
-        ensembl_id = gene_mapper.symbol_to_ensembl(gene)
+        ensembl_id = workflow.gene_mapper.symbol_to_ensembl(gene)
         if ensembl_id is None:
             return {"error": f"Could not resolve gene '{gene}'"}
 
-    # Load network
-    network_path = NETWORKS_DIR / cell_type / "network.tsv"
+    # Load network (cached after first access)
+    network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
     if not network_path.exists():
         return {"error": f"Network not found for {cell_type}"}
 
     network_df = load_network(network_path)
 
-    # Try with embeddings
+    # Reuse the workflow's pre-loaded model singleton instead of reloading 120MB checkpoint
     try:
-        from tools.model_inference import CascadeModel
-        from tools.loader import MODEL_PATH
-        model = CascadeModel(MODEL_PATH)
-        model.load()
+        model = workflow._get_model()
 
         if perturbation_type == "knockdown":
             result = simulate_knockdown_with_embeddings(
@@ -1848,7 +1840,19 @@ async def main():
     # Initialize workflow eagerly to avoid lazy-load hanging in MCP context
     logger.info("Pre-initializing workflow...")
     await get_workflow()
-    logger.info("Workflow ready, starting MCP server...")
+    logger.info("Workflow ready")
+
+    # Pre-warm DoRothEA regulons in a background thread so the cold download
+    # happens at startup rather than blocking the first analysis call.
+    logger.info("Pre-warming DoRothEA regulons...")
+    try:
+        from tools.dorothea import load_dorothea_regulons
+        await asyncio.to_thread(load_dorothea_regulons)
+        logger.info("DoRothEA regulons ready")
+    except Exception as e:
+        logger.warning(f"DoRothEA pre-warm failed (will retry on first use): {e}")
+
+    logger.info("Starting MCP server...")
 
     async with stdio_server() as (read_stream, write_stream):
         await server.run(

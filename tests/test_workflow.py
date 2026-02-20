@@ -535,6 +535,8 @@ class TestWorkflowNodeDecideNextSteps:
 
     @pytest.mark.asyncio
     async def test_multiple_pending_core_tasks_batched(self, wf):
+        # Comprehensive with nothing completed: multiple batch groups pending
+        # → routes to run_all_batches (all groups dispatched concurrently)
         state = {
             "gene_role": "transcription_factor",
             "analysis_depth": "comprehensive",
@@ -542,7 +544,22 @@ class TestWorkflowNodeDecideNextSteps:
             "completed_actions": [],
         }
         result = await wf._decide_next_steps(state)
-        # When perturbation + regulators + targets all pending, should dispatch batch_core
+        assert "run_all_batches" in result["next_actions"]
+
+    @pytest.mark.asyncio
+    async def test_single_batch_group_routes_to_batch_core(self, wf):
+        # When only core batch is pending (external + insights already done),
+        # route to batch_core (not run_all_batches)
+        state = {
+            "gene_role": "transcription_factor",
+            "analysis_depth": "comprehensive",
+            "perturbation_type": "knockdown",
+            "completed_actions": [
+                "lincs", "dorothea",  # external done
+                "similar", "vulnerability", "cross_cell",  # insights done
+            ],
+        }
+        result = await wf._decide_next_steps(state)
         assert "batch_core" in result["next_actions"]
 
 
@@ -564,6 +581,10 @@ class TestRouteNextAction:
     def test_batch_core_routes_correctly(self, wf):
         state = {"error_message": None, "next_actions": ["batch_core"]}
         assert wf._route_next_action(state) == "batch_core"
+
+    def test_run_all_batches_routes_correctly(self, wf):
+        state = {"error_message": None, "next_actions": ["run_all_batches"]}
+        assert wf._route_next_action(state) == "run_all_batches"
 
     def test_complete_action_routes_correctly(self, wf):
         state = {"error_message": None, "next_actions": ["complete"]}

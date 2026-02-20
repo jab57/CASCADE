@@ -30,6 +30,7 @@ class STRINGClient:
 
     def __init__(self, timeout: int = 30):
         self.timeout = timeout
+        self._cache: dict = {}  # keyed on (gene_symbol_upper, min_score, limit)
 
     def get_interactions(
         self,
@@ -49,6 +50,10 @@ class STRINGClient:
         Returns:
             Dict with interaction data and metadata
         """
+        cache_key = (gene_symbol.upper(), min_score, limit)
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
         # First, resolve gene symbol to STRING protein ID
         protein_id = self._resolve_to_string_id(gene_symbol)
         if protein_id is None:
@@ -112,7 +117,7 @@ class STRINGClient:
         # Sort by score descending
         interactions.sort(key=lambda x: x["combined_score"], reverse=True)
 
-        return {
+        result = {
             "query_gene": gene_symbol,
             "string_id": protein_id,
             "interactions": interactions[:limit],
@@ -120,6 +125,8 @@ class STRINGClient:
             "min_score_used": min_score,
             "score_interpretation": self._score_interpretation(min_score)
         }
+        self._cache[cache_key] = result
+        return result
 
     def _resolve_to_string_id(self, gene_symbol: str) -> Optional[str]:
         """Resolve a gene symbol to STRING protein ID."""

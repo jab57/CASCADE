@@ -10,10 +10,18 @@ BASE_DIR = Path(__file__).parent.parent
 NETWORKS_DIR = BASE_DIR / "data" / "networks"
 MODEL_PATH = BASE_DIR / "models" / "model.ckpt"
 
+# In-process network cache: avoids re-reading TSV files on repeated calls
+# for the same cell type within a server session.
+_network_cache: dict = {}
+
 
 def load_network(network_path: Path | str) -> pd.DataFrame:
     """
     Load a gene regulatory network from TSV file.
+
+    Results are cached in-process so repeated calls for the same network
+    (e.g., multiple analyses on the same cell type, or cross_cell_comparison)
+    do not re-read from disk.
 
     Args:
         network_path: Path to the network TSV file
@@ -26,6 +34,10 @@ def load_network(network_path: Path | str) -> pd.DataFrame:
     if not network_path.exists():
         raise FileNotFoundError(f"Network file not found: {network_path}")
 
+    cache_key = str(network_path.resolve())
+    if cache_key in _network_cache:
+        return _network_cache[cache_key]
+
     df = pd.read_csv(network_path, sep="\t")
 
     # Normalize column names for easier access
@@ -34,6 +46,7 @@ def load_network(network_path: Path | str) -> pd.DataFrame:
         for col in df.columns
     ]
 
+    _network_cache[cache_key] = df
     return df
 
 
