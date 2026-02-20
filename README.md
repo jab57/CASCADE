@@ -358,13 +358,14 @@ CASCADE/
 | Full knockdown analysis | ~3-5s | ~2s |
 
 ### LangGraph Workflows
-| Workflow | Depth | Typical Time |
-|----------|-------|--------------|
-| `comprehensive_perturbation_analysis` | basic | ~3s |
-| `comprehensive_perturbation_analysis` | comprehensive | ~8-10s |
-| `comprehensive_perturbation_analysis` | focused | ~5s |
-| `comprehensive_perturbation_analysis` | + LLM insights | +5-15s (depends on model) |
-| `multi_gene_analysis` (3 genes) | basic | ~10s (parallel) |
+| Workflow | Depth | Typical Time | Notes |
+|----------|-------|--------------|-------|
+| `comprehensive_perturbation_analysis` | basic | ~3-5s | Network propagation + embeddings only |
+| `comprehensive_perturbation_analysis` | comprehensive | ~25-35s | 7 data sources queried in parallel; bounded by slowest external API |
+| `comprehensive_perturbation_analysis` | focused | ~5-8s | Role-dependent subset of analyses |
+| `comprehensive_perturbation_analysis` | + LLM insights | +5-15s | Depends on Ollama model and hardware |
+| `multi_gene_analysis` (3 genes) | basic | ~10s | Parallel workflow per gene |
+| `cross_cell_comparison` | — | ~8s first call; <0.1s cached | All 10 networks cached in-process after first load |
 
 ## Requirements
 
