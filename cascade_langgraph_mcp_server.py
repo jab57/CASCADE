@@ -1842,19 +1842,24 @@ async def main():
     await get_workflow()
     logger.info("Workflow ready")
 
-    # Pre-warm DoRothEA regulons in a background thread so the cold download
-    # happens at startup rather than blocking the first analysis call.
-    logger.info("Pre-warming DoRothEA regulons...")
-    try:
-        from tools.dorothea import load_dorothea_regulons
-        await asyncio.to_thread(load_dorothea_regulons)
-        logger.info("DoRothEA regulons ready")
-    except Exception as e:
-        logger.warning(f"DoRothEA pre-warm failed (will retry on first use): {e}")
-
     logger.info("Starting MCP server...")
 
     async with stdio_server() as (read_stream, write_stream):
+        # Pre-warm DoRothEA regulons as a background task AFTER the server
+        # is ready to handle the initialize handshake. Running it before
+        # stdio_server() blocked the handshake for >60 s, causing Claude
+        # Desktop to time out and disconnect.
+        async def _prewarm_dorothea():
+            try:
+                logger.info("Pre-warming DoRothEA regulons in background...")
+                from tools.dorothea import load_dorothea_regulons
+                await asyncio.to_thread(load_dorothea_regulons)
+                logger.info("DoRothEA regulons ready")
+            except Exception as e:
+                logger.warning(f"DoRothEA pre-warm failed (will retry on first use): {e}")
+
+        asyncio.create_task(_prewarm_dorothea())
+
         await server.run(
             read_stream,
             write_stream,
