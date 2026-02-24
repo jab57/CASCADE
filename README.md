@@ -45,6 +45,7 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 - **Automatic Synthesis**: Generates comprehensive reports with actionable recommendations
 - **LLM-Powered Insights**: Biological interpretation via configurable LLM (Ollama local/cloud by default; adaptable to other providers)
 - **Graceful Degradation**: Falls back to network-only if embeddings unavailable
+- **MCP Resources**: Browsable resource endpoints for metadata discovery without running full analyses
 
 ## Features
 
@@ -316,6 +317,35 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 | `validate_tf_classification` | Validate gene as known TF against DoRothEA curated regulons |
 | `get_dorothea_stats` | Get DoRothEA dataset statistics |
 
+## MCP Resources
+
+In addition to tools, CASCADE exposes **browsable MCP Resources** that allow clients to discover available data without triggering a full analysis. Resources are read-only and return JSON.
+
+### Static Resources
+
+| URI | Description |
+|-----|-------------|
+| `cascade://cell-types` | All 10 supported cell types with their regulatory networks |
+| `cascade://lincs/summary` | Coverage stats for the LINCS L1000 experimental knockdown dataset |
+| `cascade://model/status` | GREmLN embedding model checkpoint status and GPU availability |
+
+### URI Template Resources
+
+| URI Template | Description |
+|--------------|-------------|
+| `cascade://network/{cell_type}/summary` | Edge count, gene count, and top hub regulators for a cell type |
+| `cascade://gene/{symbol}/{cell_type}` | Gene role, target count, and regulator count in a given cell type |
+
+**Examples:**
+```
+cascade://cell-types                          → list all supported cell types
+cascade://network/epithelial_cell/summary     → edge/gene counts for epithelial network
+cascade://gene/MYC/cd8_t_cells               → MYC's role and connectivity in CD8 T cells
+cascade://model/status                        → whether GREmLN checkpoint is loaded
+```
+
+Resources are useful for orientation queries (e.g., "what cell types are available?", "how many genes are in the NK cell network?") before running perturbation analyses.
+
 ## Project Structure
 
 ```
@@ -366,6 +396,14 @@ CASCADE/
 | `comprehensive_perturbation_analysis` | + LLM insights | +5-15s | Depends on Ollama model and hardware |
 | `multi_gene_analysis` (3 genes) | basic | ~10s | Parallel workflow per gene |
 | `cross_cell_comparison` | — | ~8s first call; <0.1s cached | All 10 networks cached in-process after first load |
+
+### Startup Performance
+
+| Event | Behavior |
+|-------|----------|
+| MCP initialize handshake | Completes in milliseconds; DoRothEA regulon pre-warming runs as a background task |
+| GREmLN model load (`get_model_status`) | Non-blocking; model loads via `asyncio.to_thread()` so the event loop stays responsive |
+| Network load (first call per cell type) | Cached in-process; subsequent calls return instantly |
 
 ## Requirements
 
