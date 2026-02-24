@@ -148,6 +148,8 @@ The server provides analysis across several categories:
 | Erythrocytes | `erythrocytes/network.tsv` |
 | Monocyte-derived DCs | `monocyte-derived_dendritic_cells/network.tsv` |
 
+> **Note:** Networks represent population-averaged regulatory relationships and do not capture cell-state-specific dynamics. Analysis of state-dependent regulation (e.g., resting vs. activated T cells) requires cell-state-specific networks generated from appropriately resolved single-cell data and supplied in the same format as the bundled networks.
+
 ## Installation
 
 ```bash
