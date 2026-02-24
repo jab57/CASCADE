@@ -55,6 +55,8 @@ Network perturbation effects are computed via breadth-first propagation through 
 
 CASCADE uses GREmLN embeddings and pre-computed regulatory networks---rather than LINCS experimental signatures---as the primary perturbation engine. This design reflects three practical constraints: GREmLN embeddings provide complete coverage of ~19,247 genes across all supported cell types with deterministic results, whereas LINCS L1000 signatures are sparse (covering a subset of genes and cell lines), biased toward transformed cell lines rather than primary immune populations, and subject to batch variability across experimental conditions. LINCS data remain integrated as an independent corroboration layer: when experimental knockdown signatures are available for a queried gene, the workflow reports directional agreement or disagreement with network predictions, giving users an empirical check without limiting the analysis to genes with LINCS coverage.
 
+The pre-computed regulatory networks represent population-averaged regulatory relationships and do not capture cell-state-specific dynamics; analysis of state-dependent regulation (e.g., resting versus activated T cells) requires cell-state-specific networks generated from appropriately resolved single-cell data and supplied in the same format as the bundled networks.
+
 # Functionality
 
 CASCADE can be installed and used as follows:
