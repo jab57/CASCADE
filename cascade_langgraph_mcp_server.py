@@ -1562,7 +1562,7 @@ async def _get_model_status(args: dict) -> dict:
     workflow = await get_workflow()
 
     try:
-        model = workflow._get_model()
+        model = await asyncio.to_thread(workflow._get_model)
         stats = model.get_embedding_stats()
         return {
             "model_loaded": True,
