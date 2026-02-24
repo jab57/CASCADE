@@ -2067,7 +2067,17 @@ async def main():
             except Exception as e:
                 logger.warning(f"DoRothEA pre-warm failed (will retry on first use): {e}")
 
+        async def _prewarm_model():
+            try:
+                logger.info("Pre-warming GREmLN model in background...")
+                wf = await get_workflow()
+                await asyncio.to_thread(wf._get_model)
+                logger.info("GREmLN model ready")
+            except Exception as e:
+                logger.warning(f"GREmLN pre-warm failed (will retry on first use): {e}")
+
         asyncio.create_task(_prewarm_dorothea())
+        asyncio.create_task(_prewarm_model())
 
         await server.run(
             read_stream,
