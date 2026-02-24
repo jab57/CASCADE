@@ -637,3 +637,176 @@ class TestAdditionalHandlers:
         result = self._call("cross_cell_comparison", {"gene": "FAKEGENE"})
         data = json.loads(result[0].text)
         assert "error" in data
+
+
+# ---------------------------------------------------------------------------
+# Tests for MCP Resources
+# ---------------------------------------------------------------------------
+
+class TestMCPResources:
+    """Test resource listing and reading via the MCP resource handlers."""
+
+    @pytest.fixture(autouse=True)
+    def setup_mocks(self):
+        self.mock_workflow = MagicMock()
+        self.mock_workflow.gene_mapper = MagicMock()
+        self.mock_workflow._model = None
+
+        with patch("cascade_langgraph_mcp_server.CascadeWorkflow"):
+            with patch("cascade_langgraph_mcp_server.workflow_instance", self.mock_workflow):
+                with patch(
+                    "cascade_langgraph_mcp_server.get_workflow",
+                    new_callable=AsyncMock,
+                    return_value=self.mock_workflow,
+                ):
+                    from cascade_langgraph_mcp_server import (
+                        handle_list_resources,
+                        handle_list_resource_templates,
+                        handle_read_resource,
+                    )
+                    self.handle_list_resources = handle_list_resources
+                    self.handle_list_resource_templates = handle_list_resource_templates
+                    self.handle_read_resource = handle_read_resource
+                    yield
+
+    def _run(self, coro):
+        return asyncio.get_event_loop().run_until_complete(coro)
+
+    def _read(self, uri_str: str) -> dict:
+        from pydantic import AnyUrl
+        result = self._run(self.handle_read_resource(AnyUrl(uri_str)))
+        return json.loads(result[0].text)
+
+    # --- list_resources ---
+
+    def test_list_resources_returns_three_static(self):
+        resources = self._run(self.handle_list_resources())
+        assert len(resources) == 3
+        uris = {str(r.uri) for r in resources}
+        assert "cascade://cell-types" in uris
+        assert "cascade://lincs/summary" in uris
+        assert "cascade://model/status" in uris
+
+    # --- list_resource_templates ---
+
+    def test_list_resource_templates_returns_two(self):
+        templates = self._run(self.handle_list_resource_templates())
+        assert len(templates) == 2
+        uri_templates = {t.uriTemplate for t in templates}
+        assert "cascade://network/{cell_type}/summary" in uri_templates
+        assert "cascade://gene/{symbol}/{cell_type}" in uri_templates
+
+    # --- cascade://cell-types ---
+
+    def test_read_cell_types(self):
+        from pathlib import Path
+        mock_path = MagicMock(spec=Path)
+        mock_path.exists.return_value = True
+        self.mock_workflow.NETWORKS_DIR = MagicMock()
+        self.mock_workflow.NETWORKS_DIR.__truediv__ = MagicMock(
+            return_value=MagicMock(__truediv__=MagicMock(return_value=mock_path))
+        )
+        data = self._read("cascade://cell-types")
+        assert "cell_types" in data
+        assert "total" in data
+        assert data["total"] == 10
+
+    # --- cascade://network/{cell_type}/summary ---
+
+    def test_read_network_summary_valid(self):
+        import pandas as pd
+        from pathlib import Path
+        fake_df = pd.DataFrame({
+            "regulator": ["ENSG_A", "ENSG_A", "ENSG_B"],
+            "target": ["ENSG_B", "ENSG_C", "ENSG_C"],
+            "mi": [0.5, 0.4, 0.3],
+        })
+        mock_path = MagicMock(spec=Path)
+        mock_path.exists.return_value = True
+        self.mock_workflow.NETWORKS_DIR = MagicMock()
+        self.mock_workflow.NETWORKS_DIR.__truediv__ = MagicMock(
+            return_value=MagicMock(__truediv__=MagicMock(return_value=mock_path))
+        )
+        self.mock_workflow.gene_mapper.ensembl_to_symbol.return_value = None
+        with patch("tools.loader.load_network", return_value=fake_df):
+            data = self._read("cascade://network/epithelial_cell/summary")
+        assert "edge_count" in data
+        assert "gene_count" in data
+        assert "top_regulators" in data
+        assert data["edge_count"] == 3
+
+    def test_read_network_summary_invalid_cell_type(self):
+        data = self._read("cascade://network/invalid_ct/summary")
+        assert "error" in data
+
+    # --- cascade://gene/{symbol}/{cell_type} ---
+
+    def test_read_gene_metadata_valid(self):
+        import pandas as pd
+        from pathlib import Path
+        # MYC with >50 targets → master_regulator
+        regulators = ["ENSG_MYC"] * 60
+        targets = [f"ENSG_{i}" for i in range(60)]
+        fake_df = pd.DataFrame({
+            "regulator": regulators,
+            "target": targets,
+            "mi": [0.5] * 60,
+        })
+        mock_path = MagicMock(spec=Path)
+        mock_path.exists.return_value = True
+        self.mock_workflow.NETWORKS_DIR = MagicMock()
+        self.mock_workflow.NETWORKS_DIR.__truediv__ = MagicMock(
+            return_value=MagicMock(__truediv__=MagicMock(return_value=mock_path))
+        )
+        self.mock_workflow.gene_mapper.symbol_to_ensembl.return_value = "ENSG_MYC"
+        with patch("tools.loader.load_network", return_value=fake_df):
+            data = self._read("cascade://gene/MYC/epithelial_cell")
+        assert "gene_role" in data
+        assert "num_targets" in data
+        assert "in_network" in data
+        assert data["gene_role"] == "master_regulator"
+        assert data["in_network"] is True
+
+    def test_read_gene_metadata_unknown_gene(self):
+        self.mock_workflow.gene_mapper.symbol_to_ensembl.return_value = None
+        data = self._read("cascade://gene/NOTREAL/epithelial_cell")
+        assert "error" in data
+
+    # --- cascade://lincs/summary ---
+
+    def test_read_lincs_summary(self):
+        with patch(
+            "tools.lincs.get_lincs_stats",
+            return_value={"total_associations": 5000, "unique_ko_genes": 200},
+        ):
+            data = self._read("cascade://lincs/summary")
+        assert "total_associations" in data
+
+    # --- cascade://model/status ---
+
+    def test_read_model_status(self):
+        from pathlib import Path
+        mock_model_path = MagicMock(spec=Path)
+        mock_model_path.exists.return_value = True
+        mock_model_path.__str__ = MagicMock(return_value="models/model.ckpt")
+        self.mock_workflow.MODEL_PATH = mock_model_path
+        self.mock_workflow._model = None
+        with patch.dict("sys.modules", {
+            "torch": MagicMock(
+                cuda=MagicMock(
+                    is_available=MagicMock(return_value=False),
+                    get_device_name=MagicMock(return_value="cpu"),
+                )
+            )
+        }):
+            data = self._read("cascade://model/status")
+        assert "loaded" in data
+        assert "checkpoint_exists" in data
+        assert "gpu_available" in data
+
+    # --- unknown URI ---
+
+    def test_read_unknown_uri(self):
+        data = self._read("cascade://unknown/foo")
+        assert "error" in data
+        assert "Unknown resource URI" in data["error"]

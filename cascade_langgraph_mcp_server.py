@@ -39,6 +39,8 @@ import mcp.server.stdio as stdio
 from mcp.server.stdio import stdio_server
 from mcp.types import (
     Resource,
+    ResourceTemplate,
+    TextResourceContents,
     Tool,
     TextContent,
     ImageContent,
@@ -73,6 +75,85 @@ async def get_workflow():
         workflow_instance = CascadeWorkflow()
         logger.info("Workflow ready")
     return workflow_instance
+
+
+# =============================================================================
+# RESOURCE DEFINITIONS
+# =============================================================================
+
+@server.list_resources()
+async def handle_list_resources() -> list[Resource]:
+    """List static discoverable resources."""
+    return [
+        Resource(
+            uri=AnyUrl("cascade://cell-types"),
+            name="Available Cell Types",
+            description="All 10 supported cell types with their regulatory networks",
+            mimeType="application/json",
+        ),
+        Resource(
+            uri=AnyUrl("cascade://lincs/summary"),
+            name="LINCS Dataset Summary",
+            description="Coverage stats for the LINCS L1000 experimental knockdown dataset",
+            mimeType="application/json",
+        ),
+        Resource(
+            uri=AnyUrl("cascade://model/status"),
+            name="Model Status",
+            description="GREmLN embedding model checkpoint status and GPU availability",
+            mimeType="application/json",
+        ),
+    ]
+
+
+@server.list_resource_templates()
+async def handle_list_resource_templates() -> list[ResourceTemplate]:
+    """List URI templates for dynamic resources."""
+    return [
+        ResourceTemplate(
+            uriTemplate="cascade://network/{cell_type}/summary",
+            name="Network Summary",
+            description="Edge count, gene count, and top hub regulators for a cell type network",
+            mimeType="application/json",
+        ),
+        ResourceTemplate(
+            uriTemplate="cascade://gene/{symbol}/{cell_type}",
+            name="Gene Metadata",
+            description="Gene role, target count, and regulator count in a given cell type network",
+            mimeType="application/json",
+        ),
+    ]
+
+
+@server.read_resource()
+async def handle_read_resource(uri: AnyUrl) -> list[TextResourceContents]:
+    """Dispatch resource reads by URI pattern."""
+    uri_str = str(uri)
+
+    if uri_str == "cascade://cell-types":
+        data = await _resource_cell_types()
+    elif uri_str == "cascade://lincs/summary":
+        data = await _resource_lincs_summary()
+    elif uri_str == "cascade://model/status":
+        data = await _resource_model_status()
+    elif uri_str.startswith("cascade://network/") and uri_str.endswith("/summary"):
+        cell_type = uri_str[len("cascade://network/"):-len("/summary")]
+        data = await _resource_network_summary(cell_type)
+    elif uri_str.startswith("cascade://gene/"):
+        parts = uri_str[len("cascade://gene/"):].split("/")
+        if len(parts) == 2:
+            symbol, cell_type = parts
+            data = await _resource_gene_metadata(symbol, cell_type)
+        else:
+            data = {"error": "Invalid URI. Expected cascade://gene/{symbol}/{cell_type}"}
+    else:
+        data = {"error": f"Unknown resource URI: {uri_str}"}
+
+    return [TextResourceContents(
+        uri=uri,
+        text=json.dumps(data, indent=2, default=str),
+        mimeType="application/json",
+    )]
 
 
 # =============================================================================
@@ -1827,6 +1908,134 @@ async def _get_dorothea_stats(args: dict) -> dict:
         return get_dorothea_stats()
     except Exception as e:
         return {"error": f"DoRothEA stats failed: {str(e)}"}
+
+
+# =============================================================================
+# RESOURCE IMPLEMENTATIONS
+# =============================================================================
+
+async def _resource_cell_types() -> dict:
+    """List all cell types with availability."""
+    workflow = await get_workflow()
+    cell_types = []
+    for ct in CellType:
+        network_path = workflow.NETWORKS_DIR / ct.value / "network.tsv"
+        cell_types.append({
+            "name": ct.value,
+            "available": network_path.exists(),
+        })
+    return {
+        "cell_types": cell_types,
+        "total": len(cell_types),
+        "note": "Use cascade://network/{cell_type}/summary for edge/gene counts",
+    }
+
+
+async def _resource_network_summary(cell_type: str) -> dict:
+    """Return edge count, gene count, and top hub regulators for a cell type."""
+    from tools.loader import load_network
+
+    workflow = await get_workflow()
+    valid = [ct.value for ct in CellType]
+    if cell_type not in valid:
+        return {"error": f"Unknown cell type '{cell_type}'. Valid: {valid}"}
+
+    network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
+    if not network_path.exists():
+        return {"error": f"Network file not found for '{cell_type}'"}
+
+    network_df = await asyncio.to_thread(load_network, network_path)
+    edge_count = len(network_df)
+    all_genes = set(network_df["regulator"].unique()) | set(network_df["target"].unique())
+    gene_count = len(all_genes)
+
+    # Top 10 hub regulators by out-degree
+    hub_series = network_df.groupby("regulator").size().nlargest(10)
+    top_hubs = []
+    for ensembl_id, target_count in hub_series.items():
+        symbol = workflow.gene_mapper.ensembl_to_symbol(ensembl_id) or ensembl_id
+        top_hubs.append({"symbol": symbol, "ensembl_id": ensembl_id, "target_count": int(target_count)})
+
+    return {
+        "cell_type": cell_type,
+        "edge_count": edge_count,
+        "gene_count": gene_count,
+        "top_regulators": top_hubs,
+    }
+
+
+async def _resource_gene_metadata(symbol: str, cell_type: str) -> dict:
+    """Return gene role and network position for a gene in a given cell type."""
+    from tools.loader import load_network
+
+    workflow = await get_workflow()
+    valid = [ct.value for ct in CellType]
+    if cell_type not in valid:
+        return {"error": f"Unknown cell type '{cell_type}'. Valid: {valid}"}
+
+    ensembl_id = workflow.gene_mapper.symbol_to_ensembl(symbol)
+    if ensembl_id is None:
+        return {"error": f"Could not resolve gene symbol '{symbol}'"}
+
+    network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
+    if not network_path.exists():
+        return {"error": f"Network file not found for '{cell_type}'"}
+
+    network_df = await asyncio.to_thread(load_network, network_path)
+    num_targets = int((network_df["regulator"] == ensembl_id).sum())
+    num_regulators = int((network_df["target"] == ensembl_id).sum())
+
+    if num_targets > 50:
+        gene_role = "master_regulator"
+    elif num_targets > 10:
+        gene_role = "transcription_factor"
+    elif num_targets > 0:
+        gene_role = "minor_regulator"
+    elif num_regulators > 0:
+        gene_role = "effector"
+    else:
+        gene_role = "isolated"
+
+    return {
+        "gene": symbol.upper(),
+        "ensembl_id": ensembl_id,
+        "cell_type": cell_type,
+        "gene_role": gene_role,
+        "num_targets": num_targets,
+        "num_regulators": num_regulators,
+        "in_network": num_targets > 0 or num_regulators > 0,
+    }
+
+
+async def _resource_lincs_summary() -> dict:
+    """Return LINCS dataset coverage statistics."""
+    from tools.lincs import get_lincs_stats
+    try:
+        return await asyncio.to_thread(get_lincs_stats)
+    except Exception as e:
+        return {"error": f"LINCS stats unavailable: {e}"}
+
+
+async def _resource_model_status() -> dict:
+    """Return GREmLN model checkpoint status and GPU info."""
+    import torch
+    workflow = await get_workflow()
+    model_path = workflow.MODEL_PATH
+    loaded = workflow._model is not None
+    gene_count = None
+    if loaded:
+        try:
+            gene_count = len(workflow._model.gene_ids)
+        except Exception:
+            pass
+    return {
+        "model_path": str(model_path),
+        "checkpoint_exists": model_path.exists(),
+        "loaded": loaded,
+        "gene_count": gene_count,
+        "gpu_available": torch.cuda.is_available(),
+        "device": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
+    }
 
 
 # =============================================================================

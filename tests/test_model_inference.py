@@ -7,6 +7,8 @@ the actual GREmLN checkpoint (~120MB) or GPU.
 import pytest
 from unittest.mock import patch, MagicMock
 
+pytest.importorskip("torch", reason="torch not installed — skipping model inference tests")
+
 from tools.model_inference import CascadeModel, reset_model
 
 
