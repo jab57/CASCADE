@@ -575,6 +575,10 @@ class CascadeWorkflow:
                 # Effectors/isolated genes need protein-level analysis
                 required.update({"ppi", "super_enhancers"})
 
+            # Isolated genes are not in the network at all — regulators analysis is uninformative
+            if gene_role == GeneRole.ISOLATED.value:
+                required.discard("regulators")
+
             # Always include cross-cell for comprehensive
             required.add("cross_cell")
 
@@ -1344,6 +1348,29 @@ class CascadeWorkflow:
         start_time = metadata.get("start_time", time.time())
         execution_time = time.time() - start_time
 
+        # Build no_network_targets_note for effector/isolated genes
+        no_network_targets_note = None
+        if gene_role in (GeneRole.EFFECTOR.value, GeneRole.ISOLATED.value):
+            perturbation = state.get("perturbation_result") or {}
+            total_affected = perturbation.get("total_affected_genes", 0)
+            cell_type = state.get("cell_type", "this cell type")
+            if gene_role == GeneRole.EFFECTOR.value:
+                no_network_targets_note = (
+                    f"{gene_symbol} is an effector gene with no transcriptional targets in the "
+                    f"{cell_type} regulatory network (network propagation: {total_affected} affected genes). "
+                    f"This is expected — effector genes are regulated by transcription factors but do not "
+                    f"regulate other genes transcriptionally. See 'external_data.protein_interactions' "
+                    f"and 'embedding_analysis.similar_genes' for the most informative evidence."
+                )
+            else:  # isolated
+                no_network_targets_note = (
+                    f"{gene_symbol} is not present in the {cell_type} regulatory network "
+                    f"(isolated gene: no transcriptional targets or regulators). "
+                    f"Network propagation, regulators, and targets analyses are uninformative. "
+                    f"See 'external_data.protein_interactions' and 'embedding_analysis.similar_genes' "
+                    f"for the most informative evidence."
+                )
+
         # Build summary with optional DoRothEA validation
         summary = {
             "gene": gene_symbol,
@@ -1364,7 +1391,8 @@ class CascadeWorkflow:
                 "context": state.get("network_context"),  # Always available (num_targets, num_regulators)
                 "regulators": state.get("regulators_analysis"),
                 "targets": state.get("targets_analysis"),
-                "vulnerability": state.get("vulnerability_analysis")
+                "vulnerability": state.get("vulnerability_analysis"),
+                "no_network_targets_note": no_network_targets_note
             },
             "external_data": {
                 "protein_interactions": state.get("ppi_interactions"),

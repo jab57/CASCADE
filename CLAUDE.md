@@ -139,7 +139,7 @@ USE_LLM_INSIGHTS=true python cascade_langgraph_mcp_server.py
 
 - **Eager initialization**: Workflow pre-loads on server startup to avoid lazy-load delays
 - **Parallel execution**: Independent analyses batched for concurrent execution
-- **Automatic routing**: Gene type determines analysis path (TF → knockdown, effector → PPI)
+- **Automatic routing**: Gene type determines analysis path (TF → knockdown + targets + LINCS; effector → PPI + regulators; isolated → PPI only, regulators skipped; report includes `no_network_targets_note` for effector/isolated)
 - **LLM insights**: Requires Ollama running; enable per-request with `include_llm_insights=True` or globally with `USE_LLM_INSIGHTS=true`
 - **Graceful fallback**: Embedding model falls back to network-only if unavailable; LLM returns structured data if Ollama unavailable
 - All tools accept gene symbols (MYC) or Ensembl IDs (ENSG...) - resolved internally

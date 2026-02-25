@@ -562,6 +562,99 @@ class TestWorkflowNodeDecideNextSteps:
         result = await wf._decide_next_steps(state)
         assert "batch_core" in result["next_actions"]
 
+    @pytest.mark.asyncio
+    async def test_isolated_gene_does_not_require_regulators(self, wf):
+        # Isolated genes are not in the network — regulators analysis is uninformative.
+        # Completing all required analyses WITHOUT regulators should route to complete.
+        state = {
+            "gene_role": "isolated",
+            "analysis_depth": "comprehensive",
+            "perturbation_type": "knockdown",
+            "completed_actions": [
+                "perturbation", "similar", "dorothea",  # core (no regulators)
+                "ppi", "super_enhancers",               # external
+                "cross_cell",                           # insights
+            ],
+        }
+        result = await wf._decide_next_steps(state)
+        assert result["next_actions"] == ["complete"]
+        assert result["workflow_complete"] is True
+
+    @pytest.mark.asyncio
+    async def test_effector_gene_still_requires_regulators(self, wf):
+        # Effector genes do have upstream regulators — regulators analysis remains required.
+        # Without regulators in completed, should NOT route to complete.
+        state = {
+            "gene_role": "effector",
+            "analysis_depth": "comprehensive",
+            "perturbation_type": "knockdown",
+            "completed_actions": [
+                "perturbation", "similar", "dorothea",  # core (missing regulators)
+                "ppi", "super_enhancers",               # external
+                "cross_cell",                           # insights
+            ],
+        }
+        result = await wf._decide_next_steps(state)
+        assert result["next_actions"] != ["complete"]
+
+
+class TestNoNetworkTargetsNote:
+    """Test that no_network_targets_note is present in reports for effector/isolated genes."""
+
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _minimal_state(self, gene_role):
+        return {
+            "gene": "KRAS",
+            "gene_symbol": "KRAS",
+            "cell_type": "epithelial_cell",
+            "gene_role": gene_role,
+            "perturbation_type": "knockdown",
+            "perturbation_result": {"total_affected_genes": 0, "top_affected_genes": []},
+            "ppi_interactions": None,
+            "lincs_effects": None,
+            "similar_genes": None,
+            "regulators_analysis": None,
+            "targets_analysis": None,
+            "dorothea_regulons": None,
+            "super_enhancer_status": None,
+            "vulnerability_analysis": None,
+            "network_context": None,
+            "cross_cell_comparison": None,
+            "embedding_enhanced": False,
+            "analysis_metadata": {},
+            "completed_actions": [],
+            "ensembl_id": None,
+            "include_llm_insights": False,
+        }
+
+    @pytest.mark.asyncio
+    async def test_effector_report_includes_note(self, wf):
+        state = self._minimal_state("effector")
+        result = await wf._generate_report(state)
+        note = result["comprehensive_report"]["network_analysis"]["no_network_targets_note"]
+        assert note is not None
+        assert "effector" in note
+        assert "protein_interactions" in note
+
+    @pytest.mark.asyncio
+    async def test_isolated_report_includes_note(self, wf):
+        state = self._minimal_state("isolated")
+        result = await wf._generate_report(state)
+        note = result["comprehensive_report"]["network_analysis"]["no_network_targets_note"]
+        assert note is not None
+        assert "isolated" in note
+        assert "protein_interactions" in note
+
+    @pytest.mark.asyncio
+    async def test_transcription_factor_report_has_no_note(self, wf):
+        state = self._minimal_state("transcription_factor")
+        result = await wf._generate_report(state)
+        note = result["comprehensive_report"]["network_analysis"]["no_network_targets_note"]
+        assert note is None
+
 
 class TestRouteNextAction:
     """Test _route_next_action maps state to correct node names."""

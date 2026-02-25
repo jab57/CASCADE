@@ -61,6 +61,7 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 - **Automatic Suggestions**: When perturbation tools return no targets (e.g., scaffold proteins like APC), the response includes actionable suggestions for alternative analyses
 - **Known Complex Partners**: For well-characterized proteins, suggestions include known interaction partners (e.g., APC → CTNNB1, AXIN1, GSK3B)
 - **Recommended Follow-ups**: Specific tool calls suggested based on biological context (e.g., "Run overexpression on CTNNB1 to see effects of APC loss")
+- **Gene-Role-Aware Routing**: Effector and isolated genes skip uninformative network analyses and receive a `no_network_targets_note` in the report explaining why network propagation returned zero results and directing users to protein interaction and embedding evidence
 
 ### Model-Enhanced Analysis
 - **Embedding-Enhanced Knockdown**: Combines network topology with learned gene representations
