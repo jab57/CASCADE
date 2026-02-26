@@ -555,7 +555,7 @@ class TestWorkflowNodeDecideNextSteps:
             "analysis_depth": "comprehensive",
             "perturbation_type": "knockdown",
             "completed_actions": [
-                "lincs", "dorothea",  # external done
+                "lincs", "dorothea", "depmap",  # external done
                 "similar", "vulnerability", "cross_cell",  # insights done
             ],
         }
@@ -572,7 +572,7 @@ class TestWorkflowNodeDecideNextSteps:
             "perturbation_type": "knockdown",
             "completed_actions": [
                 "perturbation", "similar", "dorothea",  # core (no regulators)
-                "ppi", "super_enhancers",               # external
+                "ppi", "super_enhancers", "depmap",     # external
                 "cross_cell",                           # insights
             ],
         }
