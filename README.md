@@ -33,7 +33,8 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 │  │ (BFS)    │         │   256-dim    │         │ (STRING, │   │
 │  └──────────┘         └──────────────┘         │  LINCS,  │   │
 │                                                │ dbSUPER, │   │
-│                                                │ DoRothEA)│   │
+│                                                │ DoRothEA,│   │
+│                                                │  DepMap) │   │
 │                                                └──────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -97,6 +98,12 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 - **TF Classification Validation**: Cross-reference network-derived TF classifications against curated regulons
 - **Evidence Integration**: Combine literature, ChIP-seq, and motif evidence
 
+### CRISPR Essentiality (DepMap)
+- **Pan-Cancer Essentiality**: Chronos gene effect scores across 1,000+ cancer cell lines — negative scores indicate fitness dependency
+- **Lineage Profiles**: Identify which cancer lineages show the strongest essentiality for a gene (e.g., MYC most essential in Pancreas and Myeloid)
+- **Phenotypic Validation**: The only empirical phenotypic evidence layer in CASCADE — validates whether predicted network hubs are actually lethal to cancer cells
+- **Therapeutic Triage**: Three-tier suggestions: common essential (>90% of lines, broad toxicity risk), pan-cancer essential (>50%), or lineage-selective target
+
 ### Protein-Protein Interactions (STRING Database)
 - **Interaction Partners**: Query physical and functional protein interactions from STRING
 - **Confidence Scoring**: Filter by experimental evidence, database annotations, or text mining
@@ -133,6 +140,8 @@ The server provides analysis across several categories:
 6. **TF regulon validation** (`get_dorothea_regulon`, `validate_tf_classification`): Cross-references network-derived TF classifications against DoRothEA curated multi-evidence regulons.
 
 7. **Gene similarity** (`find_similar_genes`, `get_gene_similarity`): Computes functional similarity using GREmLN embeddings to discover pathway members and alternative targets.
+
+8. **CRISPR essentiality** (integrated in `comprehensive_perturbation_analysis`): Queries pre-downloaded DepMap Chronos gene effect scores to provide empirical phenotypic validation — confirming whether a predicted network hub is actually lethal to cancer cells across 1,000+ cell lines and 30+ cancer lineages.
 
 ## Supported Cell Types
 
@@ -368,12 +377,14 @@ CASCADE/
 │   ├── lincs.py                    # LINCS L1000 expression perturbation data
 │   ├── super_enhancers.py          # Super-enhancer annotations (BRD4 druggability)
 │   ├── dorothea.py                # DoRothEA TF regulon validation (via decoupler)
+│   ├── depmap.py                   # DepMap CRISPR essentiality (Chronos scores)
 │   └── ppi/
 │       └── string_client.py        # STRING database API client
 ├── data/
 │   ├── networks/                   # Pre-computed regulatory networks (10 cell types)
 │   ├── lincs/                      # LINCS L1000 knockdown expression data
-│   └── super_enhancers/            # dbSUPER super-enhancer annotations
+│   ├── super_enhancers/            # dbSUPER super-enhancer annotations
+│   └── depmap/                     # DepMap CRISPR gene effect data (download separately)
 ├── models/
 │   └── model.ckpt                  # GREmLN model checkpoint (120MB)
 └── cache/
@@ -394,7 +405,7 @@ CASCADE/
 | Workflow | Depth | Typical Time | Notes |
 |----------|-------|--------------|-------|
 | `comprehensive_perturbation_analysis` | basic | ~3-5s | Network propagation + embeddings only |
-| `comprehensive_perturbation_analysis` | comprehensive | ~25-35s | 7 data sources queried in parallel; bounded by slowest external API |
+| `comprehensive_perturbation_analysis` | comprehensive | ~25-35s | 8 data sources queried in parallel; bounded by slowest external API |
 | `comprehensive_perturbation_analysis` | focused | ~5-8s | Role-dependent subset of analyses |
 | `comprehensive_perturbation_analysis` | + LLM insights | +5-15s | Depends on Ollama model and hardware |
 | `multi_gene_analysis` (3 genes) | basic | ~10s | Parallel workflow per gene |
