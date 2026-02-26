@@ -141,7 +141,7 @@ The server provides analysis across several categories:
 
 7. **Gene similarity** (`find_similar_genes`, `get_gene_similarity`): Computes functional similarity using GREmLN embeddings to discover pathway members and alternative targets.
 
-8. **CRISPR essentiality** (integrated in `comprehensive_perturbation_analysis`): Queries pre-downloaded DepMap Chronos gene effect scores to provide empirical phenotypic validation — confirming whether a predicted network hub is actually lethal to cancer cells across 1,000+ cell lines and 30+ cancer lineages.
+8. **CRISPR essentiality** (`get_depmap_essentiality`, also integrated in `comprehensive_perturbation_analysis`): Queries pre-downloaded DepMap Chronos gene effect scores to provide empirical phenotypic validation — confirming whether a predicted network hub is actually lethal to cancer cells across 1,000+ cell lines and 30+ cancer lineages.
 
 ## Supported Cell Types
 
@@ -270,7 +270,7 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 - "Get high-confidence interactions for TP53"
 - "What protein interactions would be disrupted if I knock down BRCA1?"
 
-## Available MCP Tools (25 total)
+## Available MCP Tools (26 total)
 
 ### Workflow Tools (LangGraph Orchestration)
 | Tool | Description |
@@ -328,6 +328,11 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 | `get_dorothea_regulon` | Get curated TF regulon targets with confidence levels (A-E) |
 | `validate_tf_classification` | Validate gene as known TF against DoRothEA curated regulons |
 | `get_dorothea_stats` | Get DoRothEA dataset statistics |
+
+### CRISPR Essentiality (DepMap)
+| Tool | Description |
+|------|-------------|
+| `get_depmap_essentiality` | Chronos gene effect scores across 1,000+ cancer cell lines — pan-cancer essential flag, lineage breakdown, strongly essential fraction |
 
 ## MCP Resources
 

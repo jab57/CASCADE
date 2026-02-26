@@ -26,7 +26,7 @@ class TestToolListing:
             return asyncio.get_event_loop().run_until_complete(handle_list_tools())
 
     def test_tool_count(self, tool_list):
-        """Server should expose 22 tools."""
+        """Server should expose 26 tools."""
         tool_names = [t.name for t in tool_list]
         assert len(tool_names) >= 20, f"Expected 20+ tools, got {len(tool_names)}: {tool_names}"
 
