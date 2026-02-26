@@ -894,6 +894,45 @@ async def handle_list_tools() -> list[Tool]:
                 "type": "object",
                 "properties": {}
             }
+        ),
+
+        # =====================================================================
+        # DEPMAP ESSENTIALITY TOOLS
+        # =====================================================================
+
+        Tool(
+            name="get_depmap_essentiality",
+            description="""
+            Get DepMap CRISPR essentiality profile for a gene across cancer cell lines.
+
+            Uses Chronos gene effect scores from DepMap CRISPR screens across 1,000+
+            cancer cell lines. Negative scores indicate essentiality:
+              score < -0.5  → essential in that cell line
+              score < -1.0  → strongly essential
+
+            Returns:
+            - Mean/median/std Chronos score across all tested lines
+            - Fraction of lines where the gene is essential (< -0.5)
+            - Fraction where strongly essential (< -1.0)
+            - pan_cancer_essential flag (essential in >50% of lines)
+            - common_essential flag (essential in >90%, housekeeping-like)
+            - Top 5 cancer lineages most dependent on this gene
+
+            Use this to:
+            - Assess cancer dependency / therapeutic vulnerability
+            - Identify lineage-specific essentiality
+            - Distinguish oncogene addiction from housekeeping essentiality
+            """,
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gene": {
+                        "type": "string",
+                        "description": "Gene symbol (e.g., MYC, TP53, KRAS)"
+                    }
+                },
+                "required": ["gene"]
+            }
         )
     ]
 
@@ -986,6 +1025,10 @@ async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent
 
         elif name == "get_dorothea_stats":
             result = await _get_dorothea_stats(arguments)
+
+        # DepMap tools
+        elif name == "get_depmap_essentiality":
+            result = await _get_depmap_essentiality(arguments)
 
         else:
             result = {"error": f"Unknown tool: {name}"}
@@ -1909,6 +1952,24 @@ async def _get_dorothea_stats(args: dict) -> dict:
         return get_dorothea_stats()
     except Exception as e:
         return {"error": f"DoRothEA stats failed: {str(e)}"}
+
+
+# =============================================================================
+# DEPMAP IMPLEMENTATIONS
+# =============================================================================
+
+async def _get_depmap_essentiality(args: dict) -> dict:
+    """Get DepMap CRISPR essentiality profile for a gene."""
+    from tools.depmap import get_gene_essentiality
+
+    gene = args["gene"]
+
+    try:
+        return get_gene_essentiality(gene)
+    except FileNotFoundError as e:
+        return {"error": str(e), "not_found": True}
+    except Exception as e:
+        return {"error": f"DepMap query failed: {str(e)}", "not_found": True}
 
 
 # =============================================================================
