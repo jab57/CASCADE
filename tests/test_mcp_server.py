@@ -74,6 +74,7 @@ class TestToolListing:
             "get_dorothea_regulon",
             "validate_tf_classification",
             "get_dorothea_stats",
+            "get_depmap_essentiality",
         }
         missing = expected - names
         assert not missing, f"Missing tools: {missing}"
@@ -606,6 +607,41 @@ class TestAdditionalHandlers:
             result = self._call("get_dorothea_stats", {})
         data = json.loads(result[0].text)
         assert "error" in data
+
+    # --- DepMap tools ---
+
+    def test_get_depmap_essentiality_success(self):
+        with patch("tools.depmap.get_gene_essentiality",
+                   return_value={
+                       "gene": "MYC",
+                       "mean_chronos_score": -0.82,
+                       "median_chronos_score": -0.79,
+                       "std_chronos_score": 0.41,
+                       "essential_fraction": 0.68,
+                       "strongly_essential_fraction": 0.31,
+                       "pan_cancer_essential": True,
+                       "common_essential": False,
+                       "cell_lines_tested": 1078,
+                       "top_lineages": [
+                           {"lineage": "Lymphoma", "mean_score": -1.21, "n_cell_lines": 45}
+                       ],
+                       "data_source": "DepMap CRISPR (Chronos)",
+                       "not_found": False,
+                   }):
+            result = self._call("get_depmap_essentiality", {"gene": "MYC"})
+        data = json.loads(result[0].text)
+        assert data["gene"] == "MYC"
+        assert data["pan_cancer_essential"] is True
+        assert data["not_found"] is False
+        assert data["cell_lines_tested"] == 1078
+
+    def test_get_depmap_essentiality_file_not_found(self):
+        with patch("tools.depmap.get_gene_essentiality",
+                   side_effect=FileNotFoundError("DepMap data not found")):
+            result = self._call("get_depmap_essentiality", {"gene": "MYC"})
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert data["not_found"] is True
 
     # --- quick_perturbation error paths ---
 
