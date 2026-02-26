@@ -113,6 +113,7 @@ class PerturbationAnalysisState(TypedDict):
     lincs_effects: Optional[Dict]               # LINCS knockdown effects
     super_enhancer_status: Optional[Dict]       # Super-enhancer info (BET sensitivity)
     dorothea_regulons: Optional[Dict]           # DoRothEA TF regulon validation
+    depmap_essentiality: Optional[Dict]         # DepMap CRISPR essentiality scores
 
     # === Cross-Cell Analysis ===
     cross_cell_comparison: Optional[Dict]       # Same gene across cell types
@@ -567,7 +568,7 @@ class CascadeWorkflow:
 
         else:  # comprehensive
             # Comprehensive: Everything relevant to gene role
-            required = {"perturbation", "regulators", "similar", "dorothea"}
+            required = {"perturbation", "regulators", "similar", "dorothea", "depmap"}
 
             if gene_role in [GeneRole.MASTER_REGULATOR.value, GeneRole.TRANSCRIPTION_FACTOR.value]:
                 required.update({"targets", "vulnerability", "lincs"})
@@ -596,7 +597,7 @@ class CascadeWorkflow:
         # === Group into batches for parallel execution ===
 
         core_pending = pending & {"perturbation", "regulators", "targets"}
-        external_pending = pending & {"ppi", "lincs", "super_enhancers", "dorothea"}
+        external_pending = pending & {"ppi", "lincs", "super_enhancers", "dorothea", "depmap"}
         insights_pending = pending & {"similar", "vulnerability", "cross_cell"}
 
         # Count how many batch groups have work to do
@@ -741,6 +742,10 @@ class CascadeWorkflow:
             tasks.append(self._fetch_dorothea_impl(state))
             task_names.append("dorothea")
 
+        if "depmap" not in completed:
+            tasks.append(self._fetch_depmap_impl(state))
+            task_names.append("depmap")
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         updates = {
@@ -760,6 +765,8 @@ class CascadeWorkflow:
                 updates["super_enhancer_status"] = result
             elif name == "dorothea":
                 updates["dorothea_regulons"] = result
+            elif name == "depmap":
+                updates["depmap_essentiality"] = result
 
         return updates
 
@@ -1066,6 +1073,21 @@ class CascadeWorkflow:
 
         return await asyncio.to_thread(_sync)
 
+    async def _fetch_depmap_impl(self, state: PerturbationAnalysisState) -> Dict:
+        """Fetch DepMap CRISPR essentiality data for the query gene."""
+        from tools.depmap import get_gene_essentiality
+
+        gene_symbol = state.get("gene_symbol", state["gene"])
+
+        def _sync():
+            try:
+                return get_gene_essentiality(gene_symbol)
+            except Exception as e:
+                logger.error(f"DepMap error: {e}")
+                return {"error": str(e), "not_found": True}
+
+        return await asyncio.to_thread(_sync)
+
     async def _find_similar_genes_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Find similar genes using embeddings."""
         ensembl_id = state["ensembl_id"]
@@ -1228,6 +1250,17 @@ class CascadeWorkflow:
                     "confidence": dt.get("confidence")
                 }
 
+        # DepMap essentiality (validates the query gene itself, not partner genes)
+        depmap = state.get("depmap_essentiality") or {}
+        if not depmap.get("not_found") and "mean_chronos_score" in depmap:
+            query_gene = state.get("gene_symbol", state["gene"]).upper()
+            if query_gene in evidence:
+                evidence[query_gene]["sources"].append("depmap_essentiality")
+                evidence[query_gene]["evidence"]["depmap"] = {
+                    "mean_chronos_score": depmap["mean_chronos_score"],
+                    "pan_cancer_essential": depmap["pan_cancer_essential"]
+                }
+
         # --- 2. Filter to multi-source genes ---
         multi_source = []
         for sym, data in evidence.items():
@@ -1281,7 +1314,8 @@ class CascadeWorkflow:
             "multi_source_gene_count": len(multi_source),
             "source_agreements": agreements,
             "source_disagreements": disagreements,
-            "key_findings": key_findings
+            "key_findings": key_findings,
+            "depmap_essentiality": depmap if not depmap.get("not_found") else None
         }
 
     # =========================================================================
@@ -1330,6 +1364,41 @@ class CascadeWorkflow:
                 ),
                 "priority": "medium"
             })
+
+        # Based on DepMap CRISPR essentiality
+        depmap = state.get("depmap_essentiality") or {}
+        if not depmap.get("not_found") and not depmap.get("error"):
+            if depmap.get("common_essential"):
+                suggestions.append({
+                    "action": "Exercise caution — common essential gene",
+                    "reason": (
+                        f"{gene_symbol} is essential in >90% of cancer cell lines "
+                        f"(Chronos mean: {depmap['mean_chronos_score']:.2f}); broad toxicity risk"
+                    ),
+                    "priority": "high"
+                })
+            elif depmap.get("pan_cancer_essential"):
+                top_lin = depmap.get("top_lineages", [])
+                lineage_str = top_lin[0]["lineage"] if top_lin else "multiple lineages"
+                suggestions.append({
+                    "action": "Prioritize as cancer therapeutic target",
+                    "reason": (
+                        f"{gene_symbol} is essential in >50% of cancer cell lines; "
+                        f"most essential in {lineage_str} "
+                        f"(Chronos mean: {depmap['mean_chronos_score']:.2f})"
+                    ),
+                    "priority": "high"
+                })
+            elif depmap.get("top_lineages"):
+                top = depmap["top_lineages"][0]
+                suggestions.append({
+                    "action": f"Consider as lineage-specific target in {top['lineage']}",
+                    "reason": (
+                        f"{gene_symbol} is lineage-selectively essential in {top['lineage']} "
+                        f"(mean Chronos: {top['mean_score']:.2f}, {top['n_cell_lines']} cell lines)"
+                    ),
+                    "priority": "medium"
+                })
 
         # Based on vulnerability
         vuln = state.get("vulnerability_analysis") or {}
@@ -1398,7 +1467,8 @@ class CascadeWorkflow:
                 "protein_interactions": state.get("ppi_interactions"),
                 "lincs_knockdown": state.get("lincs_effects"),
                 "super_enhancers": state.get("super_enhancer_status"),
-                "dorothea_regulons": state.get("dorothea_regulons")
+                "dorothea_regulons": state.get("dorothea_regulons"),
+                "depmap_essentiality": state.get("depmap_essentiality")
             },
             "embedding_analysis": {
                 "similar_genes": state.get("similar_genes"),
@@ -1619,6 +1689,7 @@ Provide scientifically accurate, evidence-based analysis. When data is limited, 
             "lincs_effects": None,
             "super_enhancer_status": None,
             "dorothea_regulons": None,
+            "depmap_essentiality": None,
             "cross_cell_comparison": None,
             "vulnerability_analysis": None,
             "therapeutic_suggestions": None,

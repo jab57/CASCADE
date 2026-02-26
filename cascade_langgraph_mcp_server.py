@@ -177,6 +177,7 @@ async def handle_list_tools() -> list[Tool]:
             - Runs the appropriate analyses based on gene type
             - Fetches protein interactions for non-TF genes
             - Checks experimental data (LINCS knockdown effects)
+            - Validates essentiality with DepMap CRISPR screens (Chronos scores across 1000+ cancer cell lines)
             - Finds similar genes using AI embeddings
             - Generates therapeutic targeting suggestions
 
@@ -185,7 +186,7 @@ async def handle_list_tools() -> list[Tool]:
             - "What are the effects of MYC overexpression?"
             - "Is APC a good drug target?"
 
-            Returns a comprehensive report with all findings.
+            Returns a comprehensive report with all findings including DepMap essentiality validation.
             """,
             inputSchema={
                 "type": "object",

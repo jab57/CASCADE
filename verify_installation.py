@@ -259,6 +259,31 @@ def check_embedding_similarity() -> tuple[int, int]:
         return 0, 1
 
 
+def check_depmap() -> tuple[int, int]:
+    """Validate DepMap data files exist and load correctly."""
+    try:
+        from tools.depmap import load_depmap_data
+    except Exception as exc:
+        _fail(f"DepMap — import error: {exc}")
+        return 0, 1
+
+    try:
+        scores, _ = load_depmap_data()
+        n_genes = scores.shape[1]
+        n_lines = scores.shape[0]
+        if n_genes == 0 or n_lines == 0:
+            _fail("DepMap: loaded but data is empty")
+            return 0, 1
+        _pass(f"DepMap: {n_genes:,} genes x {n_lines:,} cell lines")
+        return 1, 0
+    except FileNotFoundError as exc:
+        _skip(f"DepMap: MISSING — {exc}")
+        return 1, 0  # Missing data is not a hard failure
+    except Exception as exc:
+        _fail(f"DepMap — {exc}")
+        return 0, 1
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -321,6 +346,11 @@ def main() -> int:
 
     # 6. Embedding similarity
     p, f = check_embedding_similarity()
+    total_passed += p
+    total_failed += f
+
+    # 7. DepMap CRISPR essentiality data
+    p, f = check_depmap()
     total_passed += p
     total_failed += f
 

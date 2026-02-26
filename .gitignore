@@ -22,6 +22,9 @@ data/lincs/*.gz
 data/super_enhancers/*.tsv
 data/super_enhancers/*.bed
 
+# DepMap CRISPR data (large files ~200MB - download separately)
+data/depmap/*.csv
+
 # IDE
 .vscode/
 .idea/
