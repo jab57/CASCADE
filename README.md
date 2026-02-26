@@ -409,20 +409,21 @@ CASCADE/
 ### LangGraph Workflows
 | Workflow | Depth | Typical Time | Notes |
 |----------|-------|--------------|-------|
-| `comprehensive_perturbation_analysis` | basic | ~3-5s | Network propagation + embeddings only |
-| `comprehensive_perturbation_analysis` | comprehensive | ~25-35s | 8 data sources queried in parallel; bounded by slowest external API |
-| `comprehensive_perturbation_analysis` | focused | ~5-8s | Role-dependent subset of analyses |
+| `comprehensive_perturbation_analysis` | basic | ~2-4s | Network propagation + embeddings only |
+| `comprehensive_perturbation_analysis` | comprehensive | ~5-10s | 8 data sources in parallel; STRING API is main variable (10s cap) |
+| `comprehensive_perturbation_analysis` | focused | ~3-5s | Role-dependent subset of analyses |
 | `comprehensive_perturbation_analysis` | + LLM insights | +5-15s | Depends on Ollama model and hardware |
-| `multi_gene_analysis` (3 genes) | basic | ~10s | Parallel workflow per gene |
-| `cross_cell_comparison` | — | ~8s first call; <0.1s cached | All 10 networks cached in-process after first load |
+| `multi_gene_analysis` (3 genes) | basic | ~8s | Parallel workflow per gene |
+| `cross_cell_comparison` | — | ~1s first call; <0.1s cached | All 10 networks pre-warmed and cached in-process |
 
 ### Startup Performance
 
 | Event | Behavior |
 |-------|----------|
-| MCP initialize handshake | Completes in milliseconds; DoRothEA regulon pre-warming runs as a background task |
-| GREmLN model load (`get_model_status`) | Non-blocking; model loads via `asyncio.to_thread()` so the event loop stays responsive |
-| Network load (first call per cell type) | Cached in-process; subsequent calls return instantly |
+| MCP initialize handshake | Completes in milliseconds |
+| Background pre-warming | Server pre-warms all 6 data sources concurrently on startup: GREmLN model, LINCS, DepMap, super-enhancers, DoRothEA (disk cache), and all 10 cell type networks — completes in ~5s so first tool call finds everything ready |
+| DoRothEA regulons | Cached to disk (`data/dorothea/`) after first download; subsequent server restarts load in ~0.1s instead of re-downloading |
+| Network adjacency | Built once per cell type per session using vectorized numpy operations; shared across all analyses for that cell type |
 
 ## Requirements
 
