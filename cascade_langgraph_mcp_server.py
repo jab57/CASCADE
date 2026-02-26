@@ -2138,8 +2138,18 @@ async def main():
             except Exception as e:
                 logger.warning(f"GREmLN pre-warm failed (will retry on first use): {e}")
 
+        async def _prewarm_depmap():
+            try:
+                logger.info("Pre-warming DepMap CRISPR data in background...")
+                from tools.depmap import load_depmap_data
+                await asyncio.to_thread(load_depmap_data)
+                logger.info("DepMap data ready")
+            except Exception as e:
+                logger.warning(f"DepMap pre-warm failed (will retry on first use): {e}")
+
         asyncio.create_task(_prewarm_dorothea())
         asyncio.create_task(_prewarm_model())
+        asyncio.create_task(_prewarm_depmap())
 
         await server.run(
             read_stream,
