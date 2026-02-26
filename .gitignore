@@ -25,6 +25,9 @@ data/super_enhancers/*.bed
 # DepMap CRISPR data (large files ~200MB - download separately)
 data/depmap/*.csv
 
+# DoRothEA disk cache (auto-generated from decoupler on first run)
+data/dorothea/
+
 # IDE
 .vscode/
 .idea/
