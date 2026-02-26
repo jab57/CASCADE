@@ -10,6 +10,15 @@ import numpy as np
 from collections import defaultdict
 from tools.gene_id_mapper import get_mapper
 
+# Module-level adjacency caches keyed on id(network_df).
+# Safe because load_network() caches DataFrames, so the same DataFrame object
+# (same id) is always returned for the same cell type within a server session.
+# This avoids rebuilding the adjacency list on every call — especially important
+# during comprehensive analysis where perturbation + regulators + targets all
+# receive the same network_df object and would otherwise each rebuild from scratch.
+_adj_cache: dict = {}
+_rev_adj_cache: dict = {}
+
 
 def _build_adjacency(network_df: pd.DataFrame) -> dict[str, list[tuple[str, float]]]:
     """
@@ -18,15 +27,26 @@ def _build_adjacency(network_df: pd.DataFrame) -> dict[str, list[tuple[str, floa
     Returns:
         Dict mapping regulator -> [(target, weight), ...]
     """
+    cache_key = id(network_df)
+    if cache_key in _adj_cache:
+        return _adj_cache[cache_key]
+
     adj = defaultdict(list)
-    for _, row in network_df.iterrows():
-        regulator = row["regulator"]
-        target = row["target"]
-        # Use mutual information as edge weight
-        weight = row.get("mi", 1.0)
-        if pd.notna(weight) and weight > 0:
-            adj[regulator].append((target, float(weight)))
-    return dict(adj)
+    reg_arr = network_df["regulator"].values
+    tgt_arr = network_df["target"].values
+
+    if "mi" in network_df.columns:
+        w_arr = network_df["mi"].values.astype(float)
+        mask = np.isfinite(w_arr) & (w_arr > 0)
+        for reg, tgt, w in zip(reg_arr[mask], tgt_arr[mask], w_arr[mask]):
+            adj[reg].append((tgt, float(w)))
+    else:
+        for reg, tgt in zip(reg_arr, tgt_arr):
+            adj[reg].append((tgt, 1.0))
+
+    result = dict(adj)
+    _adj_cache[cache_key] = result
+    return result
 
 
 def _build_reverse_adjacency(network_df: pd.DataFrame) -> dict[str, list[tuple[str, float]]]:
@@ -36,14 +56,26 @@ def _build_reverse_adjacency(network_df: pd.DataFrame) -> dict[str, list[tuple[s
     Returns:
         Dict mapping target -> [(regulator, weight), ...]
     """
+    cache_key = id(network_df)
+    if cache_key in _rev_adj_cache:
+        return _rev_adj_cache[cache_key]
+
     adj = defaultdict(list)
-    for _, row in network_df.iterrows():
-        regulator = row["regulator"]
-        target = row["target"]
-        weight = row.get("mi", 1.0)
-        if pd.notna(weight) and weight > 0:
-            adj[target].append((regulator, float(weight)))
-    return dict(adj)
+    reg_arr = network_df["regulator"].values
+    tgt_arr = network_df["target"].values
+
+    if "mi" in network_df.columns:
+        w_arr = network_df["mi"].values.astype(float)
+        mask = np.isfinite(w_arr) & (w_arr > 0)
+        for reg, tgt, w in zip(reg_arr[mask], tgt_arr[mask], w_arr[mask]):
+            adj[tgt].append((reg, float(w)))
+    else:
+        for reg, tgt in zip(reg_arr, tgt_arr):
+            adj[tgt].append((reg, 1.0))
+
+    result = dict(adj)
+    _rev_adj_cache[cache_key] = result
+    return result
 
 
 def _propagate_effect(
