@@ -9,12 +9,16 @@ Data source: DoRothEA via decoupler-py
 https://decoupler-py.readthedocs.io/
 """
 
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 
 # Module-level cache
 _dorothea_data: Optional[pd.DataFrame] = None
+
+# Disk cache path — avoids re-downloading from decoupler on every server restart
+_DISK_CACHE_PATH = Path(__file__).parent.parent / "data" / "dorothea" / "dorothea_cache.parquet"
 
 
 def load_dorothea_regulons(levels: list[str] | None = None) -> pd.DataFrame:
@@ -38,6 +42,15 @@ def load_dorothea_regulons(levels: list[str] | None = None) -> pd.DataFrame:
         filtered = _dorothea_data[_dorothea_data["confidence"].isin(levels)]
         return filtered
 
+    # Check disk cache first — avoids re-downloading on every server restart
+    if _DISK_CACHE_PATH.exists():
+        print("[DoRothEA] Loading TF regulons from disk cache...")
+        df = pd.read_parquet(_DISK_CACHE_PATH)
+        _dorothea_data = df
+        print(f"[DoRothEA] Loaded {len(df):,} TF-target interactions from cache")
+        filtered = _dorothea_data[_dorothea_data["confidence"].isin(levels)]
+        return filtered
+
     try:
         import decoupler as dc
     except ImportError:
@@ -46,7 +59,7 @@ def load_dorothea_regulons(levels: list[str] | None = None) -> pd.DataFrame:
             "Install with: pip install decoupler>=2.0"
         )
 
-    print("[DoRothEA] Loading TF regulons from decoupler...")
+    print("[DoRothEA] Downloading TF regulons from decoupler (first run only)...")
 
     try:
         # decoupler 2.x uses dc.op.dorothea(); 1.x used dc.get_dorothea()
@@ -84,6 +97,14 @@ def load_dorothea_regulons(levels: list[str] | None = None) -> pd.DataFrame:
     print(f"[DoRothEA] Loaded {len(df):,} TF-target interactions")
     print(f"[DoRothEA] Unique TFs: {df['source'].nunique():,}")
     print(f"[DoRothEA] Confidence levels: {sorted(df['confidence'].unique())}")
+
+    # Save to disk cache so future server restarts don't need to download
+    try:
+        _DISK_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        df.to_parquet(_DISK_CACHE_PATH, index=False)
+        print(f"[DoRothEA] Saved disk cache to {_DISK_CACHE_PATH}")
+    except Exception as e:
+        print(f"[DoRothEA] Warning: could not save disk cache: {e}")
 
     _dorothea_data = df
 
