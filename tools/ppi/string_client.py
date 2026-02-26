@@ -28,7 +28,7 @@ class STRINGClient:
     BASE_URL = "https://string-db.org/api"
     SPECIES_HUMAN = 9606  # NCBI taxonomy ID for Homo sapiens
 
-    def __init__(self, timeout: int = 30):
+    def __init__(self, timeout: int = 10):
         self.timeout = timeout
         self._cache: dict = {}  # keyed on (gene_symbol_upper, min_score, limit)
 

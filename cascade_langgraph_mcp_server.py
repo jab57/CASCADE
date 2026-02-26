@@ -2147,9 +2147,43 @@ async def main():
             except Exception as e:
                 logger.warning(f"DepMap pre-warm failed (will retry on first use): {e}")
 
+        async def _prewarm_lincs():
+            try:
+                logger.info("Pre-warming LINCS data in background...")
+                from tools.lincs import load_lincs_data
+                await asyncio.to_thread(load_lincs_data)
+                logger.info("LINCS data ready")
+            except Exception as e:
+                logger.warning(f"LINCS pre-warm failed (will retry on first use): {e}")
+
+        async def _prewarm_super_enhancers():
+            try:
+                logger.info("Pre-warming super-enhancer data in background...")
+                from tools.super_enhancers import load_super_enhancer_data
+                await asyncio.to_thread(load_super_enhancer_data)
+                logger.info("Super-enhancer data ready")
+            except Exception as e:
+                logger.warning(f"Super-enhancer pre-warm failed (will retry on first use): {e}")
+
+        async def _prewarm_networks():
+            try:
+                logger.info("Pre-warming cell type networks in background...")
+                from tools.loader import load_network, NETWORKS_DIR
+                from cascade_langgraph_workflow import CellType
+                for ct in CellType:
+                    network_path = NETWORKS_DIR / ct.value / "network.tsv"
+                    if network_path.exists():
+                        await asyncio.to_thread(load_network, network_path)
+                logger.info("All cell type networks ready")
+            except Exception as e:
+                logger.warning(f"Network pre-warm failed (will retry on first use): {e}")
+
         asyncio.create_task(_prewarm_dorothea())
         asyncio.create_task(_prewarm_model())
         asyncio.create_task(_prewarm_depmap())
+        asyncio.create_task(_prewarm_lincs())
+        asyncio.create_task(_prewarm_super_enhancers())
+        asyncio.create_task(_prewarm_networks())
 
         await server.run(
             read_stream,
