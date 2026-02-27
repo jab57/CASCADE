@@ -114,6 +114,7 @@ class PerturbationAnalysisState(TypedDict):
     super_enhancer_status: Optional[Dict]       # Super-enhancer info (BET sensitivity)
     dorothea_regulons: Optional[Dict]           # DoRothEA TF regulon validation
     depmap_essentiality: Optional[Dict]         # DepMap CRISPR essentiality scores
+    cbioportal_tumor_data: Optional[Dict]       # cBioPortal TCGA primary tumor expression + alteration
 
     # === Cross-Cell Analysis ===
     cross_cell_comparison: Optional[Dict]       # Same gene across cell types
@@ -568,7 +569,7 @@ class CascadeWorkflow:
 
         else:  # comprehensive
             # Comprehensive: Everything relevant to gene role
-            required = {"perturbation", "regulators", "similar", "dorothea", "depmap"}
+            required = {"perturbation", "regulators", "similar", "dorothea", "depmap", "cbioportal"}
 
             if gene_role in [GeneRole.MASTER_REGULATOR.value, GeneRole.TRANSCRIPTION_FACTOR.value]:
                 required.update({"targets", "vulnerability", "lincs"})
@@ -597,7 +598,7 @@ class CascadeWorkflow:
         # === Group into batches for parallel execution ===
 
         core_pending = pending & {"perturbation", "regulators", "targets"}
-        external_pending = pending & {"ppi", "lincs", "super_enhancers", "dorothea", "depmap"}
+        external_pending = pending & {"ppi", "lincs", "super_enhancers", "dorothea", "depmap", "cbioportal"}
         insights_pending = pending & {"similar", "vulnerability", "cross_cell"}
 
         # Count how many batch groups have work to do
@@ -746,6 +747,10 @@ class CascadeWorkflow:
             tasks.append(self._fetch_depmap_impl(state))
             task_names.append("depmap")
 
+        if "cbioportal" not in completed:
+            tasks.append(self._fetch_cbioportal_impl(state))
+            task_names.append("cbioportal")
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         updates = {
@@ -767,6 +772,8 @@ class CascadeWorkflow:
                 updates["dorothea_regulons"] = result
             elif name == "depmap":
                 updates["depmap_essentiality"] = result
+            elif name == "cbioportal":
+                updates["cbioportal_tumor_data"] = result
 
         return updates
 
@@ -1088,6 +1095,23 @@ class CascadeWorkflow:
 
         return await asyncio.to_thread(_sync)
 
+    async def _fetch_cbioportal_impl(self, state: PerturbationAnalysisState) -> Dict:
+        """Fetch TCGA primary tumor expression and alteration data from cBioPortal."""
+        from tools.cbioportal import get_gene_tumor_expression, get_gene_alteration_frequency
+
+        gene_symbol = state.get("gene_symbol", state["gene"])
+
+        def _sync():
+            try:
+                expression = get_gene_tumor_expression(gene_symbol)
+                alteration = get_gene_alteration_frequency(gene_symbol)
+                return {"expression": expression, "alteration": alteration}
+            except Exception as e:
+                logger.error(f"cBioPortal error: {e}")
+                return {"error": str(e)}
+
+        return await asyncio.to_thread(_sync)
+
     async def _find_similar_genes_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Find similar genes using embeddings."""
         ensembl_id = state["ensembl_id"]
@@ -1261,6 +1285,20 @@ class CascadeWorkflow:
                     "pan_cancer_essential": depmap["pan_cancer_essential"]
                 }
 
+        # cBioPortal primary tumor data (validates the query gene in primary tissue)
+        cbio = state.get("cbioportal_tumor_data") or {}
+        cbio_expr = cbio.get("expression") or {}
+        if isinstance(cbio_expr, dict) and "error" not in cbio_expr:
+            pan_z = cbio_expr.get("pan_cancer_mean_z", 0)
+            if pan_z is not None:
+                query_gene = state.get("gene_symbol", state["gene"]).upper()
+                if query_gene in evidence:
+                    evidence[query_gene]["sources"].append("cbioportal_tumor")
+                    evidence[query_gene]["evidence"]["cbioportal"] = {
+                        "pan_cancer_mean_z": pan_z,
+                        "tumor_overexpressed": pan_z > 1.0
+                    }
+
         # --- 2. Filter to multi-source genes ---
         multi_source = []
         for sym, data in evidence.items():
@@ -1301,11 +1339,34 @@ class CascadeWorkflow:
             gene_role, total_affected, ppi_count, len(agreements), dorothea_validated
         )
 
-        # --- 5. Build key findings ---
+        # --- 5. cBioPortal convergent evidence flag ---
+        cbio = state.get("cbioportal_tumor_data") or {}
+        cbio_expr = cbio.get("expression") or {}
+        tumor_overexpressed = False
+        pan_z = None
+        if isinstance(cbio_expr, dict) and "error" not in cbio_expr:
+            pan_z = cbio_expr.get("pan_cancer_mean_z")
+            tumor_overexpressed = pan_z is not None and pan_z > 1.0
+
+        # --- 6. Build key findings ---
         key_findings = _build_key_findings(
             gene_role, multi_source, agreements, disagreements,
             total_affected, ppi_count, len(lincs_list), dorothea_validated
         )
+
+        # Convergent cell-line + primary tumor evidence
+        if depmap.get("pan_cancer_essential") and tumor_overexpressed:
+            key_findings.append(
+                "Convergent cell-line (DepMap CRISPR) and primary tumor (TCGA cBioPortal) evidence: "
+                f"gene is pan-cancer essential in cell lines (Chronos {depmap.get('mean_chronos_score', 'n/a')}) "
+                f"and overexpressed in primary tumors (pan-cancer z={pan_z:.2f}) — "
+                "highest confidence multi-layer therapeutic target signal."
+            )
+        elif tumor_overexpressed and pan_z is not None:
+            key_findings.append(
+                f"Gene is overexpressed in primary TCGA tumors (pan-cancer mean z-score={pan_z:.2f}), "
+                "providing primary tissue context beyond cell-line data."
+            )
 
         return {
             "gene_role_context": role_context["context"],
@@ -1315,7 +1376,11 @@ class CascadeWorkflow:
             "source_agreements": agreements,
             "source_disagreements": disagreements,
             "key_findings": key_findings,
-            "depmap_essentiality": depmap if not depmap.get("not_found") else None
+            "depmap_essentiality": depmap if not depmap.get("not_found") else None,
+            "cbioportal_summary": {
+                "pan_cancer_mean_z": pan_z,
+                "tumor_overexpressed": tumor_overexpressed,
+            } if pan_z is not None else None
         }
 
     # =========================================================================
@@ -1400,6 +1465,24 @@ class CascadeWorkflow:
                     "priority": "medium"
                 })
 
+        # Based on cBioPortal primary tumor data
+        cbio = state.get("cbioportal_tumor_data") or {}
+        cbio_expr = cbio.get("expression") or {}
+        if isinstance(cbio_expr, dict) and "error" not in cbio_expr:
+            pan_z = cbio_expr.get("pan_cancer_mean_z", 0) or 0
+            top_over = cbio_expr.get("top_overexpressed", [])
+            top_cancer = top_over[0]["cancer_type"] if top_over else None
+            if pan_z > 1.0:
+                suggestions.append({
+                    "action": f"Prioritize in primary tumor context{f' — highest expression in {top_cancer}' if top_cancer else ''}",
+                    "reason": (
+                        f"{gene_symbol} is overexpressed in primary TCGA tumors "
+                        f"(pan-cancer mean z={pan_z:.2f}); "
+                        "this primary tissue evidence complements cell-line-based sources"
+                    ),
+                    "priority": "medium"
+                })
+
         # Based on vulnerability
         vuln = state.get("vulnerability_analysis") or {}
         if vuln.get("therapeutic_potential") == "high":
@@ -1468,7 +1551,8 @@ class CascadeWorkflow:
                 "lincs_knockdown": state.get("lincs_effects"),
                 "super_enhancers": state.get("super_enhancer_status"),
                 "dorothea_regulons": state.get("dorothea_regulons"),
-                "depmap_essentiality": state.get("depmap_essentiality")
+                "depmap_essentiality": state.get("depmap_essentiality"),
+                "cbioportal_tumor_data": state.get("cbioportal_tumor_data")
             },
             "embedding_analysis": {
                 "similar_genes": state.get("similar_genes"),

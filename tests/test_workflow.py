@@ -555,7 +555,7 @@ class TestWorkflowNodeDecideNextSteps:
             "analysis_depth": "comprehensive",
             "perturbation_type": "knockdown",
             "completed_actions": [
-                "lincs", "dorothea", "depmap",  # external done
+                "lincs", "dorothea", "depmap", "cbioportal",  # external done
                 "similar", "vulnerability", "cross_cell",  # insights done
             ],
         }
@@ -571,9 +571,9 @@ class TestWorkflowNodeDecideNextSteps:
             "analysis_depth": "comprehensive",
             "perturbation_type": "knockdown",
             "completed_actions": [
-                "perturbation", "similar", "dorothea",  # core (no regulators)
-                "ppi", "super_enhancers", "depmap",     # external
-                "cross_cell",                           # insights
+                "perturbation", "similar", "dorothea",          # core (no regulators)
+                "ppi", "super_enhancers", "depmap", "cbioportal",  # external
+                "cross_cell",                                    # insights
             ],
         }
         result = await wf._decide_next_steps(state)

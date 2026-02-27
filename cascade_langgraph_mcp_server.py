@@ -933,6 +933,77 @@ async def handle_list_tools() -> list[Tool]:
                 },
                 "required": ["gene"]
             }
+        ),
+
+        # =====================================================================
+        # CBIOPORTAL TCGA PRIMARY TUMOR TOOLS
+        # =====================================================================
+
+        Tool(
+            name="get_tumor_expression_profile",
+            description="""
+            Get mRNA expression z-scores for a gene across TCGA PanCancer Atlas cancer types.
+
+            Queries primary tumor RNA-seq data from the TCGA PanCancer Atlas 2018
+            (~10,000 samples, 32 cancer types) via cBioPortal. Returns mean z-scores
+            per cancer type, identifying where a gene is overexpressed or underexpressed
+            in primary patient tumors — complementing cell-line data from DepMap and LINCS.
+
+            Returns:
+            - top_overexpressed: cancer types where gene is most overexpressed (z-score ranked)
+            - top_underexpressed: cancer types where gene is most underexpressed
+            - pan_cancer_mean_z: mean z-score across all cancer types (>1.0 = overexpressed)
+            - num_cancer_types_queried: number of TCGA cancer type studies with data
+
+            Use this to:
+            - Confirm cell-line findings in primary patient tissue
+            - Identify cancer lineages with highest expression (therapeutic targeting)
+            - Distinguish housekeeping expression from cancer-specific overexpression
+            """,
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gene": {
+                        "type": "string",
+                        "description": "Gene symbol (e.g., MYC, TP53, BRCA1)"
+                    }
+                },
+                "required": ["gene"]
+            }
+        ),
+
+        Tool(
+            name="get_tumor_alteration_frequency",
+            description="""
+            Get somatic mutation and copy-number alteration (CNA) frequency for a gene
+            across TCGA PanCancer Atlas cancer types.
+
+            Queries mutation and GISTIC discrete CNA data from the TCGA PanCancer Atlas 2018
+            via cBioPortal. Returns pan-cancer and per-cancer rates for somatic mutations,
+            high-level amplification (GISTIC=2), and homozygous deletion (GISTIC=-2).
+
+            Returns:
+            - mutation_frequency_pct: pan-cancer % of sequenced samples with any somatic mutation
+            - amplification_frequency_pct: pan-cancer % of samples with high-level amplification
+            - deletion_frequency_pct: pan-cancer % of samples with homozygous deletion
+            - most_altered_cancer_type: cancer type with highest combined alteration rate
+            - alteration_by_cancer: per-cancer breakdown of mutation, amplification, deletion rates
+
+            Use this to:
+            - Identify cancer lineages with highest mutation/amplification burden
+            - Assess whether a gene is a recurrent driver (high somatic alteration rate)
+            - Guide cancer-type-specific therapeutic targeting
+            """,
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gene": {
+                        "type": "string",
+                        "description": "Gene symbol (e.g., MYC, TP53, KRAS)"
+                    }
+                },
+                "required": ["gene"]
+            }
         )
     ]
 
@@ -1029,6 +1100,13 @@ async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent
         # DepMap tools
         elif name == "get_depmap_essentiality":
             result = await _get_depmap_essentiality(arguments)
+
+        # cBioPortal tools
+        elif name == "get_tumor_expression_profile":
+            result = await _get_tumor_expression_profile(arguments)
+
+        elif name == "get_tumor_alteration_frequency":
+            result = await _get_tumor_alteration_frequency(arguments)
 
         else:
             result = {"error": f"Unknown tool: {name}"}
@@ -1970,6 +2048,34 @@ async def _get_depmap_essentiality(args: dict) -> dict:
         return {"error": str(e), "not_found": True}
     except Exception as e:
         return {"error": f"DepMap query failed: {str(e)}", "not_found": True}
+
+
+# =============================================================================
+# CBIOPORTAL IMPLEMENTATIONS
+# =============================================================================
+
+async def _get_tumor_expression_profile(args: dict) -> dict:
+    """Get mRNA expression z-scores across TCGA PanCancer Atlas cancer types."""
+    from tools.cbioportal import get_gene_tumor_expression
+
+    gene = args["gene"]
+
+    try:
+        return await asyncio.to_thread(get_gene_tumor_expression, gene)
+    except Exception as e:
+        return {"error": f"cBioPortal expression query failed: {str(e)}", "gene": gene}
+
+
+async def _get_tumor_alteration_frequency(args: dict) -> dict:
+    """Get somatic mutation and CNA frequency across TCGA PanCancer Atlas cancer types."""
+    from tools.cbioportal import get_gene_alteration_frequency
+
+    gene = args["gene"]
+
+    try:
+        return await asyncio.to_thread(get_gene_alteration_frequency, gene)
+    except Exception as e:
+        return {"error": f"cBioPortal alteration query failed: {str(e)}", "gene": gene}
 
 
 # =============================================================================

@@ -190,6 +190,29 @@ def mock_dorothea_df():
 
 
 # ---------------------------------------------------------------------------
+# cBioPortal mock data
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def mock_cbioportal_expression():
+    """Mock cBioPortal expression response for a single cancer type."""
+    return [
+        {"value": 2.1, "sampleId": "TCGA-01", "molecularProfileId": "brca_tcga_pan_can_atlas_2018_rna_seq_v2_mrna_median_Zscores"},
+        {"value": 1.8, "sampleId": "TCGA-02", "molecularProfileId": "brca_tcga_pan_can_atlas_2018_rna_seq_v2_mrna_median_Zscores"},
+        {"value": -0.3, "sampleId": "TCGA-03", "molecularProfileId": "brca_tcga_pan_can_atlas_2018_rna_seq_v2_mrna_median_Zscores"},
+    ]
+
+
+@pytest.fixture
+def mock_cbioportal_mutations():
+    """Mock cBioPortal mutation response for a single cancer type."""
+    return [
+        {"sampleId": "TCGA-01", "mutationType": "Missense_Mutation", "proteinChange": "R175H"},
+        {"sampleId": "TCGA-02", "mutationType": "Missense_Mutation", "proteinChange": "R248W"},
+    ]
+
+
+# ---------------------------------------------------------------------------
 # Super-enhancer mock data
 # ---------------------------------------------------------------------------
 
