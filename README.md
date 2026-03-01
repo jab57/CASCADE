@@ -47,6 +47,8 @@ A Model Context Protocol (MCP) server for **in silico gene perturbation analysis
 - **LLM-Powered Insights**: Biological interpretation via configurable LLM (Ollama local/cloud by default; adaptable to other providers)
 - **Graceful Degradation**: Falls back to network-only if embeddings unavailable
 - **MCP Resources**: Browsable resource endpoints for metadata discovery without running full analyses
+- **Progress Notifications**: Sends MCP progress updates during long analyses so Claude Desktop's timeout clock stays alive
+- **Transparent Error Reporting**: Failed analyses (e.g. STRING API down) are recorded in `report["metadata"]["failed_analyses"]` rather than silently dropped
 
 ## Features
 
