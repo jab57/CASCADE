@@ -846,3 +846,128 @@ class TestMCPResources:
         data = self._read("cascade://unknown/foo")
         assert "error" in data
         assert "Unknown resource URI" in data["error"]
+
+
+# ---------------------------------------------------------------------------
+# Test MCP Prompt templates (Issue #9)
+# ---------------------------------------------------------------------------
+
+class TestPromptListing:
+    """Verify all expected prompt templates are registered."""
+
+    @pytest.fixture
+    def prompt_list(self):
+        with patch("cascade_langgraph_mcp_server.CascadeWorkflow"):
+            from cascade_langgraph_mcp_server import handle_list_prompts
+            return asyncio.get_event_loop().run_until_complete(handle_list_prompts())
+
+    def test_prompt_count(self, prompt_list):
+        assert len(prompt_list) == 5
+
+    def test_all_expected_prompts(self, prompt_list):
+        names = {p.name for p in prompt_list}
+        expected = {
+            "quick_knockdown",
+            "comprehensive_gene_analysis",
+            "drug_target_discovery",
+            "cross_cell_comparison",
+            "gene_set_analysis",
+        }
+        assert names == expected
+
+    def test_prompts_have_descriptions(self, prompt_list):
+        for p in prompt_list:
+            assert p.description, f"Prompt {p.name} has no description"
+
+    def test_prompts_have_arguments(self, prompt_list):
+        for p in prompt_list:
+            assert p.arguments, f"Prompt {p.name} has no arguments"
+
+    def test_required_arguments(self, prompt_list):
+        by_name = {p.name: p for p in prompt_list}
+        # gene required everywhere
+        for name in ("quick_knockdown", "comprehensive_gene_analysis",
+                     "drug_target_discovery", "cross_cell_comparison"):
+            args = {a.name: a for a in by_name[name].arguments}
+            assert "gene" in args and args["gene"].required, \
+                f"{name} should have required 'gene' argument"
+        # gene_set_analysis uses 'genes'
+        args = {a.name: a for a in by_name["gene_set_analysis"].arguments}
+        assert "genes" in args and args["genes"].required
+        # cell_type optional for quick_knockdown
+        args = {a.name: a for a in by_name["quick_knockdown"].arguments}
+        assert "cell_type" in args and not args["cell_type"].required
+
+
+class TestGetPrompt:
+    """Verify prompt messages are correctly filled with arguments."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        with patch("cascade_langgraph_mcp_server.CascadeWorkflow"):
+            from cascade_langgraph_mcp_server import handle_get_prompt
+            self.get_prompt = handle_get_prompt
+
+    def _get(self, name, args=None):
+        return asyncio.get_event_loop().run_until_complete(
+            self.get_prompt(name, args or {})
+        )
+
+    def test_quick_knockdown_message_contains_gene(self):
+        result = self._get("quick_knockdown", {"gene": "TP53", "cell_type": "cd8_t_cells"})
+        assert result.messages
+        text = result.messages[0].content.text
+        assert "TP53" in text
+        assert "cd8_t_cells" in text
+        assert "quick_perturbation" in text
+
+    def test_quick_knockdown_default_cell_type(self):
+        result = self._get("quick_knockdown", {"gene": "MYC"})
+        text = result.messages[0].content.text
+        assert "epithelial_cell" in text
+
+    def test_comprehensive_gene_analysis_message(self):
+        result = self._get("comprehensive_gene_analysis", {"gene": "MYC", "cell_type": "epithelial_cell"})
+        text = result.messages[0].content.text
+        assert "MYC" in text
+        assert "epithelial_cell" in text
+        assert "comprehensive_perturbation_analysis" in text
+
+    def test_drug_target_discovery_message(self):
+        result = self._get("drug_target_discovery", {"gene": "KRAS", "cell_type": "epithelial_cell"})
+        text = result.messages[0].content.text
+        assert "KRAS" in text
+        assert "therapeutic_target_discovery" in text
+
+    def test_cross_cell_comparison_message(self):
+        result = self._get("cross_cell_comparison", {"gene": "MYC"})
+        text = result.messages[0].content.text
+        assert "MYC" in text
+        assert "cross_cell_comparison" in text
+
+    def test_gene_set_analysis_message(self):
+        result = self._get("gene_set_analysis", {"genes": "TP53,MYC,CDKN1A", "cell_type": "epithelial_cell"})
+        text = result.messages[0].content.text
+        assert "TP53,MYC,CDKN1A" in text
+        assert "multi_gene_analysis" in text
+        assert "epithelial_cell" in text
+
+    def test_gene_set_analysis_description_has_count(self):
+        result = self._get("gene_set_analysis", {"genes": "TP53,MYC,CDKN1A", "cell_type": "epithelial_cell"})
+        assert "3" in result.description
+
+    def test_messages_role_is_user(self):
+        for name, args in [
+            ("quick_knockdown", {"gene": "TP53"}),
+            ("comprehensive_gene_analysis", {"gene": "TP53", "cell_type": "epithelial_cell"}),
+            ("drug_target_discovery", {"gene": "KRAS", "cell_type": "epithelial_cell"}),
+            ("cross_cell_comparison", {"gene": "MYC"}),
+            ("gene_set_analysis", {"genes": "TP53,MYC", "cell_type": "epithelial_cell"}),
+        ]:
+            result = self._get(name, args)
+            assert result.messages[0].role == "user", f"{name} message role should be 'user'"
+
+    def test_unknown_prompt_returns_result(self):
+        result = self._get("nonexistent_prompt")
+        assert result.messages
+        assert "Unknown prompt template" in result.messages[0].content.text

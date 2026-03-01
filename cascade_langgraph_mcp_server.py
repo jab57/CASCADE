@@ -45,7 +45,11 @@ from mcp.types import (
     TextContent,
     ImageContent,
     EmbeddedResource,
-    LoggingLevel
+    LoggingLevel,
+    Prompt,
+    PromptArgument,
+    PromptMessage,
+    GetPromptResult,
 )
 from pydantic import AnyUrl
 import mcp.types as types
@@ -154,6 +158,259 @@ async def handle_read_resource(uri: AnyUrl) -> list[TextResourceContents]:
         text=json.dumps(data, indent=2, default=str),
         mimeType="application/json",
     )]
+
+
+# =============================================================================
+# PROMPT DEFINITIONS
+# =============================================================================
+
+@server.list_prompts()
+async def handle_list_prompts() -> list[Prompt]:
+    """List available MCP prompt templates for common analysis workflows."""
+    return [
+        Prompt(
+            name="quick_knockdown",
+            description=(
+                "What happens if we knock down a gene? Runs a fast perturbation "
+                "simulation and returns predicted downstream effects."
+            ),
+            arguments=[
+                PromptArgument(
+                    name="gene",
+                    description="Gene symbol or Ensembl ID (e.g. TP53, MYC, ENSG00000141510)",
+                    required=True,
+                ),
+                PromptArgument(
+                    name="cell_type",
+                    description=(
+                        "Cell type context. One of: epithelial_cell, cd4_t_cells, "
+                        "cd8_t_cells, cd14_monocytes, cd16_monocytes, cd20_b_cells, "
+                        "nk_cells, nkt_cells, erythrocytes, "
+                        "monocyte-derived_dendritic_cells. Defaults to epithelial_cell."
+                    ),
+                    required=False,
+                ),
+            ],
+        ),
+        Prompt(
+            name="comprehensive_gene_analysis",
+            description=(
+                "Comprehensively analyze a gene: network propagation, protein "
+                "interactions, experimental knockdown data, super-enhancer status, "
+                "DepMap essentiality, and cross-source evidence synthesis."
+            ),
+            arguments=[
+                PromptArgument(
+                    name="gene",
+                    description="Gene symbol or Ensembl ID (e.g. TP53, MYC, ENSG00000141510)",
+                    required=True,
+                ),
+                PromptArgument(
+                    name="cell_type",
+                    description=(
+                        "Cell type context. One of: epithelial_cell, cd4_t_cells, "
+                        "cd8_t_cells, cd14_monocytes, cd16_monocytes, cd20_b_cells, "
+                        "nk_cells, nkt_cells, erythrocytes, "
+                        "monocyte-derived_dendritic_cells."
+                    ),
+                    required=True,
+                ),
+            ],
+        ),
+        Prompt(
+            name="drug_target_discovery",
+            description=(
+                "A gene is mutated or dysregulated in disease. Find upstream "
+                "regulators and protein partners that could serve as drug targets, "
+                "combining network analysis with STRING PPI and LINCS data."
+            ),
+            arguments=[
+                PromptArgument(
+                    name="gene",
+                    description="Disease-relevant gene symbol or Ensembl ID (e.g. KRAS, BRAF)",
+                    required=True,
+                ),
+                PromptArgument(
+                    name="cell_type",
+                    description=(
+                        "Cell type context. One of: epithelial_cell, cd4_t_cells, "
+                        "cd8_t_cells, cd14_monocytes, cd16_monocytes, cd20_b_cells, "
+                        "nk_cells, nkt_cells, erythrocytes, "
+                        "monocyte-derived_dendritic_cells."
+                    ),
+                    required=True,
+                ),
+            ],
+        ),
+        Prompt(
+            name="cross_cell_comparison",
+            description=(
+                "How does a gene behave across different cell types? Compares "
+                "perturbation effects and network role across all 10 supported "
+                "cell type regulatory networks."
+            ),
+            arguments=[
+                PromptArgument(
+                    name="gene",
+                    description="Gene symbol or Ensembl ID to compare across cell types",
+                    required=True,
+                ),
+            ],
+        ),
+        Prompt(
+            name="gene_set_analysis",
+            description=(
+                "Analyze and compare a set of genes in parallel. Useful for "
+                "pathway members, co-expressed genes, or a hit list from a screen."
+            ),
+            arguments=[
+                PromptArgument(
+                    name="genes",
+                    description="Comma-separated gene symbols or Ensembl IDs (e.g. TP53,MYC,CDKN1A)",
+                    required=True,
+                ),
+                PromptArgument(
+                    name="cell_type",
+                    description=(
+                        "Cell type context. One of: epithelial_cell, cd4_t_cells, "
+                        "cd8_t_cells, cd14_monocytes, cd16_monocytes, cd20_b_cells, "
+                        "nk_cells, nkt_cells, erythrocytes, "
+                        "monocyte-derived_dendritic_cells."
+                    ),
+                    required=True,
+                ),
+            ],
+        ),
+    ]
+
+
+@server.get_prompt()
+async def handle_get_prompt(name: str, arguments: dict[str, str] | None) -> GetPromptResult:
+    """Return a filled prompt message for the requested template."""
+    args = arguments or {}
+
+    if name == "quick_knockdown":
+        gene = args.get("gene", "{gene}")
+        cell_type = args.get("cell_type", "epithelial_cell")
+        return GetPromptResult(
+            description=f"Quick knockdown simulation for {gene}",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text=(
+                            f"Use the quick_perturbation tool to simulate knocking down {gene} "
+                            f"in {cell_type} cells. Report the top predicted downstream effects, "
+                            f"noting any genes with strong up- or down-regulation."
+                        ),
+                    ),
+                )
+            ],
+        )
+
+    elif name == "comprehensive_gene_analysis":
+        gene = args.get("gene", "{gene}")
+        cell_type = args.get("cell_type", "{cell_type}")
+        return GetPromptResult(
+            description=f"Comprehensive analysis of {gene} in {cell_type}",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text=(
+                            f"Run a comprehensive perturbation analysis of {gene} in "
+                            f"{cell_type} cells using the comprehensive_perturbation_analysis "
+                            f"tool. Summarize: (1) network propagation effects, (2) protein "
+                            f"interaction partners from STRING, (3) experimental knockdown "
+                            f"data from LINCS, (4) super-enhancer and DepMap essentiality "
+                            f"status, and (5) the cross-source evidence synthesis highlighting "
+                            f"genes corroborated by multiple data sources."
+                        ),
+                    ),
+                )
+            ],
+        )
+
+    elif name == "drug_target_discovery":
+        gene = args.get("gene", "{gene}")
+        cell_type = args.get("cell_type", "{cell_type}")
+        return GetPromptResult(
+            description=f"Drug target discovery for {gene} in {cell_type}",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text=(
+                            f"{gene} is mutated or dysregulated in disease. Use the "
+                            f"therapeutic_target_discovery tool in {cell_type} cells to "
+                            f"identify upstream regulators and protein interaction partners "
+                            f"that could serve as drug targets. Highlight candidates "
+                            f"supported by multiple evidence sources and flag any with "
+                            f"known BET/BRD4 super-enhancer associations."
+                        ),
+                    ),
+                )
+            ],
+        )
+
+    elif name == "cross_cell_comparison":
+        gene = args.get("gene", "{gene}")
+        return GetPromptResult(
+            description=f"Cross-cell-type comparison for {gene}",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text=(
+                            f"Use the cross_cell_comparison tool to compare how {gene} "
+                            f"behaves across all supported cell types. Identify which cell "
+                            f"types show the strongest perturbation effects and where the "
+                            f"gene plays distinct regulatory roles."
+                        ),
+                    ),
+                )
+            ],
+        )
+
+    elif name == "gene_set_analysis":
+        genes = args.get("genes", "{genes}")
+        cell_type = args.get("cell_type", "{cell_type}")
+        gene_list = [g.strip() for g in genes.split(",") if g.strip()]
+        return GetPromptResult(
+            description=f"Gene set analysis for {len(gene_list)} genes in {cell_type}",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text=(
+                            f"Use the multi_gene_analysis tool to analyze the following "
+                            f"genes in {cell_type} cells: {genes}. Compare their network "
+                            f"roles, predicted perturbation effects, and identify any "
+                            f"functional relationships between them."
+                        ),
+                    ),
+                )
+            ],
+        )
+
+    else:
+        return GetPromptResult(
+            description="Unknown prompt",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text=f"Unknown prompt template: {name}",
+                    ),
+                )
+            ],
+        )
 
 
 # =============================================================================
