@@ -125,6 +125,7 @@ class PerturbationAnalysisState(TypedDict):
 
     # === Final Output ===
     comprehensive_report: Optional[Dict]        # Final compiled report
+    failed_analyses: Optional[List[Dict]]       # Errors from batch tasks, if any
     analysis_metadata: Dict                     # Timing, versions, etc.
 
     # === LLM Insights (Optional) ===
@@ -701,6 +702,7 @@ class CascadeWorkflow:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Merge results
+        failed_analyses = list(state.get("failed_analyses") or [])
         updates = {
             "current_step": "batch_core_analysis",
             "completed_actions": list(completed | set(task_names))
@@ -709,6 +711,7 @@ class CascadeWorkflow:
         for name, result in zip(task_names, results):
             if isinstance(result, Exception):
                 logger.error(f"Error in {name}: {result}")
+                failed_analyses.append({"analysis": name, "error": str(result), "batch": "core"})
                 continue
             if name == "perturbation":
                 updates["perturbation_result"] = result
@@ -717,6 +720,7 @@ class CascadeWorkflow:
             elif name == "targets":
                 updates["targets_analysis"] = result
 
+        updates["failed_analyses"] = failed_analyses or None
         return updates
 
     async def _batch_external_data(self, state: PerturbationAnalysisState) -> Dict:
@@ -753,6 +757,7 @@ class CascadeWorkflow:
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
+        failed_analyses = list(state.get("failed_analyses") or [])
         updates = {
             "current_step": "batch_external_data",
             "completed_actions": list(completed | set(task_names))
@@ -761,6 +766,7 @@ class CascadeWorkflow:
         for name, result in zip(task_names, results):
             if isinstance(result, Exception):
                 logger.error(f"Error in {name}: {result}")
+                failed_analyses.append({"analysis": name, "error": str(result), "batch": "external"})
                 continue
             if name == "ppi":
                 updates["ppi_interactions"] = result
@@ -775,6 +781,7 @@ class CascadeWorkflow:
             elif name == "cbioportal":
                 updates["cbioportal_tumor_data"] = result
 
+        updates["failed_analyses"] = failed_analyses or None
         return updates
 
     async def _batch_insights(self, state: PerturbationAnalysisState) -> Dict:
@@ -799,6 +806,7 @@ class CascadeWorkflow:
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
+        failed_analyses = list(state.get("failed_analyses") or [])
         updates = {
             "current_step": "batch_insights",
             "completed_actions": list(completed | set(task_names))
@@ -807,6 +815,7 @@ class CascadeWorkflow:
         for name, result in zip(task_names, results):
             if isinstance(result, Exception):
                 logger.error(f"Error in {name}: {result}")
+                failed_analyses.append({"analysis": name, "error": str(result), "batch": "insights"})
                 continue
             if name == "similar":
                 updates["similar_genes"] = result
@@ -815,6 +824,7 @@ class CascadeWorkflow:
             elif name == "cross_cell":
                 updates["cross_cell_comparison"] = result
 
+        updates["failed_analyses"] = failed_analyses or None
         return updates
 
     async def _run_all_batches(self, state: PerturbationAnalysisState) -> Dict:
@@ -835,11 +845,15 @@ class CascadeWorkflow:
 
         # Merge updates from all three batches
         merged: Dict = {"current_step": "run_all_batches"}
+        all_failed: list = list(state.get("failed_analyses") or [])
         for result in results:
             if isinstance(result, Exception):
                 logger.error(f"Batch error in run_all_batches: {result}")
+                all_failed.append({"analysis": "batch_group", "error": str(result), "batch": "run_all"})
                 continue
             merged.update(result)
+            if isinstance(result, dict) and result.get("failed_analyses"):
+                all_failed.extend(result["failed_analyses"])
 
         # Union of all completed_actions from the three batches
         all_completed: set = set(state.get("completed_actions", []))
@@ -847,6 +861,7 @@ class CascadeWorkflow:
             if isinstance(result, dict):
                 all_completed.update(result.get("completed_actions", []))
         merged["completed_actions"] = list(all_completed)
+        merged["failed_analyses"] = all_failed or None
 
         return merged
 
@@ -1563,6 +1578,7 @@ class CascadeWorkflow:
             "metadata": {
                 "execution_time_seconds": round(execution_time, 2),
                 "completed_analyses": state.get("completed_actions", []),
+                "failed_analyses": state.get("failed_analyses") or [],
                 "workflow_version": metadata.get("workflow_version", "1.0.0")
             }
         }
@@ -1735,7 +1751,8 @@ Provide scientifically accurate, evidence-based analysis. When data is limited, 
         cell_type: str = "epithelial_cell",
         perturbation_type: str = "knockdown",
         analysis_depth: str = "comprehensive",
-        include_llm_insights: bool = False
+        include_llm_insights: bool = False,
+        progress_cb=None,
     ) -> Dict:
         """
         Run the complete perturbation analysis workflow.
@@ -1778,6 +1795,7 @@ Provide scientifically accurate, evidence-based analysis. When data is limited, 
             "vulnerability_analysis": None,
             "therapeutic_suggestions": None,
             "comprehensive_report": None,
+            "failed_analyses": None,
             "analysis_metadata": {},
             "include_llm_insights": include_llm_insights,
             "llm_insights": None
@@ -1785,8 +1803,37 @@ Provide scientifically accurate, evidence-based analysis. When data is limited, 
 
         logger.info(f"Starting workflow for {gene} ({perturbation_type}, {analysis_depth})")
 
-        # Run the workflow
-        final_state = await self.workflow.ainvoke(initial_state)
+        async def _notify(progress: float, message: str) -> None:
+            if progress_cb is not None:
+                try:
+                    await progress_cb(progress, 1.0, message)
+                except Exception:
+                    pass
+
+        # Heartbeat task: fires progress notifications while ainvoke runs
+        heartbeat_schedule = [
+            (5,  0.15, f"Resolving {gene} and analyzing regulatory network..."),
+            (15, 0.40, "Running parallel analyses (network propagation, STRING PPI, LINCS, DepMap)..."),
+            (30, 0.70, "Processing external data sources and cross-cell comparison..."),
+            (45, 0.88, "Generating comprehensive report..."),
+        ]
+
+        async def _heartbeat() -> None:
+            for delay, progress, message in heartbeat_schedule:
+                await asyncio.sleep(delay)
+                await _notify(progress, message)
+
+        await _notify(0.05, f"Starting {perturbation_type} analysis of {gene} ({analysis_depth})...")
+        heartbeat_task = asyncio.create_task(_heartbeat())
+        try:
+            final_state = await self.workflow.ainvoke(initial_state)
+        finally:
+            heartbeat_task.cancel()
+            try:
+                await heartbeat_task
+            except asyncio.CancelledError:
+                pass
+        await _notify(1.0, "Analysis complete.")
 
         return final_state.get("comprehensive_report", {"error": "No report generated"})
 

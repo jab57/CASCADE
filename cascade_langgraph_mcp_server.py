@@ -53,6 +53,7 @@ from mcp.types import (
 )
 from pydantic import AnyUrl
 import mcp.types as types
+from mcp.server.lowlevel.server import request_ctx
 
 # Import our LangGraph workflow
 from cascade_langgraph_workflow import CascadeWorkflow, CellType, PerturbationType
@@ -1273,9 +1274,25 @@ async def handle_list_tools() -> list[Tool]:
 async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     """Handle tool execution requests."""
 
+    async def _maybe_send_progress(progress: float, total: float, message: str) -> None:
+        try:
+            ctx = request_ctx.get()
+            token = ctx.meta.progressToken if ctx.meta else None
+            if token is not None:
+                await ctx.session.send_progress_notification(
+                    progress_token=token,
+                    progress=progress,
+                    total=total,
+                    message=message,
+                )
+        except LookupError:
+            pass
+        except Exception as e:
+            logger.debug(f"Progress notification failed (non-fatal): {e}")
+
     try:
         if name == "comprehensive_perturbation_analysis":
-            result = await _comprehensive_analysis(arguments)
+            result = await _comprehensive_analysis(arguments, progress_cb=_maybe_send_progress)
 
         elif name == "quick_perturbation":
             result = await _quick_perturbation(arguments)
@@ -1381,7 +1398,7 @@ async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent
         )]
 
 
-async def _comprehensive_analysis(args: dict) -> dict:
+async def _comprehensive_analysis(args: dict, progress_cb=None) -> dict:
     """Run comprehensive perturbation analysis via workflow."""
     workflow = await get_workflow()
 
@@ -1390,7 +1407,8 @@ async def _comprehensive_analysis(args: dict) -> dict:
         cell_type=args.get("cell_type", "epithelial_cell"),
         perturbation_type=args.get("perturbation_type", "knockdown"),
         analysis_depth=args.get("analysis_depth", "comprehensive"),
-        include_llm_insights=args.get("include_llm_insights", False)
+        include_llm_insights=args.get("include_llm_insights", False),
+        progress_cb=progress_cb,
     )
 
 

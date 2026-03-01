@@ -734,3 +734,212 @@ class TestGenerateComparisonSummary:
         }
         summary = fn(genes, results)
         assert summary["most_influential_gene"] is None
+
+
+# ---------------------------------------------------------------------------
+# Test failed_analyses collection (Issue #10)
+# ---------------------------------------------------------------------------
+
+class TestFailedAnalysesCollection:
+    """Verify batch errors are collected into failed_analyses rather than silently dropped."""
+
+    def _get_batch_methods(self):
+        with patch("cascade_langgraph_workflow.CascadeWorkflow._create_workflow"):
+            with patch("cascade_langgraph_workflow.CascadeWorkflow.__init__", return_value=None):
+                from cascade_langgraph_workflow import CascadeWorkflow
+                wf = CascadeWorkflow.__new__(CascadeWorkflow)
+                return wf
+
+    @pytest.fixture
+    def base_state(self):
+        return {
+            "gene": "TP53",
+            "cell_type": "epithelial_cell",
+            "perturbation_type": "knockdown",
+            "analysis_depth": "comprehensive",
+            "ensembl_id": "ENSG00000141510",
+            "gene_symbol": "TP53",
+            "gene_role": "master_regulator",
+            "completed_actions": [],
+            "failed_analyses": None,
+            "network_context": {"num_targets": 100},
+            "network_df": None,
+        }
+
+    def test_batch_core_collects_exceptions(self, base_state):
+        import asyncio
+        from unittest.mock import patch, AsyncMock
+
+        wf = self._get_batch_methods()
+        wf._run_perturbation_impl = AsyncMock(side_effect=RuntimeError("network down"))
+        wf._analyze_regulators_impl = AsyncMock(return_value={"regulators": []})
+        wf._analyze_targets_impl = AsyncMock(return_value={"targets": []})
+
+        result = asyncio.get_event_loop().run_until_complete(
+            wf._batch_core_analysis(base_state)
+        )
+
+        assert result.get("failed_analyses") is not None
+        assert len(result["failed_analyses"]) == 1
+        assert result["failed_analyses"][0]["analysis"] == "perturbation"
+        assert "network down" in result["failed_analyses"][0]["error"]
+        assert result["failed_analyses"][0]["batch"] == "core"
+
+    def test_batch_core_no_failures_returns_none(self, base_state):
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        wf = self._get_batch_methods()
+        wf._run_perturbation_impl = AsyncMock(return_value={"top_affected_genes": []})
+        wf._analyze_regulators_impl = AsyncMock(return_value={"regulators": []})
+        wf._analyze_targets_impl = AsyncMock(return_value={"targets": []})
+
+        result = asyncio.get_event_loop().run_until_complete(
+            wf._batch_core_analysis(base_state)
+        )
+
+        assert result.get("failed_analyses") is None
+
+    def test_batch_external_collects_exceptions(self, base_state):
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        wf = self._get_batch_methods()
+        wf._fetch_ppi_impl = AsyncMock(side_effect=ConnectionError("STRING API down"))
+        wf._fetch_lincs_impl = AsyncMock(return_value=[])
+        wf._check_super_enhancers_impl = AsyncMock(return_value={})
+        wf._fetch_dorothea_impl = AsyncMock(return_value={})
+        wf._fetch_depmap_impl = AsyncMock(return_value={})
+        wf._fetch_cbioportal_impl = AsyncMock(return_value={})
+
+        result = asyncio.get_event_loop().run_until_complete(
+            wf._batch_external_data(base_state)
+        )
+
+        assert result.get("failed_analyses") is not None
+        failed_names = [f["analysis"] for f in result["failed_analyses"]]
+        assert "ppi" in failed_names
+        assert result["failed_analyses"][0]["batch"] == "external"
+
+    def test_batch_insights_collects_exceptions(self, base_state):
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        wf = self._get_batch_methods()
+        wf._find_similar_genes_impl = AsyncMock(side_effect=ValueError("model not loaded"))
+        wf._analyze_vulnerability_impl = AsyncMock(return_value={})
+        wf._cross_cell_comparison_impl = AsyncMock(return_value={})
+
+        result = asyncio.get_event_loop().run_until_complete(
+            wf._batch_insights(base_state)
+        )
+
+        assert result.get("failed_analyses") is not None
+        assert result["failed_analyses"][0]["analysis"] == "similar"
+        assert result["failed_analyses"][0]["batch"] == "insights"
+
+    def test_failed_analyses_in_report_metadata(self):
+        """_generate_report must include failed_analyses in metadata."""
+        import asyncio, time
+        from unittest.mock import patch, MagicMock
+
+        wf = self._get_batch_methods()
+        wf._get_model = MagicMock(return_value=None)
+
+        state = {
+            "gene": "TP53",
+            "cell_type": "epithelial_cell",
+            "perturbation_type": "knockdown",
+            "analysis_depth": "comprehensive",
+            "ensembl_id": "ENSG00000141510",
+            "gene_symbol": "TP53",
+            "gene_role": "master_regulator",
+            "completed_actions": ["perturbation"],
+            "failed_analyses": [{"analysis": "ppi", "error": "timeout", "batch": "external"}],
+            "network_context": {"num_targets": 100, "num_regulators": 5, "direct_targets": []},
+            "perturbation_result": {"top_affected_genes": [], "total_affected": 0, "direction": "knockdown"},
+            "regulators_analysis": None,
+            "targets_analysis": None,
+            "similar_genes": None,
+            "embedding_enhanced": False,
+            "ppi_interactions": None,
+            "lincs_effects": None,
+            "super_enhancer_status": None,
+            "dorothea_regulons": None,
+            "depmap_essentiality": None,
+            "cbioportal_tumor_data": None,
+            "cross_cell_comparison": None,
+            "vulnerability_analysis": None,
+            "therapeutic_suggestions": None,
+            "llm_insights": None,
+            "analysis_metadata": {"start_time": time.time()},
+        }
+
+        result = asyncio.get_event_loop().run_until_complete(wf._generate_report(state))
+        report = result["comprehensive_report"]
+        assert "metadata" in report
+        assert "failed_analyses" in report["metadata"]
+        assert len(report["metadata"]["failed_analyses"]) == 1
+        assert report["metadata"]["failed_analyses"][0]["analysis"] == "ppi"
+
+
+class TestProgressCallback:
+    """Verify progress_cb is forwarded through workflow.run() without errors."""
+
+    def test_run_accepts_progress_cb_parameter(self):
+        """workflow.run() must accept a progress_cb kwarg (signature check)."""
+        import inspect
+        with patch("cascade_langgraph_workflow.CascadeWorkflow._create_workflow"):
+            with patch("cascade_langgraph_workflow.CascadeWorkflow.__init__", return_value=None):
+                from cascade_langgraph_workflow import CascadeWorkflow
+                sig = inspect.signature(CascadeWorkflow.run)
+                assert "progress_cb" in sig.parameters
+
+    def test_progress_cb_called_during_run(self):
+        """Progress callback should be invoked at least once during workflow.run()."""
+        import asyncio
+        from unittest.mock import patch, MagicMock, AsyncMock
+
+        calls = []
+
+        async def fake_cb(progress, total, message):
+            calls.append((progress, total, message))
+
+        with patch("cascade_langgraph_workflow.CascadeWorkflow._create_workflow"):
+            with patch("cascade_langgraph_workflow.CascadeWorkflow.__init__", return_value=None):
+                from cascade_langgraph_workflow import CascadeWorkflow
+                wf = CascadeWorkflow.__new__(CascadeWorkflow)
+                mock_workflow = MagicMock()
+                mock_workflow.ainvoke = AsyncMock(return_value={
+                    "comprehensive_report": {"summary": "ok"}
+                })
+                wf.workflow = mock_workflow
+
+                result = asyncio.get_event_loop().run_until_complete(
+                    wf.run("TP53", progress_cb=fake_cb)
+                )
+
+        assert len(calls) >= 2  # at least start (0.05) and done (1.0)
+        progresses = [c[0] for c in calls]
+        assert progresses[0] == pytest.approx(0.05)
+        assert progresses[-1] == pytest.approx(1.0)
+
+    def test_none_progress_cb_does_not_raise(self):
+        """workflow.run() with progress_cb=None must not raise."""
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+
+        with patch("cascade_langgraph_workflow.CascadeWorkflow._create_workflow"):
+            with patch("cascade_langgraph_workflow.CascadeWorkflow.__init__", return_value=None):
+                from cascade_langgraph_workflow import CascadeWorkflow
+                wf = CascadeWorkflow.__new__(CascadeWorkflow)
+                mock_workflow = MagicMock()
+                mock_workflow.ainvoke = AsyncMock(return_value={
+                    "comprehensive_report": {"summary": "ok"}
+                })
+                wf.workflow = mock_workflow
+
+                result = asyncio.get_event_loop().run_until_complete(
+                    wf.run("TP53", progress_cb=None)
+                )
+        assert result == {"summary": "ok"}
