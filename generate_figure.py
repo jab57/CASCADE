@@ -55,8 +55,10 @@ server_bg = FancyBboxPatch((0.3, 0.3), 9.4, 6.1, boxstyle='round,pad=0.15',
                            facecolor='#F8F9FA', edgecolor=C_SERVER,
                            linewidth=2, alpha=0.9, zorder=0)
 ax.add_patch(server_bg)
-ax.text(5, 6.25, 'CASCADE LangGraph MCP Server', ha='center', va='center',
+ax.text(5, 6.32, 'CASCADE LangGraph MCP Server', ha='center', va='center',
         fontsize=11, fontweight='bold', color=C_DARK, zorder=3)
+ax.text(5, 6.12, '28 Tools  ·  5 Resources  ·  5 Prompt Templates', ha='center', va='center',
+        fontsize=7, color='#5D6D7E', zorder=3, style='italic')
 
 # === Row 3: Workflow box ===
 wf_bg = FancyBboxPatch((0.6, 1.9), 8.8, 4.1, boxstyle='round,pad=0.1',
@@ -124,7 +126,7 @@ box(0.5, 0.35, 2.8, 1.25, C_LOCAL,
 
 # Runtime APIs (center, under Batch External) — solid border = external
 box(3.7, 0.35, 2.6, 1.25, C_EXTERNAL,
-    'Runtime APIs\nSTRING DB\nLINCS L1000\ndbSUPER\nDoRothEA\nDepMap CRISPR\nEnsembl API',
+    'Runtime APIs\nSTRING DB\nLINCS L1000\ndbSUPER | DoRothEA\nDepMap CRISPR\ncBioPortal\nEnsembl API',
     fontsize=6.0, edgecolor='#C0392B', lw=1.8)
 
 # Embedding Resources (right, under Batch Insights) — dashed border = local

@@ -270,7 +270,7 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 - "Get high-confidence interactions for TP53"
 - "What protein interactions would be disrupted if I knock down BRCA1?"
 
-## Available MCP Tools (26 total)
+## Available MCP Tools (28 total)
 
 ### Workflow Tools (LangGraph Orchestration)
 | Tool | Description |
@@ -334,6 +334,12 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 |------|-------------|
 | `get_depmap_essentiality` | Chronos gene effect scores across 1,000+ cancer cell lines — pan-cancer essential flag, lineage breakdown, strongly essential fraction |
 
+### Primary Tumor Data (cBioPortal / TCGA)
+| Tool | Description |
+|------|-------------|
+| `get_tumor_expression_profile` | Pan-cancer mRNA expression z-scores from TCGA PanCancer Atlas 2018 — mean, median, and per-cancer-type breakdown |
+| `get_tumor_alteration_frequency` | Somatic alteration frequencies (mutation, amplification, deletion) from TCGA across cancer types |
+
 ## MCP Resources
 
 In addition to tools, CASCADE exposes **browsable MCP Resources** that allow clients to discover available data without triggering a full analysis. Resources are read-only and return JSON.
@@ -362,6 +368,23 @@ cascade://model/status                        → whether GREmLN checkpoint is l
 ```
 
 Resources are useful for orientation queries (e.g., "what cell types are available?", "how many genes are in the NK cell network?") before running perturbation analyses.
+
+## MCP Prompt Templates
+
+CASCADE exposes five **MCP Prompt templates** that guide users toward the right tool for common workflows. Prompt templates appear in the Claude Desktop prompt picker and can also be invoked programmatically by MCP clients.
+
+| Prompt | Required arguments | Optional arguments | Routes to |
+|--------|-------------------|--------------------|-----------|
+| `quick_knockdown` | `gene` | `cell_type` | `quick_perturbation` |
+| `comprehensive_gene_analysis` | `gene`, `cell_type` | — | `comprehensive_perturbation_analysis` |
+| `drug_target_discovery` | `gene`, `cell_type` | — | `therapeutic_target_discovery` |
+| `cross_cell_comparison` | `gene` | — | `cross_cell_comparison` |
+| `gene_set_analysis` | `genes` (comma-separated), `cell_type` | — | `multi_gene_analysis` |
+
+**Examples:**
+- Select `quick_knockdown` → enter `gene=TP53` → CASCADE suggests calling `quick_perturbation` with a pre-filled query.
+- Select `drug_target_discovery` → enter `gene=KRAS`, `cell_type=epithelial_cell` → receives a prompt directing the AI to use `therapeutic_target_discovery` and highlight multi-source drug target evidence.
+- Select `gene_set_analysis` → enter `genes=TP53,MYC,CDKN1A`, `cell_type=epithelial_cell` → parallel `multi_gene_analysis` across all three genes.
 
 ## Project Structure
 
