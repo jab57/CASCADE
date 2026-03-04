@@ -971,3 +971,176 @@ class TestGetPrompt:
         result = self._get("nonexistent_prompt")
         assert result.messages
         assert "Unknown prompt template" in result.messages[0].content.text
+
+
+# ---------------------------------------------------------------------------
+# Tests for Issue #12 — cell type validation
+# ---------------------------------------------------------------------------
+
+class TestCellTypeValidation:
+    """_validate_cell_type returns error for bad input, None for valid."""
+
+    @pytest.fixture(autouse=True)
+    def import_helper(self):
+        with patch("cascade_langgraph_mcp_server.CascadeWorkflow"):
+            import cascade_langgraph_mcp_server as srv
+            self.validate = srv._validate_cell_type
+            self.valid_types = srv._VALID_CELL_TYPES
+            yield
+
+    def test_valid_cell_type_returns_none(self):
+        assert self.validate("epithelial_cell") is None
+
+    def test_another_valid_cell_type_returns_none(self):
+        assert self.validate("cd8_t_cells") is None
+
+    def test_invalid_cell_type_returns_error_dict(self):
+        result = self.validate("cd8t")
+        assert result is not None
+        assert "error" in result
+        assert "cd8t" in result["error"]
+
+    def test_invalid_cell_type_lists_valid_options(self):
+        result = self.validate("bad_type")
+        assert result is not None
+        # All valid cell types should appear in the error message
+        for ct in self.valid_types:
+            assert ct in result["error"]
+
+    def test_empty_string_invalid(self):
+        result = self.validate("")
+        assert result is not None
+        assert "error" in result
+
+
+class TestCellTypeValidationInHandlers:
+    """Handler functions return validation error for invalid cell_type."""
+
+    @pytest.fixture(autouse=True)
+    def setup_mocks(self):
+        self.mock_workflow = MagicMock()
+        self.mock_workflow.gene_mapper = MagicMock()
+        self.mock_workflow.gene_mapper.symbol_to_ensembl.return_value = "ENSG00000141510"
+        self.mock_workflow.run = AsyncMock(return_value={})
+
+        with patch("cascade_langgraph_mcp_server.CascadeWorkflow"):
+            with patch("cascade_langgraph_mcp_server.workflow_instance", self.mock_workflow):
+                with patch("cascade_langgraph_mcp_server.get_workflow",
+                           new_callable=AsyncMock, return_value=self.mock_workflow):
+                    from cascade_langgraph_mcp_server import handle_call_tool
+                    self.handle_call_tool = handle_call_tool
+                    yield
+
+    def _call(self, tool_name, args=None):
+        return asyncio.get_event_loop().run_until_complete(
+            self.handle_call_tool(tool_name, args or {})
+        )
+
+    def test_quick_perturbation_invalid_cell_type(self):
+        result = self._call("quick_perturbation", {"gene": "MYC", "cell_type": "cd8t"})
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert "cd8t" in data["error"]
+        assert "cd8_t_cells" in data["error"]
+
+    def test_find_regulators_invalid_cell_type(self):
+        result = self._call("find_gene_regulators", {"gene": "MYC", "cell_type": "cd8t"})
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert "cd8t" in data["error"]
+
+    def test_find_targets_invalid_cell_type(self):
+        result = self._call("find_gene_targets", {"gene": "MYC", "cell_type": "cd8t"})
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert "cd8t" in data["error"]
+
+    def test_vulnerability_invalid_cell_type(self):
+        result = self._call("analyze_network_vulnerability", {"cell_type": "bad_cell"})
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert "bad_cell" in data["error"]
+
+    def test_comprehensive_analysis_invalid_cell_type(self):
+        result = self._call("comprehensive_perturbation_analysis",
+                            {"gene": "MYC", "cell_type": "wrong"})
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert "wrong" in data["error"]
+
+
+# ---------------------------------------------------------------------------
+# Tests for Issue #12 — no-target suggestions in quick_perturbation
+# ---------------------------------------------------------------------------
+
+class TestNoTargetSuggestions:
+    """quick_perturbation adds suggestions when total_affected_genes == 0."""
+
+    @pytest.fixture(autouse=True)
+    def setup_mocks(self):
+        import pandas as pd
+
+        self.mock_workflow = MagicMock()
+        self.mock_workflow.gene_mapper = MagicMock()
+        self.mock_workflow.gene_mapper.symbol_to_ensembl.return_value = "ENSG00000000001"
+        self.mock_workflow.NETWORKS_DIR = MagicMock()
+
+        mock_path = MagicMock()
+        mock_path.exists.return_value = True
+        self.mock_workflow.NETWORKS_DIR.__truediv__ = MagicMock(
+            return_value=MagicMock(__truediv__=MagicMock(return_value=mock_path))
+        )
+
+        # Minimal network: one edge, but not involving our gene as regulator
+        self.fake_network_df = pd.DataFrame({
+            "regulator": ["ENSG_OTHER"],
+            "target": ["ENSG_TARGET"],
+            "mi": [0.5],
+        })
+
+        with patch("cascade_langgraph_mcp_server.CascadeWorkflow"):
+            with patch("cascade_langgraph_mcp_server.workflow_instance", self.mock_workflow):
+                with patch("cascade_langgraph_mcp_server.get_workflow",
+                           new_callable=AsyncMock, return_value=self.mock_workflow):
+                    from cascade_langgraph_mcp_server import handle_call_tool
+                    self.handle_call_tool = handle_call_tool
+                    yield
+
+    def _call(self, tool_name, args=None):
+        return asyncio.get_event_loop().run_until_complete(
+            self.handle_call_tool(tool_name, args or {})
+        )
+
+    def test_zero_targets_adds_suggestions(self):
+        zero_result = {
+            "total_affected_genes": 0,
+            "affected_genes": [],
+            "embedding_enhanced": False,
+        }
+        self.mock_workflow._get_model.side_effect = Exception("no model")
+        with patch("tools.loader.load_network", return_value=self.fake_network_df):
+            with patch("tools.perturb.simulate_knockdown", return_value=zero_result):
+                result = self._call("quick_perturbation", {
+                    "gene": "EFFECTOR_GENE",
+                    "cell_type": "epithelial_cell",
+                })
+        data = json.loads(result[0].text)
+        assert "suggestions" in data
+        assert any("get_protein_interactions" in s for s in data["suggestions"])
+        assert any("find_gene_regulators" in s for s in data["suggestions"])
+
+    def test_nonzero_targets_no_suggestions(self):
+        nonzero_result = {
+            "total_affected_genes": 5,
+            "affected_genes": [{"gene": "X"}] * 5,
+            "embedding_enhanced": False,
+        }
+        self.mock_workflow._get_model.side_effect = Exception("no model")
+        with patch("tools.loader.load_network", return_value=self.fake_network_df):
+            with patch("tools.perturb.simulate_knockdown", return_value=nonzero_result):
+                result = self._call("quick_perturbation", {
+                    "gene": "TF_GENE",
+                    "cell_type": "epithelial_cell",
+                })
+        data = json.loads(result[0].text)
+        assert "suggestions" not in data

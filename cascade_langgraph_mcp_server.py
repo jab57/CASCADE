@@ -65,6 +65,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Cell type validation helper
+_VALID_CELL_TYPES = [ct.value for ct in CellType]
+
+def _validate_cell_type(cell_type: str) -> dict | None:
+    """Return an error dict if cell_type is invalid, else None."""
+    if cell_type not in _VALID_CELL_TYPES:
+        return {
+            "error": f"Invalid cell type: '{cell_type}'. "
+                     f"Valid options are: {', '.join(_VALID_CELL_TYPES)}"
+        }
+    return None
+
+
 # Initialize the server
 server = Server("cascade-langgraph-server")
 
@@ -1400,11 +1413,15 @@ async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent
 
 async def _comprehensive_analysis(args: dict, progress_cb=None) -> dict:
     """Run comprehensive perturbation analysis via workflow."""
+    cell_type = args.get("cell_type", "epithelial_cell")
+    if err := _validate_cell_type(cell_type):
+        return err
+
     workflow = await get_workflow()
 
     return await workflow.run(
         gene=args["gene"],
-        cell_type=args.get("cell_type", "epithelial_cell"),
+        cell_type=cell_type,
         perturbation_type=args.get("perturbation_type", "knockdown"),
         analysis_depth=args.get("analysis_depth", "comprehensive"),
         include_llm_insights=args.get("include_llm_insights", False),
@@ -1426,6 +1443,8 @@ async def _quick_perturbation(args: dict) -> dict:
 
     gene = args["gene"]
     cell_type = args.get("cell_type", "epithelial_cell")
+    if err := _validate_cell_type(cell_type):
+        return err
     perturbation_type = args.get("perturbation_type", "knockdown")
     depth = args.get("depth", 2)
     top_k = args.get("top_k", 25)
@@ -1470,6 +1489,14 @@ async def _quick_perturbation(args: dict) -> dict:
     result["cell_type"] = cell_type
     result["perturbation_type"] = perturbation_type
 
+    if result.get("total_affected_genes", 0) == 0:
+        result["suggestions"] = [
+            "This gene has no transcriptional targets in the network. Try these alternatives:",
+            "- get_protein_interactions: find protein-level interaction partners",
+            "- find_gene_regulators: find upstream transcription factors controlling this gene",
+            "- find_similar_genes: find functionally similar genes by embedding similarity",
+        ]
+
     return result
 
 
@@ -1479,6 +1506,8 @@ async def _multi_gene_analysis(args: dict) -> dict:
 
     genes = args["genes"]
     cell_type = args.get("cell_type", "epithelial_cell")
+    if err := _validate_cell_type(cell_type):
+        return err
     analysis_depth = args.get("analysis_depth", "basic")
 
     if len(genes) > 10:
@@ -1627,6 +1656,8 @@ async def _therapeutic_discovery(args: dict) -> dict:
 
     gene = args["gene"]
     cell_type = args.get("cell_type", "epithelial_cell")
+    if err := _validate_cell_type(cell_type):
+        return err
     goal = args.get("goal", "reduce_expression")
 
     # Run comprehensive analysis to get all data
@@ -1763,6 +1794,8 @@ async def _get_gene_metadata(args: dict) -> dict:
     workflow = await get_workflow()
     gene = args["gene"]
     cell_type = args.get("cell_type", "epithelial_cell")
+    if err := _validate_cell_type(cell_type):
+        return err
 
     # Resolve gene
     ensembl_id = workflow.gene_mapper.symbol_to_ensembl(gene)
@@ -1830,6 +1863,8 @@ async def _find_gene_regulators(args: dict) -> dict:
     workflow = await get_workflow()
     gene = args["gene"]
     cell_type = args.get("cell_type", "epithelial_cell")
+    if err := _validate_cell_type(cell_type):
+        return err
     max_regulators = args.get("max_regulators", 50)
 
     # Resolve gene
@@ -1858,6 +1893,8 @@ async def _find_gene_targets(args: dict) -> dict:
     workflow = await get_workflow()
     gene = args["gene"]
     cell_type = args.get("cell_type", "epithelial_cell")
+    if err := _validate_cell_type(cell_type):
+        return err
     max_targets = args.get("max_targets", 50)
 
     # Resolve gene
@@ -2005,6 +2042,8 @@ async def _analyze_network_vulnerability(args: dict) -> dict:
 
     workflow = await get_workflow()
     cell_type = args.get("cell_type", "epithelial_cell")
+    if err := _validate_cell_type(cell_type):
+        return err
     top_k = args.get("top_k", 20)
 
     network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
@@ -2086,6 +2125,8 @@ async def _compare_gene_vulnerability(args: dict) -> dict:
     workflow = await get_workflow()
     genes = args["genes"]
     cell_type = args.get("cell_type", "epithelial_cell")
+    if err := _validate_cell_type(cell_type):
+        return err
 
     network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
     if not network_path.exists():
