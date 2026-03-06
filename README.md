@@ -186,9 +186,28 @@ pip install torch --index-url https://download.pytorch.org/whl/cu124 --force-rei
 # Download from https://ollama.ai and run: ollama pull llama3.1:8b
 ```
 
+### Data Setup
+
+Most data is bundled in the repository. Two additional files are required:
+
+**1. GREmLN model checkpoint** (~120 MB, required for embedding-based tools):
+
+```bash
+pip install gdown   # if not already installed
+python scripts/download_model.py
+```
+
+**2. DepMap CRISPR gene effect scores** (~413 MB, required for essentiality analysis):
+
+- Go to https://depmap.org/portal/download/
+- Download `CRISPRGeneEffect.csv` from the latest DepMap Public release
+- Place it at `data/depmap/CRISPRGeneEffect.csv`
+
+All other data (regulatory networks, LINCS L1000, dbSUPER, DoRothEA) is already in the repository. See [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) for full provenance details.
+
 ### Verify Installation
 
-After installing, run the verification script to confirm everything works:
+After the data setup steps, run the verification script to confirm everything works:
 
 ```bash
 python verify_installation.py

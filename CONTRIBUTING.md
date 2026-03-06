@@ -43,11 +43,14 @@ Thank you for your interest in contributing to CASCADE! This document provides g
    pip install torch --index-url https://download.pytorch.org/whl/cpu
    ```
 
-4. **Download data assets:**
+4. **Download the model checkpoint** (all other data is in the repo):
 
    ```bash
-   python download_gremln_assets.py
+   pip install gdown
+   python scripts/download_model.py
    ```
+
+   DepMap CRISPR data (`data/depmap/CRISPRGeneEffect.csv`) is also required for essentiality analysis but must be downloaded manually from https://depmap.org/portal/download/ due to its size (~413 MB). See [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) for instructions.
 
 5. **Verify installation:**
 

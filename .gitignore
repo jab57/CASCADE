@@ -9,24 +9,14 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Model checkpoints (large files - download separately)
+# Model checkpoint - download via: python scripts/download_model.py
 models/*.ckpt
 
-# Network data (large files - download separately)
-data/networks/*/network.tsv
+# DepMap CRISPR gene effect scores (~413 MB, versioned quarterly - download from depmap.org)
+data/depmap/CRISPRGeneEffect.csv
 
-# LINCS data (large files - download separately)
-data/lincs/*.gz
-
-# Super-enhancer data (download separately)
-data/super_enhancers/*.tsv
-data/super_enhancers/*.bed
-
-# DepMap CRISPR data (large files ~200MB - download separately)
-data/depmap/*.csv
-
-# DoRothEA disk cache (auto-generated from decoupler on first run)
-data/dorothea/
+# DoRothEA disk cache (auto-generated on first run - committed for faster cold start)
+# data/dorothea/ -- intentionally NOT ignored; parquet cache is committed
 
 # IDE
 .vscode/
