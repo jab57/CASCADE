@@ -6,6 +6,25 @@
 
 A Model Context Protocol (MCP) server for **in silico gene perturbation analysis** using pre-computed gene regulatory networks and GREmLN model embeddings. Features **LangGraph-based workflow orchestration** for intelligent, automated analysis pipelines.
 
+## Quick Start
+
+```bash
+# 1. Clone and install
+git clone https://github.com/jab57/CASCADE.git
+cd CASCADE
+python -m venv env && source env/bin/activate  # Windows: .\env\Scripts\activate
+pip install -r requirements.txt
+
+# 2. Download the model checkpoint (~120 MB, one-time)
+pip install gdown
+python scripts/download_model.py
+
+# 3. Verify everything works
+python verify_installation.py
+```
+
+> **DepMap essentiality data** (`data/depmap/CRISPRGeneEffect.csv`, ~413 MB) is optional — the server and all other tools work without it. If missing, `verify_installation.py` reports a SKIP (not a failure). See [Data Setup](#data-setup) below for download instructions.
+
 ## Architecture
 
 ```
@@ -166,38 +185,42 @@ The server provides analysis across several categories:
 
 ## Installation
 
+**Required:**
+
 ```bash
-# Create virtual environment
+# Create and activate virtual environment
 python -m venv env
-
-# Activate (Windows)
-.\env\Scripts\activate
-
-# Activate (Linux/Mac)
-# source env/bin/activate
+.\env\Scripts\activate        # Windows
+# source env/bin/activate     # Linux/Mac
 
 # Install dependencies
 pip install -r requirements.txt
+```
 
-# For GPU support (recommended), install PyTorch with CUDA
+**Optional — GPU acceleration** (recommended for production; CPU works fine for evaluation):
+
+```bash
 pip install torch --index-url https://download.pytorch.org/whl/cu124 --force-reinstall
+```
 
-# Install Ollama for LLM-powered biological insights
-# Download from https://ollama.ai and run: ollama pull llama3.1:8b
+**Optional — LLM-powered biological insights** (requires [Ollama](https://ollama.ai)):
+
+```bash
+ollama pull llama3.1:8b
 ```
 
 ### Data Setup
 
-Most data is bundled in the repository. Two additional files are required:
+Most data is bundled in the repository. Two additional files are needed:
 
-**1. GREmLN model checkpoint** (~120 MB, required for embedding-based tools):
+**1. GREmLN model checkpoint** (~120 MB) — required for embedding-based tools (`find_similar_genes`, `embedding_enhanced_knockdown/overexpression`):
 
 ```bash
 pip install gdown   # if not already installed
 python scripts/download_model.py
 ```
 
-**2. DepMap CRISPR gene effect scores** (~413 MB, required for essentiality analysis):
+**2. DepMap CRISPR gene effect scores** (~413 MB) — optional; only the `get_depmap_essentiality` tool needs it. The server starts and all other tools work without it. `verify_installation.py` reports a SKIP (not a failure) if the file is absent:
 
 - Go to https://depmap.org/portal/download/
 - Download `CRISPRGeneEffect.csv` from the latest DepMap Public release
