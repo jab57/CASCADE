@@ -1,6 +1,6 @@
 {
   "title": "CASCADE: Computational Analysis of Simulated Cell And Drug Effects",
-  "description": "CASCADE is a Model Context Protocol (MCP) server for in silico gene perturbation analysis in cancer and immuno-oncology research. It provides 26 tools for simulating gene knockdowns and overexpression using pre-computed regulatory networks and GREmLN model embeddings across 10 immune and epithelial cell types. Features LangGraph-based workflow orchestration with intelligent routing, parallel batch execution, and optional LLM-powered biological interpretation via Ollama.",
+  "description": "CASCADE is a Model Context Protocol (MCP) server for in silico gene perturbation analysis in cancer and immuno-oncology research. It provides 28 tools for simulating gene knockdowns and overexpression using pre-computed regulatory networks and GREmLN model embeddings across 10 immune and epithelial cell types. Features LangGraph-based workflow orchestration with intelligent routing, parallel batch execution, cross-source evidence synthesis across 8 integrated data sources, and optional LLM-powered biological interpretation via Ollama.",
   "creators": [
     {
       "name": "Bird, Jose",

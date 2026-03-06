@@ -5,7 +5,7 @@ long_description = Path("README.md").read_text(encoding="utf-8")
 
 setup(
     name="cascade",
-    version="0.1.0",
+    version="1.0.0",
     author="Jose Bird",
     author_email="jbird@birdaisolutions.com",
     description="MCP server for in silico gene perturbation analysis in cancer and immuno-oncology research",
@@ -30,7 +30,7 @@ setup(
         "test": ["pytest", "pytest-cov", "pytest-asyncio"],
     },
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "License :: OSI Approved :: MIT License",
