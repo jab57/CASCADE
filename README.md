@@ -448,7 +448,7 @@ CASCADE/
 | Event | Behavior |
 |-------|----------|
 | MCP initialize handshake | Completes in milliseconds |
-| Background pre-warming | Server pre-warms all 6 data sources concurrently on startup: GREmLN model, LINCS, DepMap, super-enhancers, DoRothEA (disk cache), and all 10 cell type networks — completes in ~5s so first tool call finds everything ready |
+| Background pre-warming | Server pre-warms all 7 data sources concurrently on startup: GREmLN model, embedding similarity cache, LINCS, DepMap, super-enhancers, DoRothEA (disk cache), and all 10 cell type networks — completes in ~5s so first tool call finds everything ready |
 | DoRothEA regulons | Cached to disk (`data/dorothea/`) after first download; subsequent server restarts load in ~0.1s instead of re-downloading |
 | Network adjacency | Built once per cell type per session using vectorized numpy operations; shared across all analyses for that cell type |
 

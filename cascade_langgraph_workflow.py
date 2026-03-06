@@ -1138,7 +1138,9 @@ class CascadeWorkflow:
                 if not model.is_gene_in_vocab(ensembl_id):
                     return {"error": f"Gene {ensembl_id} not in model vocabulary"}
 
-                similar_df = model.get_top_similar_genes(ensembl_id, top_k=20)
+                from tools.cache import get_embedding_cache
+                cache = get_embedding_cache(model)
+                similar_df = cache.get_top_similar(ensembl_id, top_k=20)
                 if similar_df is None:
                     return {"error": "Could not compute similarities"}
 

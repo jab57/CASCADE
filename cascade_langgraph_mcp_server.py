@@ -1732,7 +1732,9 @@ async def _find_similar(args: dict) -> dict:
         if not model.is_gene_in_vocab(ensembl_id):
             return {"error": f"Gene {gene} ({ensembl_id}) not in model vocabulary"}
 
-        similar_df = model.get_top_similar_genes(ensembl_id, top_k=top_k)
+        from tools.cache import get_embedding_cache
+        cache = get_embedding_cache(model)
+        similar_df = cache.get_top_similar(ensembl_id, top_k=top_k)
 
         if similar_df is None:
             return {"error": "Could not compute similarities"}
@@ -2560,6 +2562,19 @@ async def main():
             except Exception as e:
                 logger.warning(f"GREmLN pre-warm failed (will retry on first use): {e}")
 
+        async def _prewarm_embedding_cache():
+            try:
+                logger.info("Pre-warming embedding similarity cache in background...")
+                wf = await get_workflow()
+                def _init_cache():
+                    model = wf._get_model()
+                    from tools.cache import get_embedding_cache
+                    get_embedding_cache(model)
+                await asyncio.to_thread(_init_cache)
+                logger.info("Embedding cache ready")
+            except Exception as e:
+                logger.warning(f"Embedding cache pre-warm failed (will retry on first use): {e}")
+
         async def _prewarm_depmap():
             try:
                 logger.info("Pre-warming DepMap CRISPR data in background...")
@@ -2602,6 +2617,7 @@ async def main():
 
         asyncio.create_task(_prewarm_dorothea())
         asyncio.create_task(_prewarm_model())
+        asyncio.create_task(_prewarm_embedding_cache())
         asyncio.create_task(_prewarm_depmap())
         asyncio.create_task(_prewarm_lincs())
         asyncio.create_task(_prewarm_super_enhancers())

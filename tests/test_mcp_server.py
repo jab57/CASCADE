@@ -305,14 +305,18 @@ class TestAdditionalHandlers:
         mock_model = MagicMock()
         mock_model.is_gene_in_vocab.return_value = True
         import pandas as pd
-        mock_model.get_top_similar_genes.return_value = pd.DataFrame({
+        from unittest.mock import patch
+        similar_df = pd.DataFrame({
             "ensembl_id": ["ENSG00000136997"],
             "similarity": [0.91],
         })
+        mock_cache = MagicMock()
+        mock_cache.get_top_similar.return_value = similar_df
         self.mock_workflow._get_model.return_value = mock_model
         self.mock_workflow.gene_mapper.ensembl_to_symbol.return_value = "MYC"
 
-        result = self._call("find_similar_genes", {"gene": "TP53", "top_k": 5})
+        with patch("tools.cache.get_embedding_cache", return_value=mock_cache):
+            result = self._call("find_similar_genes", {"gene": "TP53", "top_k": 5})
         data = json.loads(result[0].text)
         assert "similar_genes" in data
         assert len(data["similar_genes"]) == 1
