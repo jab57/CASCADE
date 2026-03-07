@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "CASCADE: Computational Analysis of Simulated Cell And Drug Effects"
+title: "CASCADE: Agentic In Silico Gene Perturbation Analysis via the Model Context Protocol"
 type: software
 authors:
   - family-names: Bird
