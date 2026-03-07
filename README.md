@@ -2,7 +2,7 @@
 
 **Computational Analysis of Simulated Cell And Drug Effects**
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18883013.svg)](https://doi.org/10.5281/zenodo.18883013)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18883012.svg)](https://doi.org/10.5281/zenodo.18883012)
 
 A Model Context Protocol (MCP) server for **in silico gene perturbation analysis** using pre-computed gene regulatory networks and GREmLN model embeddings. Features **LangGraph-based workflow orchestration** for intelligent, automated analysis pipelines.
 
