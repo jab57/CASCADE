@@ -7,7 +7,7 @@ Consistent with RegNetAgents gene_id_mapper API.
 """
 
 import requests
-import pickle
+import json
 import os
 from typing import Dict, List, Optional
 from pathlib import Path
@@ -20,7 +20,7 @@ class GeneIDMapper:
         if cache_file is None:
             cache_dir = Path(__file__).parent.parent / "cache"
             cache_dir.mkdir(exist_ok=True)
-            cache_file = str(cache_dir / "gene_id_cache.pkl")
+            cache_file = str(cache_dir / "gene_id_cache.json")
         self.cache_file = cache_file
         self.cache = self._load_cache()
         print(f"Gene mapping initialized: {len(self.cache['symbol_to_ensembl'])} genes cached")
@@ -29,9 +29,9 @@ class GeneIDMapper:
         """Load cached mappings from file"""
         if os.path.exists(self.cache_file):
             try:
-                with open(self.cache_file, 'rb') as f:
-                    return pickle.load(f)
-            except:
+                with open(self.cache_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception:
                 pass
         return {"symbol_to_ensembl": {}, "ensembl_to_symbol": {}}
 
@@ -39,8 +39,8 @@ class GeneIDMapper:
         """Save cache to file"""
         try:
             os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
-            with open(self.cache_file, 'wb') as f:
-                pickle.dump(self.cache, f)
+            with open(self.cache_file, 'w', encoding='utf-8') as f:
+                json.dump(self.cache, f)
         except Exception as e:
             print(f"Warning: Could not save cache: {e}")
 

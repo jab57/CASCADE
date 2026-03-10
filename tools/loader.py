@@ -91,7 +91,9 @@ def load_cascade_model(model_path: Path | str = MODEL_PATH):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[CASCADE] Loading model on: {device}")
 
-    # Load checkpoint - the actual class depends on what's in the checkpoint
-    checkpoint = torch.load(model_path, map_location=device)
+    # weights_only=False is required: the checkpoint contains PyTorch Lightning
+    # state that cannot be loaded with weights_only=True. Only load checkpoints
+    # from trusted sources (e.g., the bundled models/model.ckpt).
+    checkpoint = torch.load(model_path, map_location=device, weights_only=False)
 
     return checkpoint, device

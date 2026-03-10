@@ -2,7 +2,7 @@
 
 import pytest
 import os
-import pickle
+import json
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 
@@ -12,7 +12,7 @@ from tools.gene_id_mapper import GeneIDMapper
 @pytest.fixture
 def mapper_with_cache(tmp_path):
     """Create a GeneIDMapper with a pre-populated cache file."""
-    cache_file = str(tmp_path / "gene_cache.pkl")
+    cache_file = str(tmp_path / "gene_cache.json")
     cache_data = {
         "symbol_to_ensembl": {
             "MYC": "ENSG00000136997",
@@ -23,8 +23,8 @@ def mapper_with_cache(tmp_path):
             "ENSG00000141510": "TP53",
         },
     }
-    with open(cache_file, "wb") as f:
-        pickle.dump(cache_data, f)
+    with open(cache_file, "w", encoding="utf-8") as f:
+        json.dump(cache_data, f)
 
     return GeneIDMapper(cache_file=cache_file)
 
@@ -32,7 +32,7 @@ def mapper_with_cache(tmp_path):
 @pytest.fixture
 def mapper_empty(tmp_path):
     """Create a GeneIDMapper with an empty cache."""
-    cache_file = str(tmp_path / "empty_cache.pkl")
+    cache_file = str(tmp_path / "empty_cache.json")
     return GeneIDMapper(cache_file=cache_file)
 
 
@@ -115,8 +115,8 @@ class TestCachePersistence:
 
         # Verify cache file was written
         assert os.path.exists(mapper_empty.cache_file)
-        with open(mapper_empty.cache_file, "rb") as f:
-            data = pickle.load(f)
+        with open(mapper_empty.cache_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
         assert "BRCA1" in data["symbol_to_ensembl"]
 
     def test_cache_stats(self, mapper_with_cache):
