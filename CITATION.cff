@@ -11,8 +11,8 @@ authors:
 repository-code: "https://github.com/jab57/CASCADE"
 doi: "10.5281/zenodo.18883012"
 license: MIT
-version: 1.0.0
-date-released: "2026-03-05"
+version: 1.0.1
+date-released: "2026-03-12"
 keywords:
   - gene perturbation
   - regulatory networks
