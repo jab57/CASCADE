@@ -420,7 +420,7 @@ Badia-i-Mompel, P., et al. (2022). decoupleR: ensemble of computational methods 
 **Database**: Ensembl REST API
 **URL**: https://rest.ensembl.org
 **Access**: Live REST API with persistent local cache
-**Cache file**: `cache/gene_id_cache.pkl`
+**Cache file**: `cache/gene_id_cache.json`
 **Implementation**: `tools/gene_id_mapper.py`
 
 ### Usage in CASCADE
@@ -436,7 +436,7 @@ All CASCADE tools accept either gene symbols (`MYC`) or Ensembl IDs (`ENSG000001
 
 ### Persistent Cache
 
-Resolved mappings are persisted to `cache/gene_id_cache.pkl` so that repeated lookups for the same genes do not require API calls. The cache grows automatically as new genes are queried.
+Resolved mappings are persisted to `cache/gene_id_cache.json` so that repeated lookups for the same genes do not require API calls. The cache grows automatically as new genes are queried.
 
 ### Citation
 

@@ -1800,7 +1800,10 @@ async def _get_gene_metadata(args: dict) -> dict:
         return err
 
     # Resolve gene
-    ensembl_id = workflow.gene_mapper.symbol_to_ensembl(gene)
+    if gene.upper().startswith("ENSG"):
+        ensembl_id = gene.upper()
+    else:
+        ensembl_id = workflow.gene_mapper.symbol_to_ensembl(gene)
     if ensembl_id is None:
         return {"error": f"Could not resolve gene '{gene}'"}
 

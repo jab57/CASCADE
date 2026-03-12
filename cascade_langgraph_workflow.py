@@ -255,7 +255,7 @@ class CascadeWorkflow:
         # Import existing CASCADE components
         from pathlib import Path
         from tools.loader import load_network, get_available_cell_types, MODEL_PATH
-        from tools.gene_id_mapper import GeneIDMapper
+        from tools.gene_id_mapper import get_mapper
         from tools.ppi.string_client import get_string_client
 
         self.BASE_DIR = Path(__file__).parent
@@ -263,7 +263,7 @@ class CascadeWorkflow:
         self.MODEL_PATH = MODEL_PATH
 
         # Initialize components
-        self.gene_mapper = GeneIDMapper()
+        self.gene_mapper = get_mapper()
         self.string_client = get_string_client()
         self._model = None  # Lazy loaded
         self._model_lock = threading.Lock()  # Thread-safe lazy init
