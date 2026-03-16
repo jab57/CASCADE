@@ -166,7 +166,9 @@ The server provides analysis across several categories:
 
 8. **CRISPR essentiality** (`get_depmap_essentiality`, also integrated in `comprehensive_perturbation_analysis`): Queries pre-downloaded DepMap Chronos gene effect scores to provide empirical phenotypic validation — confirming whether a predicted network hub is actually lethal to cancer cells across 1,000+ cell lines and 30+ cancer lineages.
 
-## Supported Cell Types
+## Supported Networks
+
+### Cell-Type Networks (population-averaged, use with `cell_type` parameter)
 
 | Cell Type | Network File |
 |-----------|--------------|
@@ -181,7 +183,31 @@ The server provides analysis across several categories:
 | Erythrocytes | `erythrocytes/network.tsv` |
 | Monocyte-derived DCs | `monocyte-derived_dendritic_cells/network.tsv` |
 
-> **Note:** Networks represent population-averaged regulatory relationships and do not capture cell-state-specific dynamics. Analysis of state-dependent regulation (e.g., resting vs. activated T cells) requires cell-state-specific networks generated from appropriately resolved single-cell data and supplied in the same format as the bundled networks.
+> **Note:** Cell-type networks represent population-averaged regulatory relationships across heterogeneous cell states (GREmLN / Zhang et al. 2025). They are not exclusively healthy or tumor tissue.
+
+### TCGA Tumor-State Networks (use with `network_source="tcga"` + `tcga_network` parameter)
+
+CASCADE ships with pre-computed ARACNe regulatory networks derived from TCGA tumor RNA-seq data (Bioconductor `aracne.networks`, Lim & Califano 2018). These provide tumor-state regulatory wiring and Mode of Action (MoA) annotations for 8 epithelial-origin cancer types:
+
+| Key | Cancer Type | Edges |
+|-----|-------------|-------|
+| `brca` | Breast Invasive Carcinoma | 331,644 |
+| `coad` | Colon Adenocarcinoma | 413,481 |
+| `hnsc` | Head/Neck Squamous Cell Carcinoma | 422,855 |
+| `luad` | Lung Adenocarcinoma | 399,216 |
+| `lusc` | Lung Squamous Cell Carcinoma | 454,680 |
+| `ov` | Ovarian Carcinoma | 647,002 |
+| `prad` | Prostate Adenocarcinoma | 330,709 |
+| `ucec` | Uterine Corpus Endometrial Carcinoma | 469,523 |
+
+**Usage example** — analyze ESR1 in BRCA tumor regulatory context:
+```
+quick_perturbation(gene="ESR1", network_source="tcga", tcga_network="brca")
+find_gene_targets(gene="ESR1", network_source="tcga", tcga_network="brca")
+comprehensive_perturbation_analysis(gene="ESR1", network_source="tcga", tcga_network="brca")
+```
+
+> GBM and LAML are excluded: no appropriate reference network lineage exists in CASCADE for CNS tumors or leukemic blasts.
 
 ## Installation
 
@@ -226,7 +252,7 @@ python scripts/download_model.py
 - Download `CRISPRGeneEffect.csv` from the latest DepMap Public release
 - Place it at `data/depmap/CRISPRGeneEffect.csv`
 
-All other data (regulatory networks, LINCS L1000, dbSUPER, DoRothEA) is already in the repository. See [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) for full provenance details.
+All other data is already in the repository: GREmLN cell-type networks, TCGA ARACNe networks (8 cancer types), LINCS L1000, dbSUPER, DoRothEA cache, and DepMap Model.csv. See [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) for full provenance details.
 
 ### Verify Installation
 
@@ -455,7 +481,14 @@ CASCADE/
 │   └── ppi/
 │       └── string_client.py        # STRING database API client
 ├── data/
-│   ├── networks/                   # Pre-computed regulatory networks (10 cell types)
+│   ├── networks/                   # GREmLN cell-type networks (10 types, population-averaged)
+│   │   ├── epithelial_cell/
+│   │   ├── cd4_t_cells/
+│   │   └── ...
+│   ├── networks/tcga/              # TCGA ARACNe tumor-state networks (8 cancer types)
+│   │   ├── brca/network.csv
+│   │   ├── coad/network.csv
+│   │   └── ...
 │   ├── lincs/                      # LINCS L1000 knockdown expression data
 │   ├── super_enhancers/            # dbSUPER super-enhancer annotations
 │   └── depmap/                     # DepMap CRISPR gene effect data (download separately)

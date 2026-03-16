@@ -85,6 +85,8 @@ class PerturbationAnalysisState(TypedDict):
     cell_type: str                              # Cell type for network context
     perturbation_type: str                      # knockdown, overexpression, similarity
     analysis_depth: str                         # basic, comprehensive, focused
+    network_source: str                         # "cell_type" (default) or "tcga"
+    tcga_network: Optional[str]                 # TCGA cancer type (brca, coad, ...) when network_source="tcga"
 
     # === Resolved Gene Info ===
     ensembl_id: Optional[str]                   # Resolved Ensembl ID
@@ -490,24 +492,37 @@ class CascadeWorkflow:
 
     async def _analyze_network_context(self, state: PerturbationAnalysisState) -> Dict:
         """Analyze gene's position and role in the regulatory network."""
-        from tools.loader import load_network
+        from tools.loader import load_network, load_tcga_network
 
-        cell_type = state.get("cell_type", "epithelial_cell")
-        ensembl_id = state["ensembl_id"]
+        network_source = state.get("network_source", "cell_type")
 
-        network_path = self.NETWORKS_DIR / cell_type / "network.tsv"
-        if not network_path.exists():
-            return {
-                "current_step": "analyze_network_context",
-                "error_message": f"Network not found for cell type: {cell_type}",
-                "next_actions": ["error"]
-            }
-
-        network_df = load_network(network_path)
+        if network_source == "tcga":
+            tcga_network = state.get("tcga_network")
+            network_df = load_tcga_network(tcga_network)
+            if isinstance(network_df, dict) and "error" in network_df:
+                return {
+                    "current_step": "analyze_network_context",
+                    "error_message": network_df["error"],
+                    "next_actions": ["error"]
+                }
+            # TCGA networks use gene symbols; match on symbol instead of Ensembl ID
+            gene_id = state.get("gene_symbol") or state["ensembl_id"]
+        else:
+            cell_type = state.get("cell_type", "epithelial_cell")
+            network_path = self.NETWORKS_DIR / cell_type / "network.tsv"
+            if not network_path.exists():
+                return {
+                    "current_step": "analyze_network_context",
+                    "error_message": f"Network not found for cell type: {cell_type}",
+                    "next_actions": ["error"]
+                }
+            network_df = load_network(network_path)
+            gene_id = state["ensembl_id"]
 
         # Count targets and regulators
-        targets = network_df[network_df["regulator"] == ensembl_id]
-        regulators = network_df[network_df["target"] == ensembl_id]
+        # TCGA networks use gene symbols; cell-type networks use Ensembl IDs
+        targets = network_df[network_df["regulator"] == gene_id]
+        regulators = network_df[network_df["target"] == gene_id]
 
         num_targets = len(targets)
         num_regulators = len(regulators)
@@ -965,7 +980,7 @@ class CascadeWorkflow:
 
     async def _run_perturbation_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Run perturbation analysis using existing CASCADE tools."""
-        from tools.loader import load_network
+        from tools.loader import load_network, load_tcga_network
         from tools.perturb import (
             simulate_knockdown_with_embeddings,
             simulate_overexpression_with_embeddings,
@@ -973,9 +988,45 @@ class CascadeWorkflow:
             simulate_overexpression
         )
 
+        network_source = state.get("network_source", "cell_type")
+        perturbation_type = state.get("perturbation_type", "knockdown")
+
+        if network_source == "tcga":
+            tcga_network = state.get("tcga_network", "")
+            # TCGA networks use gene symbols as node IDs
+            gene_id = state.get("gene_symbol") or state["ensembl_id"]
+
+            def _sync_tcga():
+                network_df = load_tcga_network(tcga_network)
+                if isinstance(network_df, dict) and "error" in network_df:
+                    return network_df
+                try:
+                    model = self._get_model()
+                    if perturbation_type == "knockdown":
+                        result = simulate_knockdown_with_embeddings(
+                            network_df, gene_id, model,
+                            depth=2, top_k=25, alpha=0.7
+                        )
+                    else:
+                        result = simulate_overexpression_with_embeddings(
+                            network_df, gene_id, model,
+                            fold_change=2.0, depth=2, top_k=25, alpha=0.7
+                        )
+                    result["embedding_enhanced"] = True
+                except Exception as e:
+                    logger.warning(f"Model unavailable, using network-only: {e}")
+                    if perturbation_type == "knockdown":
+                        result = simulate_knockdown(network_df, gene_id, depth=2, top_k=25)
+                    else:
+                        result = simulate_overexpression(network_df, gene_id, fold_change=2.0, depth=2, top_k=25)
+                    result["embedding_enhanced"] = False
+                return result
+
+            return await asyncio.to_thread(_sync_tcga)
+
+        # Default: cell-type network (Ensembl IDs)
         cell_type = state.get("cell_type", "epithelial_cell")
         ensembl_id = state["ensembl_id"]
-        perturbation_type = state.get("perturbation_type", "knockdown")
         network_path = self.NETWORKS_DIR / cell_type / "network.tsv"
 
         def _sync():
@@ -1006,8 +1057,22 @@ class CascadeWorkflow:
 
     async def _analyze_regulators_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Get upstream regulators using existing CASCADE tools."""
-        from tools.loader import load_network
+        from tools.loader import load_network, load_tcga_network
         from tools.perturb import get_regulators
+
+        network_source = state.get("network_source", "cell_type")
+
+        if network_source == "tcga":
+            tcga_network = state.get("tcga_network", "")
+            gene_id = state.get("gene_symbol") or state["ensembl_id"]
+
+            def _sync_tcga():
+                network_df = load_tcga_network(tcga_network)
+                if isinstance(network_df, dict) and "error" in network_df:
+                    return network_df
+                return get_regulators(network_df, gene_id, max_regulators=50)
+
+            return await asyncio.to_thread(_sync_tcga)
 
         cell_type = state.get("cell_type", "epithelial_cell")
         ensembl_id = state["ensembl_id"]
@@ -1021,8 +1086,22 @@ class CascadeWorkflow:
 
     async def _analyze_targets_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Get downstream targets using existing CASCADE tools."""
-        from tools.loader import load_network
+        from tools.loader import load_network, load_tcga_network
         from tools.perturb import get_targets
+
+        network_source = state.get("network_source", "cell_type")
+
+        if network_source == "tcga":
+            tcga_network = state.get("tcga_network", "")
+            gene_id = state.get("gene_symbol") or state["ensembl_id"]
+
+            def _sync_tcga():
+                network_df = load_tcga_network(tcga_network)
+                if isinstance(network_df, dict) and "error" in network_df:
+                    return network_df
+                return get_targets(network_df, gene_id, max_targets=50)
+
+            return await asyncio.to_thread(_sync_tcga)
 
         cell_type = state.get("cell_type", "epithelial_cell")
         ensembl_id = state["ensembl_id"]
@@ -1754,6 +1833,8 @@ Provide scientifically accurate, evidence-based analysis. When data is limited, 
         perturbation_type: str = "knockdown",
         analysis_depth: str = "comprehensive",
         include_llm_insights: bool = False,
+        network_source: str = "cell_type",
+        tcga_network: Optional[str] = None,
         progress_cb=None,
     ) -> Dict:
         """
@@ -1774,6 +1855,8 @@ Provide scientifically accurate, evidence-based analysis. When data is limited, 
             "cell_type": cell_type,
             "perturbation_type": perturbation_type,
             "analysis_depth": analysis_depth,
+            "network_source": network_source,
+            "tcga_network": tcga_network,
             "ensembl_id": None,
             "gene_symbol": None,
             "gene_role": None,

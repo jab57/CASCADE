@@ -8,7 +8,12 @@ import pandas as pd
 # Default paths
 BASE_DIR = Path(__file__).parent.parent
 NETWORKS_DIR = BASE_DIR / "data" / "networks"
+TCGA_NETWORKS_DIR = BASE_DIR / "data" / "networks" / "tcga"
 MODEL_PATH = BASE_DIR / "models" / "model.ckpt"
+
+VALID_TCGA_CANCER_TYPES = frozenset(
+    ["brca", "coad", "hnsc", "luad", "lusc", "ov", "prad", "ucec"]
+)
 
 # In-process network cache: avoids re-reading TSV files on repeated calls
 # for the same cell type within a server session.
@@ -45,6 +50,50 @@ def load_network(network_path: Path | str) -> pd.DataFrame:
         col.replace(".values", "").replace(".", "_")
         for col in df.columns
     ]
+
+    _network_cache[cache_key] = df
+    return df
+
+
+def load_tcga_network(cancer_type: str) -> pd.DataFrame:
+    """
+    Load a TCGA ARACNe network CSV as a DataFrame compatible with CASCADE BFS propagation.
+
+    Input CSV columns (exported from aracne.networks .rda via scripts/extract_tcga_networks.py):
+        Regulator, Target, MoA, Likelihood
+    Output columns expected by CASCADE BFS:
+        regulator, target, mi, scc, count, log_p
+
+    Networks use gene symbols natively — GeneIDMapper is never called in this code path.
+    Results are cached in-process (same cache as load_network).
+
+    Args:
+        cancer_type: One of brca, coad, hnsc, luad, lusc, ov, prad, ucec
+
+    Returns:
+        DataFrame with columns: regulator, target, mi, scc, count, log_p
+        On error (unknown type, missing file), returns a dict with "error" key.
+    """
+    if cancer_type not in VALID_TCGA_CANCER_TYPES:
+        return {"error": f"Unknown TCGA cancer type '{cancer_type}'. "
+                         f"Valid options: {sorted(VALID_TCGA_CANCER_TYPES)}"}
+
+    csv_path = TCGA_NETWORKS_DIR / cancer_type / "network.csv"
+    if not csv_path.exists():
+        return {"error": f"TCGA network file not found: {csv_path}. "
+                         "Run scripts/extract_tcga_networks.py to generate it."}
+
+    cache_key = str(csv_path.resolve())
+    if cache_key in _network_cache:
+        return _network_cache[cache_key]
+
+    df = pd.read_csv(csv_path)
+
+    # Map CSV columns to CASCADE BFS-expected column names
+    df = df.rename(columns={"Regulator": "regulator", "Target": "target", "Likelihood": "mi"})
+    df["scc"] = 0.0
+    df["count"] = 0
+    df["log_p"] = 0.0
 
     _network_cache[cache_key] = df
     return df

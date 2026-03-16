@@ -57,7 +57,7 @@ server_bg = FancyBboxPatch((0.3, 0.3), 9.4, 6.1, boxstyle='round,pad=0.15',
 ax.add_patch(server_bg)
 ax.text(5, 6.32, 'CASCADE LangGraph MCP Server', ha='center', va='center',
         fontsize=11, fontweight='bold', color=C_DARK, zorder=3)
-ax.text(5, 6.12, '28 Tools  ·  5 Resources  ·  5 Prompt Templates', ha='center', va='center',
+ax.text(5, 6.12, '28 Tools  ·  5 Resources  ·  5 Prompt Templates  ·  Cell-Type & TCGA Networks', ha='center', va='center',
         fontsize=7, color='#5D6D7E', zorder=3, style='italic')
 
 # === Row 3: Workflow box ===
@@ -121,7 +121,7 @@ arrow(4.8, 3.22, 5.2, 3.22)
 
 # Network Resources (left, under Batch Core) — dashed border = local
 box(0.5, 0.35, 2.8, 1.25, C_LOCAL,
-    'Network Resources\n10 Pre-computed Networks\nNetwork Propagation\nGene ID Resolution',
+    'Network Resources\n10 Cell-Type Networks\n8 TCGA Tumor Networks\nNetwork Propagation',
     fontsize=6.5, linestyle='dashed', edgecolor=C_LOCAL)
 
 # Runtime APIs (center, under Batch External) — solid border = external

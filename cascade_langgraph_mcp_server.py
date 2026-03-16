@@ -436,6 +436,7 @@ async def handle_list_tools() -> list[Tool]:
     """List available LangGraph-powered tools."""
 
     cell_type_enum = [ct.value for ct in CellType]
+    tcga_network_enum = ["brca", "coad", "hnsc", "luad", "lusc", "ov", "prad", "ucec"]
 
     return [
         Tool(
@@ -488,6 +489,17 @@ async def handle_list_tools() -> list[Tool]:
                         "type": "boolean",
                         "description": "Generate LLM-powered biological interpretation (requires Ollama, adds latency)",
                         "default": False
+                    },
+                    "network_source": {
+                        "type": "string",
+                        "enum": ["cell_type", "tcga"],
+                        "description": "Use 'tcga' for tumor-state regulatory network; requires tcga_network param",
+                        "default": "cell_type"
+                    },
+                    "tcga_network": {
+                        "type": "string",
+                        "enum": tcga_network_enum,
+                        "description": "TCGA cancer type network (required when network_source=tcga). Epithelial-origin only."
                     }
                 },
                 "required": ["gene"]
@@ -539,6 +551,17 @@ async def handle_list_tools() -> list[Tool]:
                         "type": "integer",
                         "description": "Number of top affected genes to return",
                         "default": 25
+                    },
+                    "network_source": {
+                        "type": "string",
+                        "enum": ["cell_type", "tcga"],
+                        "description": "Use 'tcga' for tumor-state regulatory network; requires tcga_network param",
+                        "default": "cell_type"
+                    },
+                    "tcga_network": {
+                        "type": "string",
+                        "enum": tcga_network_enum,
+                        "description": "TCGA cancer type network (required when network_source=tcga). Epithelial-origin only."
                     }
                 },
                 "required": ["gene"]
@@ -777,6 +800,17 @@ async def handle_list_tools() -> list[Tool]:
                         "type": "integer",
                         "description": "Maximum regulators to return",
                         "default": 50
+                    },
+                    "network_source": {
+                        "type": "string",
+                        "enum": ["cell_type", "tcga"],
+                        "description": "Use 'tcga' for tumor-state regulatory network; requires tcga_network param",
+                        "default": "cell_type"
+                    },
+                    "tcga_network": {
+                        "type": "string",
+                        "enum": tcga_network_enum,
+                        "description": "TCGA cancer type network (required when network_source=tcga). Epithelial-origin only."
                     }
                 },
                 "required": ["gene"]
@@ -807,6 +841,17 @@ async def handle_list_tools() -> list[Tool]:
                         "type": "integer",
                         "description": "Maximum targets to return",
                         "default": 50
+                    },
+                    "network_source": {
+                        "type": "string",
+                        "enum": ["cell_type", "tcga"],
+                        "description": "Use 'tcga' for tumor-state regulatory network; requires tcga_network param",
+                        "default": "cell_type"
+                    },
+                    "tcga_network": {
+                        "type": "string",
+                        "enum": tcga_network_enum,
+                        "description": "TCGA cancer type network (required when network_source=tcga). Epithelial-origin only."
                     }
                 },
                 "required": ["gene"]
@@ -1413,25 +1458,35 @@ async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent
 
 async def _comprehensive_analysis(args: dict, progress_cb=None) -> dict:
     """Run comprehensive perturbation analysis via workflow."""
-    cell_type = args.get("cell_type", "epithelial_cell")
-    if err := _validate_cell_type(cell_type):
-        return err
+    network_source = args.get("network_source", "cell_type")
+    tcga_network = args.get("tcga_network")
+
+    if network_source == "tcga":
+        if not tcga_network:
+            return {"error": "tcga_network is required when network_source='tcga'. "
+                             "Valid options: brca, coad, hnsc, luad, lusc, ov, prad, ucec"}
+    else:
+        cell_type = args.get("cell_type", "epithelial_cell")
+        if err := _validate_cell_type(cell_type):
+            return err
 
     workflow = await get_workflow()
 
     return await workflow.run(
         gene=args["gene"],
-        cell_type=cell_type,
+        cell_type=args.get("cell_type", "epithelial_cell"),
         perturbation_type=args.get("perturbation_type", "knockdown"),
         analysis_depth=args.get("analysis_depth", "comprehensive"),
         include_llm_insights=args.get("include_llm_insights", False),
+        network_source=network_source,
+        tcga_network=tcga_network,
         progress_cb=progress_cb,
     )
 
 
 async def _quick_perturbation(args: dict) -> dict:
     """Run quick perturbation without full workflow."""
-    from tools.loader import load_network
+    from tools.loader import load_network, load_tcga_network
     from tools.perturb import (
         simulate_knockdown_with_embeddings,
         simulate_overexpression_with_embeddings,
@@ -1442,27 +1497,44 @@ async def _quick_perturbation(args: dict) -> dict:
     workflow = await get_workflow()
 
     gene = args["gene"]
-    cell_type = args.get("cell_type", "epithelial_cell")
-    if err := _validate_cell_type(cell_type):
-        return err
     perturbation_type = args.get("perturbation_type", "knockdown")
     depth = args.get("depth", 2)
     top_k = args.get("top_k", 25)
+    network_source = args.get("network_source", "cell_type")
+    tcga_network = args.get("tcga_network")
 
-    # Resolve gene using the workflow's shared mapper (no duplicate GeneIDMapper init)
-    if gene.upper().startswith("ENSG"):
-        ensembl_id = gene.upper()
+    if network_source == "tcga":
+        if not tcga_network:
+            return {"error": "tcga_network is required when network_source='tcga'. "
+                             "Valid options: brca, coad, hnsc, luad, lusc, ov, prad, ucec"}
+        # TCGA networks use gene symbols — resolve symbol if Ensembl ID given
+        if gene.upper().startswith("ENSG"):
+            symbol = workflow.gene_mapper.ensembl_to_symbol(gene)
+            if symbol is None:
+                return {"error": f"Could not resolve Ensembl ID '{gene}'"}
+            gene_id = symbol
+        else:
+            gene_id = gene.upper()
+        network_df = load_tcga_network(tcga_network)
+        if isinstance(network_df, dict) and "error" in network_df:
+            return network_df
+        cell_type = tcga_network  # for result annotation
     else:
-        ensembl_id = workflow.gene_mapper.symbol_to_ensembl(gene)
-        if ensembl_id is None:
-            return {"error": f"Could not resolve gene '{gene}'"}
-
-    # Load network (cached after first access)
-    network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
-    if not network_path.exists():
-        return {"error": f"Network not found for {cell_type}"}
-
-    network_df = load_network(network_path)
+        cell_type = args.get("cell_type", "epithelial_cell")
+        if err := _validate_cell_type(cell_type):
+            return err
+        # Resolve gene using the workflow's shared mapper
+        if gene.upper().startswith("ENSG"):
+            gene_id = gene.upper()
+        else:
+            gene_id = workflow.gene_mapper.symbol_to_ensembl(gene)
+            if gene_id is None:
+                return {"error": f"Could not resolve gene '{gene}'"}
+        # Load network (cached after first access)
+        network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
+        if not network_path.exists():
+            return {"error": f"Network not found for {cell_type}"}
+        network_df = load_network(network_path)
 
     # Reuse the workflow's pre-loaded model singleton instead of reloading 120MB checkpoint
     try:
@@ -1470,24 +1542,27 @@ async def _quick_perturbation(args: dict) -> dict:
 
         if perturbation_type == "knockdown":
             result = simulate_knockdown_with_embeddings(
-                network_df, ensembl_id, model, depth=depth, top_k=top_k
+                network_df, gene_id, model, depth=depth, top_k=top_k
             )
         else:
             result = simulate_overexpression_with_embeddings(
-                network_df, ensembl_id, model, depth=depth, top_k=top_k
+                network_df, gene_id, model, depth=depth, top_k=top_k
             )
         result["embedding_enhanced"] = True
     except Exception as e:
         if perturbation_type == "knockdown":
-            result = simulate_knockdown(network_df, ensembl_id, depth=depth, top_k=top_k)
+            result = simulate_knockdown(network_df, gene_id, depth=depth, top_k=top_k)
         else:
-            result = simulate_overexpression(network_df, ensembl_id, depth=depth, top_k=top_k)
+            result = simulate_overexpression(network_df, gene_id, depth=depth, top_k=top_k)
         result["embedding_enhanced"] = False
         result["note"] = f"Network-only (model unavailable: {str(e)[:50]})"
 
     result["gene"] = gene
     result["cell_type"] = cell_type
     result["perturbation_type"] = perturbation_type
+    if network_source == "tcga":
+        result["network_source"] = "tcga"
+        result["tcga_network"] = tcga_network
 
     if result.get("total_affected_genes", 0) == 0:
         result["suggestions"] = [
@@ -1862,61 +1937,87 @@ async def _get_gene_metadata(args: dict) -> dict:
 
 async def _find_gene_regulators(args: dict) -> dict:
     """Find upstream regulators of a gene."""
-    from tools.loader import load_network
+    from tools.loader import load_network, load_tcga_network
     from tools.perturb import get_regulators
 
     workflow = await get_workflow()
     gene = args["gene"]
-    cell_type = args.get("cell_type", "epithelial_cell")
-    if err := _validate_cell_type(cell_type):
-        return err
     max_regulators = args.get("max_regulators", 50)
+    network_source = args.get("network_source", "cell_type")
+    tcga_network = args.get("tcga_network")
 
-    # Resolve gene
-    ensembl_id = workflow.gene_mapper.symbol_to_ensembl(gene)
-    if ensembl_id is None:
-        return {"error": f"Could not resolve gene '{gene}'"}
+    if network_source == "tcga":
+        if not tcga_network:
+            return {"error": "tcga_network is required when network_source='tcga'. "
+                             "Valid options: brca, coad, hnsc, luad, lusc, ov, prad, ucec"}
+        gene_id = gene if not gene.upper().startswith("ENSG") else (
+            workflow.gene_mapper.ensembl_to_symbol(gene) or gene
+        )
+        network_df = load_tcga_network(tcga_network)
+        if isinstance(network_df, dict) and "error" in network_df:
+            return network_df
+        cell_type = tcga_network
+    else:
+        cell_type = args.get("cell_type", "epithelial_cell")
+        if err := _validate_cell_type(cell_type):
+            return err
+        gene_id = workflow.gene_mapper.symbol_to_ensembl(gene)
+        if gene_id is None:
+            return {"error": f"Could not resolve gene '{gene}'"}
+        network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
+        if not network_path.exists():
+            return {"error": f"Network not found for {cell_type}"}
+        network_df = load_network(network_path)
 
-    # Load network
-    network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
-    if not network_path.exists():
-        return {"error": f"Network not found for {cell_type}"}
-
-    network_df = load_network(network_path)
-    result = get_regulators(network_df, ensembl_id, max_regulators=max_regulators)
-
+    result = get_regulators(network_df, gene_id, max_regulators=max_regulators)
     result["input_gene"] = gene
     result["cell_type"] = cell_type
+    if network_source == "tcga":
+        result["network_source"] = "tcga"
+        result["tcga_network"] = tcga_network
     return result
 
 
 async def _find_gene_targets(args: dict) -> dict:
     """Find downstream targets of a gene."""
-    from tools.loader import load_network
+    from tools.loader import load_network, load_tcga_network
     from tools.perturb import get_targets
 
     workflow = await get_workflow()
     gene = args["gene"]
-    cell_type = args.get("cell_type", "epithelial_cell")
-    if err := _validate_cell_type(cell_type):
-        return err
     max_targets = args.get("max_targets", 50)
+    network_source = args.get("network_source", "cell_type")
+    tcga_network = args.get("tcga_network")
 
-    # Resolve gene
-    ensembl_id = workflow.gene_mapper.symbol_to_ensembl(gene)
-    if ensembl_id is None:
-        return {"error": f"Could not resolve gene '{gene}'"}
+    if network_source == "tcga":
+        if not tcga_network:
+            return {"error": "tcga_network is required when network_source='tcga'. "
+                             "Valid options: brca, coad, hnsc, luad, lusc, ov, prad, ucec"}
+        gene_id = gene if not gene.upper().startswith("ENSG") else (
+            workflow.gene_mapper.ensembl_to_symbol(gene) or gene
+        )
+        network_df = load_tcga_network(tcga_network)
+        if isinstance(network_df, dict) and "error" in network_df:
+            return network_df
+        cell_type = tcga_network
+    else:
+        cell_type = args.get("cell_type", "epithelial_cell")
+        if err := _validate_cell_type(cell_type):
+            return err
+        gene_id = workflow.gene_mapper.symbol_to_ensembl(gene)
+        if gene_id is None:
+            return {"error": f"Could not resolve gene '{gene}'"}
+        network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
+        if not network_path.exists():
+            return {"error": f"Network not found for {cell_type}"}
+        network_df = load_network(network_path)
 
-    # Load network
-    network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
-    if not network_path.exists():
-        return {"error": f"Network not found for {cell_type}"}
-
-    network_df = load_network(network_path)
-    result = get_targets(network_df, ensembl_id, max_targets=max_targets)
-
+    result = get_targets(network_df, gene_id, max_targets=max_targets)
     result["input_gene"] = gene
     result["cell_type"] = cell_type
+    if network_source == "tcga":
+        result["network_source"] = "tcga"
+        result["tcga_network"] = tcga_network
     return result
 
 

@@ -8,30 +8,32 @@ This document provides comprehensive information about the data sources used by 
 
 CASCADE integrates eight data sources, divided into two categories:
 
-**Local files (must be downloaded or are bundled):**
+**Local files (bundled in the repository — no download required):**
 
 | Source | Purpose | Location | Size |
 |--------|---------|----------|------|
-| GREmLN regulatory networks | Gene regulatory network topology | `data/networks/` | ~2 MB total |
-| GREmLN model checkpoint | Gene embeddings (256-dim, 19,247 genes) | `models/model.ckpt` | ~120 MB |
+| GREmLN regulatory networks | Population-averaged cell-type regulatory network topology | `data/networks/` | ~2 MB total |
+| TCGA ARACNe networks | Tumor-state regulatory networks (8 cancer types) | `data/networks/tcga/` | ~104 MB total |
 | LINCS L1000 | Experimental CRISPR knockout expression effects | `data/lincs/` | ~35 MB |
 | dbSUPER | Super-enhancer annotations (BRD4/BET sensitivity) | `data/super_enhancers/` | ~3.7 MB |
-| DepMap | CRISPR Chronos gene essentiality scores | `data/depmap/` | ~200 MB |
+| DoRothEA disk cache | TF regulon parquet cache for fast server startup | `data/dorothea/` | ~1 MB |
+| DepMap model metadata | Cell line annotations (lineage, disease) | `data/depmap/Model.csv` | ~1 MB |
 
-**Live APIs (no local files required):**
+**Files requiring a one-time download after cloning:**
+
+| Source | Purpose | Location | Size |
+|--------|---------|----------|------|
+| GREmLN model checkpoint | Gene embeddings (256-dim, 19,247 genes) | `models/model.ckpt` | ~120 MB |
+| DepMap CRISPR scores | Chronos gene essentiality (1000+ cancer lines) | `data/depmap/CRISPRGeneEffect.csv` | ~413 MB |
+
+**Python package + live APIs (no local files required):**
 
 | Source | Purpose | Access |
 |--------|---------|--------|
-| STRING | Protein-protein interactions | REST API, queried at runtime |
 | DoRothEA | TF regulon validation | Python package (`decoupler`) + disk cache |
+| STRING | Protein-protein interactions | REST API, queried at runtime |
 | Ensembl | Gene symbol ↔ Ensembl ID mapping | REST API, queried at runtime |
 | cBioPortal | TCGA primary tumor expression & somatic alterations | REST API, queried at runtime |
-
-**Optional local files (not required for standard use):**
-
-| Source | Purpose | Location | Size |
-|--------|---------|----------|------|
-| TCGA ARACNe networks | Cancer-type-specific tumor regulatory networks | `data/networks/tcga/` | ~varies |
 
 ---
 
@@ -451,13 +453,11 @@ Martin, F.J., et al. (2023). Ensembl 2023. *Nucleic Acids Research*, 51(D1), D93
 
 ---
 
-## TCGA Tumor-State ARACNe Networks (Optional — Not Yet Implemented)
+## TCGA Tumor-State ARACNe Networks
 
-> **Status:** Planned for a future release. The download instructions below document the intended approach, mirroring the implementation in RegNetAgents.
+CASCADE supports **8 TCGA cancer-type-specific ARACNe networks** derived from The Cancer Genome Atlas (TCGA) tumor expression data. These complement the GREmLN population-averaged cell-type networks with tumor-state regulatory wiring and include **Mode of Action (MoA)** annotations (activation vs. repression) not present in the GREmLN networks.
 
-CASCADE will optionally support **8 TCGA cancer-type-specific ARACNe networks** derived from The Cancer Genome Atlas (TCGA) tumor expression data. These will complement the GREmLN cell-type networks with tumor-state regulatory wiring and include **Mode of Action (MoA)** annotations (activation vs. repression) not present in the GREmLN networks.
-
-> **Note for standard users (once implemented):** TCGA network caches will be included in the repository (`data/networks/tcga/`). No separate download will be required unless you need to rebuild from source CSVs.
+> **Note for standard users:** Pre-built network CSVs for all 8 cancer types are committed to this repository at `data/networks/tcga/`. Cloning the repo is sufficient — no separate download or build step is required. The instructions below document how to regenerate the CSVs from the Bioconductor source tarball if you need to reproduce or update them.
 
 ### Supported Cancer Types
 
@@ -500,7 +500,9 @@ TP53,MDM2,-1.0,0.251
 | `MoA` | Mode of Action: +1 activation, -1 repression, 0 unknown |
 | `Likelihood` | Edge confidence score (0–1) |
 
-### How to Build from Source
+### How to Regenerate from Source
+
+The pre-built CSVs are already in the repository. These instructions apply only if you need to regenerate them (e.g., after a new `aracne.networks` release).
 
 #### Step 1: Download the Bioconductor tarball (~213 MB)
 
@@ -512,7 +514,7 @@ curl -o /tmp/aracne.networks.tar.gz \
 #### Step 2: Install required Python packages
 
 ```bash
-pip install rdata networkx
+pip install rdata
 ```
 
 #### Step 3: Extract network CSVs
@@ -524,17 +526,7 @@ python scripts/extract_tcga_networks.py \
     --output-dir data/networks/tcga
 ```
 
-#### Step 4: Build caches
-
-```bash
-# All 8 cancer types
-python scripts/build_tcga_cache.py --all
-
-# Or a single cancer type (faster for testing)
-python scripts/build_tcga_cache.py --cancer-type brca
-```
-
-This computes PageRank, empirical thresholds, and writes a network index for each cancer type. The `--skip-validation` flag skips MyGene.info symbol validation (use for offline/CI builds).
+The script reads each `.rda` file from the tarball, batch-converts all Entrez IDs to gene symbols via MyGene.info (resolves >99.9% of IDs), and writes symbol-keyed CSVs. A single cancer type can be extracted with `--cancer-type brca` for faster testing.
 
 ### Network Statistics
 
@@ -603,7 +595,7 @@ python scripts/download_model.py
 #   - Place at: data/depmap/CRISPRGeneEffect.csv
 ```
 
-Everything else (networks, LINCS, dbSUPER, DoRothEA cache, DepMap Model.csv) is already in the repository.
+Everything else is already in the repository: GREmLN cell-type networks, TCGA ARACNe networks (8 cancer types), LINCS L1000, dbSUPER, DoRothEA cache, and DepMap Model.csv.
 
 Verify the full installation after both steps:
 
@@ -623,5 +615,5 @@ python verify_installation.py --offline
 
 ---
 
-**Last Updated**: 2026-03-15
+**Last Updated**: 2026-03-16
 **Maintained by**: CASCADE Development Team
