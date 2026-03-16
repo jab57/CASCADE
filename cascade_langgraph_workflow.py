@@ -1000,26 +1000,14 @@ class CascadeWorkflow:
                 network_df = load_tcga_network(tcga_network)
                 if isinstance(network_df, dict) and "error" in network_df:
                     return network_df
-                try:
-                    model = self._get_model()
-                    if perturbation_type == "knockdown":
-                        result = simulate_knockdown_with_embeddings(
-                            network_df, gene_id, model,
-                            depth=2, top_k=25, alpha=0.7
-                        )
-                    else:
-                        result = simulate_overexpression_with_embeddings(
-                            network_df, gene_id, model,
-                            fold_change=2.0, depth=2, top_k=25, alpha=0.7
-                        )
-                    result["embedding_enhanced"] = True
-                except Exception as e:
-                    logger.warning(f"Model unavailable, using network-only: {e}")
-                    if perturbation_type == "knockdown":
-                        result = simulate_knockdown(network_df, gene_id, depth=2, top_k=25)
-                    else:
-                        result = simulate_overexpression(network_df, gene_id, fold_change=2.0, depth=2, top_k=25)
-                    result["embedding_enhanced"] = False
+                # TCGA networks use gene symbols; embedding model uses Ensembl IDs —
+                # skip embedding-enhanced path to avoid vocabulary mismatch
+                if perturbation_type == "knockdown":
+                    result = simulate_knockdown(network_df, gene_id, depth=2, top_k=25)
+                else:
+                    result = simulate_overexpression(network_df, gene_id, fold_change=2.0, depth=2, top_k=25)
+                result["embedding_enhanced"] = False
+                result["note"] = "Network-only propagation (TCGA networks use gene symbols; embedding model uses Ensembl IDs)"
                 return result
 
             return await asyncio.to_thread(_sync_tcga)

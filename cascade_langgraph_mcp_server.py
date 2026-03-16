@@ -1536,26 +1536,35 @@ async def _quick_perturbation(args: dict) -> dict:
             return {"error": f"Network not found for {cell_type}"}
         network_df = load_network(network_path)
 
-    # Reuse the workflow's pre-loaded model singleton instead of reloading 120MB checkpoint
-    try:
-        model = workflow._get_model()
-
-        if perturbation_type == "knockdown":
-            result = simulate_knockdown_with_embeddings(
-                network_df, gene_id, model, depth=depth, top_k=top_k
-            )
-        else:
-            result = simulate_overexpression_with_embeddings(
-                network_df, gene_id, model, depth=depth, top_k=top_k
-            )
-        result["embedding_enhanced"] = True
-    except Exception as e:
+    if network_source == "tcga":
+        # TCGA networks use gene symbols; embedding model uses Ensembl IDs —
+        # skip embedding-enhanced path to avoid vocabulary mismatch
         if perturbation_type == "knockdown":
             result = simulate_knockdown(network_df, gene_id, depth=depth, top_k=top_k)
         else:
             result = simulate_overexpression(network_df, gene_id, depth=depth, top_k=top_k)
         result["embedding_enhanced"] = False
-        result["note"] = f"Network-only (model unavailable: {str(e)[:50]})"
+        result["note"] = "Network-only propagation (TCGA networks use gene symbols; embedding model uses Ensembl IDs)"
+    else:
+        # Cell-type networks: use embedding-enhanced propagation (Ensembl IDs match model vocab)
+        try:
+            model = workflow._get_model()
+            if perturbation_type == "knockdown":
+                result = simulate_knockdown_with_embeddings(
+                    network_df, gene_id, model, depth=depth, top_k=top_k
+                )
+            else:
+                result = simulate_overexpression_with_embeddings(
+                    network_df, gene_id, model, depth=depth, top_k=top_k
+                )
+            result["embedding_enhanced"] = True
+        except Exception as e:
+            if perturbation_type == "knockdown":
+                result = simulate_knockdown(network_df, gene_id, depth=depth, top_k=top_k)
+            else:
+                result = simulate_overexpression(network_df, gene_id, depth=depth, top_k=top_k)
+            result["embedding_enhanced"] = False
+            result["note"] = f"Network-only (model unavailable: {str(e)[:50]})"
 
     result["gene"] = gene
     result["cell_type"] = cell_type
