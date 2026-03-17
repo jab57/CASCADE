@@ -40,6 +40,10 @@ htmlcov/
 # Internal planning docs
 JOSS_DEVELOPMENT_PLAN.md
 FUTURE_ROADMAP.md
+RESEARCH_PAPER_PLAN.md
+
+# Generated analysis outputs
+outputs/
 
 # Distribution
 dist/
