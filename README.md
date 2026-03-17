@@ -285,19 +285,59 @@ python cascade_mcp_server_original.py
 
 ### LLM Insights Configuration
 
-CASCADE uses Ollama (local or cloud) by default for LLM-powered biological insights. The LLM integration is modular and can be adapted to other providers. Copy `.env.example` to `.env` and configure:
+LLM insights are **off by default** (`USE_LLM_INSIGHTS=false`). CASCADE runs fully without any LLM. This is the recommended mode for MCP clients (Claude Desktop, Cursor).
 
+To enable LLM-powered biological interpretation, copy `.env.example` to `.env`, set `USE_LLM_INSIGHTS=true`, and configure one of the four supported providers:
+
+**Option A: Ollama local (default, no API key needed)**
 ```bash
-# Enable LLM-powered biological insights
+# Install Ollama: https://ollama.com/download
+ollama pull llama3.1:8b
+# Then set in .env:
 USE_LLM_INSIGHTS=true
-
-# Local Ollama (default)
-OLLAMA_HOST=http://localhost:11434
+LLM_PROVIDER=ollama
 OLLAMA_MODEL=llama3.1:8b
-
-# Or use Ollama Cloud
-# OLLAMA_API_KEY=your-api-key
 ```
+
+**Option B: OpenAI**
+```bash
+USE_LLM_INSIGHTS=true
+LLM_PROVIDER=openai
+LLM_API_KEY=sk-...
+LLM_MODEL=gpt-4o-mini
+```
+
+**Option C: Anthropic**
+```bash
+USE_LLM_INSIGHTS=true
+LLM_PROVIDER=anthropic
+LLM_API_KEY=sk-ant-...
+LLM_MODEL=claude-haiku-4-5-20251001
+```
+
+**Option D: OpenAI-compatible (Groq, Together, etc.)**
+```bash
+USE_LLM_INSIGHTS=true
+LLM_PROVIDER=openai_compatible
+LLM_API_KEY=your-key
+LLM_MODEL=llama-3.1-8b-instant
+LLM_API_BASE=https://api.groq.com/openai/v1
+```
+
+| Variable | Default | Description |
+|---|---|---|
+| `USE_LLM_INSIGHTS` | `false` | Enable LLM biological interpretation |
+| `LLM_PROVIDER` | `ollama` | `ollama` \| `openai` \| `anthropic` \| `openai_compatible` |
+| `LLM_API_KEY` | — | Required for cloud providers |
+| `LLM_MODEL` | — | Override model (e.g. `gpt-4o-mini`, `claude-haiku-4-5-20251001`) |
+| `LLM_API_BASE` | — | Base URL for `openai_compatible` providers |
+| `OLLAMA_MODEL` | `llama3.1:8b` | Model for Ollama provider |
+| `OLLAMA_TIMEOUT` | `60` | LLM call timeout in seconds |
+
+**Troubleshooting:**
+- Ollama not running → `ollama serve` then retry
+- Model not found → `ollama pull llama3.1:8b`
+- Cloud provider error → check `LLM_API_KEY` and `LLM_MODEL` are set
 
 ### Claude Desktop Configuration
 
