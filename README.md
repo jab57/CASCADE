@@ -299,6 +299,14 @@ LLM_PROVIDER=ollama
 OLLAMA_MODEL=llama3.1:8b
 ```
 
+**Option A2: Ollama Cloud (API key)**
+```bash
+USE_LLM_INSIGHTS=true
+LLM_PROVIDER=ollama
+OLLAMA_API_KEY=your-ollama-cloud-key
+OLLAMA_MODEL=llama3.1:8b
+```
+
 **Option B: OpenAI**
 ```bash
 USE_LLM_INSIGHTS=true
@@ -332,6 +340,8 @@ LLM_API_BASE=https://api.groq.com/openai/v1
 | `LLM_MODEL` | — | Override model (e.g. `gpt-4o-mini`, `claude-haiku-4-5-20251001`) |
 | `LLM_API_BASE` | — | Base URL for `openai_compatible` providers |
 | `OLLAMA_MODEL` | `llama3.1:8b` | Model for Ollama provider |
+| `OLLAMA_API_KEY` | — | Ollama Cloud API key (omit for local) |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
 | `OLLAMA_TIMEOUT` | `60` | LLM call timeout in seconds |
 
 **Troubleshooting:**
