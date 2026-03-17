@@ -1707,8 +1707,21 @@ class CascadeWorkflow:
         similar = state.get("similar_genes")
 
         lincs_total_effects = 0
+        lincs_up = 0
+        lincs_down = 0
+        lincs_top_genes = []
         if isinstance(lincs, list):
             lincs_total_effects = len(lincs)
+            for e in lincs:
+                if isinstance(e, dict):
+                    direction = e.get("direction", e.get("effect_direction", ""))
+                    if "up" in str(direction).lower():
+                        lincs_up += 1
+                    elif "down" in str(direction).lower():
+                        lincs_down += 1
+                    sym = e.get("gene_symbol") or e.get("gene") or e.get("symbol")
+                    if sym and len(lincs_top_genes) < 5:
+                        lincs_top_genes.append(sym)
         elif isinstance(lincs, dict):
             lincs_total_effects = int(lincs.get("total_effects", 0) or 0)
 
@@ -1717,53 +1730,100 @@ class CascadeWorkflow:
             ppi_interactions = ppi.get("interactions", []) or []
         elif isinstance(ppi, list):
             ppi_interactions = ppi
+        ppi_names = [p.get("preferredName") or p.get("partner") or p.get("symbol")
+                     for p in ppi_interactions[:8] if isinstance(p, dict)]
+        ppi_names = [n for n in ppi_names if n]
 
         similar_genes_list = []
         if isinstance(similar, dict):
             similar_genes_list = similar.get("similar_genes", []) or []
         elif isinstance(similar, list):
             similar_genes_list = similar
+        similar_names = [g.get("gene_symbol") or g.get("symbol")
+                         for g in similar_genes_list[:5] if isinstance(g, dict)]
+        similar_names = [n for n in similar_names if n]
 
-        prompt = f"""Analyze the biological implications of {gene} {perturbation_type} in {cell_type} cells.
+        # Format top affected genes as readable list with direction and score
+        top_affected_raw = perturbation.get("top_affected", []) or []
+        top_affected_fmt = []
+        for g in top_affected_raw[:15]:
+            if not isinstance(g, dict):
+                continue
+            sym = (g.get("gene_symbol") or g.get("symbol") or
+                   g.get("ensembl_id") or g.get("gene", ""))
+            effect = g.get("combined_effect") or g.get("network_effect") or g.get("effect", 0)
+            direction = "↓" if float(effect or 0) < 0 else "↑"
+            top_affected_fmt.append(f"{sym} ({direction}{abs(float(effect or 0)):.2f})")
 
-## Gene Context
-- Gene Role: {gene_role}
-- Network Position: {state.get('network_context', {})}
+        # DoRothEA TF validation
+        dorothea = state.get("dorothea_regulons") or {}
+        dorothea_validated = isinstance(dorothea, dict) and dorothea.get("is_known_tf", False)
+        dorothea_targets = (dorothea.get("total_targets", 0)
+                            if isinstance(dorothea, dict) else 0)
+        dorothea_conf = (dorothea.get("confidence_levels", [])
+                         if isinstance(dorothea, dict) else [])
 
-## Perturbation Analysis Results
-- Total Affected Genes: {perturbation.get('total_affected_genes', 0)}
-- Top Targets: {perturbation.get('top_affected', [])[:5]}
+        # Network source context
+        network_source = state.get("network_source", "cell_type")
+        network_label = (f"TCGA {state.get('tcga_network', '').upper()} tumor-state network"
+                         if network_source == "tcga"
+                         else f"{cell_type} cell-type network (GREmLN)")
 
-## Protein Interactions (STRING)
-- Interaction Partners: {len(ppi_interactions)} found
-- Key Partners: {[p.get('preferredName') or p.get('partner') for p in ppi_interactions[:5]]}
+        # Regulators
+        regulators = state.get("regulators_analysis") or {}
+        top_regulators = []
+        if isinstance(regulators, dict):
+            for r in (regulators.get("top_regulators") or [])[:5]:
+                sym = r.get("gene_symbol") or r.get("symbol") or r.get("ensembl_id", "")
+                if sym:
+                    top_regulators.append(sym)
 
-## LINCS Knockdown Data
-- Experimental Effects: {lincs_total_effects} genes affected in LINCS
+        prompt = f"""You are analyzing results from CASCADE, an in silico gene perturbation tool.
 
-## Super-Enhancer Status
-- Has Super-Enhancer: {se.get('has_super_enhancer', False)}
-- BRD4 Sensitive: {se.get('has_super_enhancer', False)}
+Gene: {gene} | Perturbation: {perturbation_type} | Network: {network_label}
+Gene Role: {gene_role}
 
-## Similar Genes (Embedding-based)
-- Top Similar: {[g.get('symbol') for g in similar_genes_list[:5] if isinstance(g, dict)]}
+## Network Propagation Results
+- Total downstream genes affected: {perturbation.get('total_affected_genes', 0)}
+- Direct network targets: {perturbation.get('direct_targets', perturbation.get('total_direct_targets', 'N/A'))}
+- Top predicted {'downregulated' if perturbation_type == 'knockdown' else 'upregulated'} genes:
+  {', '.join(top_affected_fmt[:10]) if top_affected_fmt else 'N/A'}
 
-Provide a biological interpretation in this EXACT JSON format:
+## Upstream Regulators
+- Top regulators of {gene}: {', '.join(top_regulators) if top_regulators else 'N/A'}
+
+## DoRothEA TF Validation
+- Known TF: {dorothea_validated} | Curated targets: {dorothea_targets} | Confidence: {dorothea_conf}
+
+## STRING Protein Interactions
+- Partners ({len(ppi_names)} shown): {', '.join(ppi_names) if ppi_names else 'N/A'}
+
+## LINCS Experimental Knockdown
+- Genes affected: {lincs_total_effects} ({lincs_up} up / {lincs_down} down)
+- Example affected genes: {', '.join(lincs_top_genes) if lincs_top_genes else 'N/A'}
+
+## Super-Enhancer / BRD4 Status
+- Has super-enhancer: {se.get('has_super_enhancer', False)}
+- BRD4/BET inhibitor sensitive: {se.get('has_super_enhancer', False)}
+- Cell types with SE: {se.get('cell_type_count', 'N/A')}
+
+## Functionally Similar Genes
+- {', '.join(similar_names) if similar_names else 'N/A'}
+
+Based on the data above, provide a biological interpretation in this EXACT JSON format:
 {{
-  "mechanism_summary": "2-3 sentence explanation of what this perturbation does mechanistically",
-  "therapeutic_implications": "1-2 sentences on drug development relevance",
+  "mechanism_summary": "2-3 sentences explaining the mechanism, naming specific top-affected genes from the data",
+  "therapeutic_implications": "1-2 sentences on drug development relevance, referencing BRD4/LINCS/PPI data where applicable",
   "key_pathways_affected": ["pathway1", "pathway2", "pathway3"],
   "confidence_level": "high|medium|low",
-  "confidence_rationale": "why this confidence level",
-  "follow_up_suggestions": ["suggestion1", "suggestion2"],
-  "biological_interpretation": "3-4 sentence narrative synthesis suitable for a research report"
+  "confidence_rationale": "cite specific data points that justify this confidence level",
+  "follow_up_suggestions": ["specific actionable suggestion 1", "specific actionable suggestion 2"],
+  "biological_interpretation": "3-4 sentence narrative suitable for a research report, naming key genes and their roles"
 }}
 
-Base your analysis on the data provided. Be scientifically accurate. If data is limited, acknowledge uncertainty.
-Provide only the JSON, no additional text."""
+Rules: Name specific genes from the data. Do not invent genes not listed above. Provide only the JSON, no other text."""
 
-        system_prompt = """You are an expert molecular biologist specializing in gene regulatory networks and perturbation biology.
-Provide scientifically accurate, evidence-based analysis. When data is limited, acknowledge uncertainty rather than speculating."""
+        system_prompt = """You are an expert molecular biologist specializing in gene regulatory networks, cancer biology, and perturbation analysis. Provide concise, data-driven interpretations that name specific genes. Never speculate beyond what the data supports."""
 
         timeout = int(os.getenv('OLLAMA_TIMEOUT', '60'))
 
