@@ -270,10 +270,11 @@ class CascadeWorkflow:
         self._model = None  # Lazy loaded
         self._model_lock = threading.Lock()  # Thread-safe lazy init
 
-        # LLM configuration (Ollama)
+        # LLM configuration (multi-provider)
         self.use_llm = os.getenv('USE_LLM_INSIGHTS', 'false').lower() == 'true'
-        self.ollama_client = None
-        self.ollama_available = self._initialize_ollama() if self.use_llm else False
+        self.llm_client = None
+        self.ollama_client = None  # backward-compat alias
+        self.ollama_available = self._initialize_llm() if self.use_llm else False
         self.ollama_model = os.getenv('OLLAMA_MODEL', 'llama3.1:8b')
         self.ollama_temperature = float(os.getenv('OLLAMA_TEMPERATURE', '0.3'))
         self.ollama_max_tokens = int(os.getenv('OLLAMA_MAX_TOKENS', '2000'))
@@ -291,37 +292,210 @@ class CascadeWorkflow:
                 self._model.load()
         return self._model
 
+    def _initialize_llm(self) -> bool:
+        """Initialize LLM client based on LLM_PROVIDER env var (default: ollama)."""
+        provider = os.getenv('LLM_PROVIDER', 'ollama').lower()
+        if provider == 'ollama':
+            return self._initialize_ollama_provider()
+        elif provider in ('openai', 'openai_compatible'):
+            return self._initialize_openai_provider()
+        elif provider == 'anthropic':
+            return self._initialize_anthropic_provider()
+        else:
+            logger.error(f"Unknown LLM_PROVIDER: {provider}. Use: ollama | openai | openai_compatible | anthropic")
+            return False
+
+    # backward-compat alias
     def _initialize_ollama(self) -> bool:
+        return self._initialize_llm()
+
+    def _initialize_ollama_provider(self) -> bool:
         """Initialize Ollama client (auto-detects local vs cloud)."""
         try:
             import ollama
         except ImportError:
-            logger.warning("ollama package not installed, LLM insights disabled")
+            logger.warning("ollama package not installed. Run: pip install ollama")
             return False
 
         api_key = os.getenv('OLLAMA_API_KEY')
-
         if api_key:
-            # Cloud mode
             logger.info("Using Ollama Cloud (API key detected)")
-            self.ollama_client = ollama.Client(
+            self.llm_client = ollama.Client(
                 host='https://ollama.com',
                 headers={'Authorization': f'Bearer {api_key}'}
             )
         else:
-            # Local mode
             host = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
             logger.info(f"Using local Ollama at {host}")
-            self.ollama_client = ollama.Client(host=host)
+            self.llm_client = ollama.Client(host=host)
 
-        # Test connection
         try:
-            self.ollama_client.list()
-            logger.info("Ollama connection successful")
+            models_response = self.llm_client.list()
+            available_models = []
+            models_list = (models_response.models if hasattr(models_response, 'models')
+                           else models_response.get('models', []) if isinstance(models_response, dict)
+                           else models_response)
+            for m in models_list:
+                name = (m.get('name') or m.get('model') if isinstance(m, dict)
+                        else getattr(m, 'model', None) or getattr(m, 'name', None))
+                if name:
+                    available_models.append(name)
+
+            model_name = os.getenv('OLLAMA_MODEL', 'llama3.1:8b')
+            if model_name not in available_models:
+                logger.error(f"Ollama model '{model_name}' not found. Available: {available_models}")
+                logger.error(f"Run: ollama pull {model_name}")
+                return False
+
+            logger.info(f"Ollama available, model: {model_name}")
+            self.ollama_client = self.llm_client  # backward-compat
             return True
         except Exception as e:
             logger.warning(f"Ollama not available: {e}")
+            logger.warning(f"To use Ollama: 1) Install from https://ollama.com  2) Run: ollama pull {os.getenv('OLLAMA_MODEL', 'llama3.1:8b')}")
             return False
+
+    def _initialize_openai_provider(self) -> bool:
+        """Initialize OpenAI or OpenAI-compatible provider."""
+        try:
+            import openai
+            api_key = os.getenv('LLM_API_KEY')
+            if not api_key:
+                logger.error("LLM_API_KEY required for openai/openai_compatible provider")
+                return False
+            kwargs = {"api_key": api_key}
+            api_base = os.getenv('LLM_API_BASE')
+            if api_base:
+                kwargs["base_url"] = api_base
+            self.llm_client = openai.AsyncOpenAI(**kwargs)
+            model = os.getenv('LLM_MODEL', 'gpt-4o-mini')
+            logger.info(f"OpenAI provider initialized, model: {model}")
+            return True
+        except ImportError:
+            logger.error("openai package not installed. Run: pip install openai")
+            return False
+        except Exception as e:
+            logger.error(f"OpenAI provider initialization failed: {e}")
+            return False
+
+    def _initialize_anthropic_provider(self) -> bool:
+        """Initialize Anthropic provider."""
+        try:
+            import anthropic
+            api_key = os.getenv('LLM_API_KEY')
+            if not api_key:
+                logger.error("LLM_API_KEY required for anthropic provider")
+                return False
+            self.llm_client = anthropic.AsyncAnthropic(api_key=api_key)
+            model = os.getenv('LLM_MODEL', 'claude-haiku-4-5-20251001')
+            logger.info(f"Anthropic provider initialized, model: {model}")
+            return True
+        except ImportError:
+            logger.error("anthropic package not installed. Run: pip install anthropic")
+            return False
+        except Exception as e:
+            logger.error(f"Anthropic provider initialization failed: {e}")
+            return False
+
+    async def _call_llm(self, prompt: str, system_prompt: str = None) -> str:
+        """Dispatch LLM call to the configured provider."""
+        provider = os.getenv('LLM_PROVIDER', 'ollama').lower()
+        if provider == 'ollama':
+            return await self._call_ollama_provider(prompt, system_prompt)
+        elif provider in ('openai', 'openai_compatible'):
+            return await self._call_openai_provider(prompt, system_prompt)
+        elif provider == 'anthropic':
+            return await self._call_anthropic_provider(prompt, system_prompt)
+        else:
+            raise ValueError(f"Unknown LLM_PROVIDER: {provider}")
+
+    async def _call_ollama_provider(self, prompt: str, system_prompt: str = None) -> str:
+        """Call Ollama with retry logic."""
+        timeout = int(os.getenv('OLLAMA_TIMEOUT', '60'))
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        for attempt in range(2):
+            try:
+                response = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        self.llm_client.chat,
+                        model=self.ollama_model,
+                        messages=messages,
+                        options={"temperature": self.ollama_temperature,
+                                 "num_predict": self.ollama_max_tokens}
+                    ),
+                    timeout=timeout
+                )
+                content = response['message']['content']
+                if not content or len(content.strip()) < 10:
+                    raise ValueError("Empty response from Ollama")
+                return content
+            except Exception as e:
+                if attempt == 1:
+                    raise
+                logger.warning(f"Ollama call failed (attempt 1): {e}, retrying...")
+                await asyncio.sleep(1)
+
+    async def _call_openai_provider(self, prompt: str, system_prompt: str = None) -> str:
+        """Call OpenAI or OpenAI-compatible provider with retry logic."""
+        model = os.getenv('LLM_MODEL', 'gpt-4o-mini')
+        timeout = int(os.getenv('OLLAMA_TIMEOUT', '60'))
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        for attempt in range(2):
+            try:
+                response = await asyncio.wait_for(
+                    self.llm_client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        temperature=self.ollama_temperature,
+                        max_tokens=self.ollama_max_tokens
+                    ),
+                    timeout=timeout
+                )
+                content = response.choices[0].message.content
+                if not content or len(content.strip()) < 10:
+                    raise ValueError("Empty response from OpenAI provider")
+                return content
+            except Exception as e:
+                if attempt == 1:
+                    raise
+                logger.warning(f"OpenAI call failed (attempt 1): {e}, retrying...")
+                await asyncio.sleep(1)
+
+    async def _call_anthropic_provider(self, prompt: str, system_prompt: str = None) -> str:
+        """Call Anthropic provider with retry logic."""
+        model = os.getenv('LLM_MODEL', 'claude-haiku-4-5-20251001')
+        timeout = int(os.getenv('OLLAMA_TIMEOUT', '60'))
+
+        for attempt in range(2):
+            try:
+                kwargs = {
+                    "model": model,
+                    "max_tokens": self.ollama_max_tokens,
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+                if system_prompt:
+                    kwargs["system"] = system_prompt
+                response = await asyncio.wait_for(
+                    self.llm_client.messages.create(**kwargs),
+                    timeout=timeout
+                )
+                content = response.content[0].text
+                if not content or len(content.strip()) < 10:
+                    raise ValueError("Empty response from Anthropic provider")
+                return content
+            except Exception as e:
+                if attempt == 1:
+                    raise
+                logger.warning(f"Anthropic call failed (attempt 1): {e}, retrying...")
+                await asyncio.sleep(1)
 
     # =========================================================================
     # WORKFLOW GRAPH CONSTRUCTION
@@ -1825,28 +1999,10 @@ Rules: Name specific genes from the data. Do not invent genes not listed above. 
 
         system_prompt = """You are an expert molecular biologist specializing in gene regulatory networks, cancer biology, and perturbation analysis. Provide concise, data-driven interpretations that name specific genes. Never speculate beyond what the data supports."""
 
-        timeout = int(os.getenv('OLLAMA_TIMEOUT', '60'))
-
-        response = await asyncio.wait_for(
-            asyncio.to_thread(
-                self.ollama_client.chat,
-                model=self.ollama_model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-                options={
-                    "temperature": self.ollama_temperature,
-                    "num_predict": self.ollama_max_tokens
-                }
-            ),
-            timeout=timeout
-        )
-
-        content = response['message']['content']
+        content = await self._call_llm(prompt, system_prompt)
         parsed = self._parse_llm_json(content)
         parsed["llm_powered"] = True
-        parsed["model"] = self.ollama_model
+        parsed["model"] = os.getenv('LLM_MODEL', self.ollama_model)
 
         return parsed
 
