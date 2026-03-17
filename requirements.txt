@@ -21,6 +21,7 @@ decoupler>=2.0
 
 # LLM insights (optional - for biological interpretation)
 ollama>=0.1.0
+python-dotenv>=1.0
 
 # Optional: torch-geometric for graph operations
 # torch-geometric>=2.7

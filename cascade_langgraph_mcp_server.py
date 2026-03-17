@@ -31,6 +31,13 @@ import json
 import logging
 import os
 import sys
+
+# Load .env file if present (before any os.getenv calls)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 from typing import Any, Sequence
 
 from mcp.server import Server, NotificationOptions
