@@ -45,3 +45,4 @@ FUTURE_ROADMAP.md
 dist/
 build/
 *.egg-info/
+.env

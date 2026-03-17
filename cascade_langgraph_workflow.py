@@ -1694,12 +1694,35 @@ class CascadeWorkflow:
         gene_role = state.get("gene_role", "unknown")
         perturbation_type = state.get("perturbation_type", "knockdown")
 
-        # Build context from analysis results
-        perturbation = state.get("perturbation_result") or {}
-        ppi = state.get("ppi_interactions") or {}
-        lincs = state.get("lincs_effects") or {}
-        se = state.get("super_enhancer_status") or {}
-        similar = state.get("similar_genes") or {}
+        # Build context from analysis results.
+        # Be defensive about shapes: some integrations return lists (e.g., LINCS),
+        # while the LLM prompt expects summary fields.
+        perturbation = state.get("perturbation_result")
+        perturbation = perturbation if isinstance(perturbation, dict) else {}
+
+        ppi = state.get("ppi_interactions")
+        lincs = state.get("lincs_effects")
+        se = state.get("super_enhancer_status")
+        se = se if isinstance(se, dict) else {}
+        similar = state.get("similar_genes")
+
+        lincs_total_effects = 0
+        if isinstance(lincs, list):
+            lincs_total_effects = len(lincs)
+        elif isinstance(lincs, dict):
+            lincs_total_effects = int(lincs.get("total_effects", 0) or 0)
+
+        ppi_interactions = []
+        if isinstance(ppi, dict):
+            ppi_interactions = ppi.get("interactions", []) or []
+        elif isinstance(ppi, list):
+            ppi_interactions = ppi
+
+        similar_genes_list = []
+        if isinstance(similar, dict):
+            similar_genes_list = similar.get("similar_genes", []) or []
+        elif isinstance(similar, list):
+            similar_genes_list = similar
 
         prompt = f"""Analyze the biological implications of {gene} {perturbation_type} in {cell_type} cells.
 
@@ -1712,18 +1735,18 @@ class CascadeWorkflow:
 - Top Targets: {perturbation.get('top_affected', [])[:5]}
 
 ## Protein Interactions (STRING)
-- Interaction Partners: {len(ppi.get('interactions', []))} found
-- Key Partners: {[p.get('preferredName') for p in ppi.get('interactions', [])[:5]]}
+- Interaction Partners: {len(ppi_interactions)} found
+- Key Partners: {[p.get('preferredName') or p.get('partner') for p in ppi_interactions[:5]]}
 
 ## LINCS Knockdown Data
-- Experimental Effects: {lincs.get('total_effects', 0)} genes affected in LINCS
+- Experimental Effects: {lincs_total_effects} genes affected in LINCS
 
 ## Super-Enhancer Status
 - Has Super-Enhancer: {se.get('has_super_enhancer', False)}
 - BRD4 Sensitive: {se.get('has_super_enhancer', False)}
 
 ## Similar Genes (Embedding-based)
-- Top Similar: {[g.get('symbol') for g in similar.get('similar_genes', [])[:5]]}
+- Top Similar: {[g.get('symbol') for g in similar_genes_list[:5] if isinstance(g, dict)]}
 
 Provide a biological interpretation in this EXACT JSON format:
 {{
