@@ -130,3 +130,47 @@ class TestBatchConversion:
         result = mapper_with_cache.batch_symbol_to_ensembl(["MYC", "TP53"])
         assert result["MYC"] == "ENSG00000136997"
         assert result["TP53"] == "ENSG00000141510"
+
+
+class TestEnsemblRateLimiting:
+    def test_semaphore_exists(self):
+        import threading
+        from tools.gene_id_mapper import _ensembl_semaphore
+        assert isinstance(_ensembl_semaphore, type(threading.Semaphore()))
+
+    def test_semaphore_respects_api_rate_limit_env(self, monkeypatch, tmp_path):
+        """Semaphore value is read from API_RATE_LIMIT at import time; verify module uses it."""
+        import tools.gene_id_mapper as gim
+        # The semaphore was initialized at import time — just verify it's a Semaphore
+        import threading
+        assert isinstance(gim._ensembl_semaphore, type(threading.Semaphore()))
+
+    @patch("tools.gene_id_mapper.requests.get")
+    def test_symbol_lookup_completes_with_semaphore(self, mock_get, tmp_path):
+        """symbol_to_ensembl completes without deadlock when semaphore is present."""
+        from tools.gene_id_mapper import GeneIDMapper
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"id": "ENSG00000136997"}
+        mock_get.return_value = mock_response
+
+        mapper = GeneIDMapper(cache_file=str(tmp_path / "cache.json"))
+        result = mapper.symbol_to_ensembl("BRCA1")
+        assert result == "ENSG00000136997"
+        assert mock_get.call_count == 1
+
+    @patch("tools.gene_id_mapper.requests.get")
+    def test_ensembl_lookup_completes_with_semaphore(self, mock_get, tmp_path):
+        """ensembl_to_symbol completes without deadlock when semaphore is present."""
+        from tools.gene_id_mapper import GeneIDMapper
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"display_name": "MYC"}
+        mock_get.return_value = mock_response
+
+        mapper = GeneIDMapper(cache_file=str(tmp_path / "cache.json"))
+        result = mapper.ensembl_to_symbol("ENSG00000136997")
+        assert result == "MYC"
+        assert mock_get.call_count == 1

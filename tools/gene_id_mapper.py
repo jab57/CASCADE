@@ -9,8 +9,13 @@ Consistent with RegNetAgents gene_id_mapper API.
 import requests
 import json
 import os
+import threading
 from typing import Dict, List, Optional
 from pathlib import Path
+
+# Semaphore limiting concurrent Ensembl REST API calls across all threads.
+# Shared across all GeneIDMapper instances (module-level singleton pattern).
+_ensembl_semaphore = threading.Semaphore(int(os.getenv('API_RATE_LIMIT', '3')))
 
 
 class GeneIDMapper:
@@ -55,11 +60,12 @@ class GeneIDMapper:
         if gene_upper in self.cache["symbol_to_ensembl"]:
             return self.cache["symbol_to_ensembl"][gene_upper]
 
-        # Query Ensembl API
+        # Query Ensembl API (rate-limited)
         try:
             url = f"https://rest.ensembl.org/lookup/symbol/homo_sapiens/{gene_symbol}"
             headers = {"Content-Type": "application/json"}
-            response = requests.get(url, headers=headers, timeout=10)
+            with _ensembl_semaphore:
+                response = requests.get(url, headers=headers, timeout=10)
 
             if response.status_code == 200:
                 data = response.json()
@@ -81,11 +87,12 @@ class GeneIDMapper:
         if ensembl_id in self.cache["ensembl_to_symbol"]:
             return self.cache["ensembl_to_symbol"][ensembl_id]
 
-        # Query Ensembl API
+        # Query Ensembl API (rate-limited)
         try:
             url = f"https://rest.ensembl.org/lookup/id/{ensembl_id}"
             headers = {"Content-Type": "application/json"}
-            response = requests.get(url, headers=headers, timeout=10)
+            with _ensembl_semaphore:
+                response = requests.get(url, headers=headers, timeout=10)
 
             if response.status_code == 200:
                 data = response.json()

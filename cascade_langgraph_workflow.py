@@ -270,6 +270,10 @@ class CascadeWorkflow:
         self._model = None  # Lazy loaded
         self._model_lock = threading.Lock()  # Thread-safe lazy init
 
+        # Rate limiting: max concurrent external API calls (STRING, cBioPortal)
+        _api_limit = int(os.getenv('API_RATE_LIMIT', '3'))
+        self._api_semaphore = asyncio.Semaphore(_api_limit)
+
         # LLM configuration (multi-provider)
         self.use_llm = os.getenv('USE_LLM_INSIGHTS', 'false').lower() == 'true'
         self.llm_client = None
@@ -1287,7 +1291,8 @@ class CascadeWorkflow:
                 logger.error(f"STRING API error: {e}")
                 return {"error": str(e), "interactions": []}
 
-        return await asyncio.to_thread(_sync)
+        async with self._api_semaphore:
+            return await asyncio.to_thread(_sync)
 
     async def _fetch_lincs_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Fetch LINCS knockdown effects."""
@@ -1366,7 +1371,8 @@ class CascadeWorkflow:
                 logger.error(f"cBioPortal error: {e}")
                 return {"error": str(e)}
 
-        return await asyncio.to_thread(_sync)
+        async with self._api_semaphore:
+            return await asyncio.to_thread(_sync)
 
     async def _find_similar_genes_impl(self, state: PerturbationAnalysisState) -> Dict:
         """Find similar genes using embeddings."""

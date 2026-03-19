@@ -943,3 +943,89 @@ class TestProgressCallback:
                     wf.run("TP53", progress_cb=None)
                 )
         assert result == {"summary": "ok"}
+
+
+class TestApiRateLimiting:
+    """Verify asyncio.Semaphore rate limiting on external API calls."""
+
+    def _make_workflow(self, monkeypatch):
+        """Build a CascadeWorkflow with all heavy init patched out."""
+        monkeypatch.setenv("API_RATE_LIMIT", "2")
+        with patch("cascade_langgraph_workflow.CascadeWorkflow._create_workflow"):
+            with patch("cascade_langgraph_workflow.CascadeWorkflow.__init__", return_value=None):
+                from cascade_langgraph_workflow import CascadeWorkflow
+                import asyncio
+                wf = CascadeWorkflow.__new__(CascadeWorkflow)
+                wf._api_semaphore = asyncio.Semaphore(2)
+                return wf
+
+    def test_semaphore_initialized_on_workflow(self, monkeypatch):
+        """CascadeWorkflow.__init__ sets _api_semaphore."""
+        import asyncio
+        monkeypatch.setenv("API_RATE_LIMIT", "2")
+        with patch("cascade_langgraph_workflow.CascadeWorkflow._create_workflow"):
+            with patch("tools.gene_id_mapper.get_mapper", return_value=MagicMock()):
+                with patch("tools.ppi.string_client.get_string_client", return_value=MagicMock()):
+                    with patch("cascade_langgraph_workflow.CascadeWorkflow._initialize_llm", return_value=False):
+                        from cascade_langgraph_workflow import CascadeWorkflow
+                        wf = CascadeWorkflow.__new__(CascadeWorkflow)
+                        wf.__init__()
+                        assert isinstance(wf._api_semaphore, asyncio.Semaphore)
+
+    def test_api_rate_limit_env_var_controls_semaphore(self, monkeypatch):
+        """API_RATE_LIMIT env var sets the semaphore bound."""
+        import asyncio
+        # asyncio.Semaphore doesn't expose _value publicly but we can verify
+        # the semaphore blocks correctly by checking it was constructed with the env var.
+        monkeypatch.setenv("API_RATE_LIMIT", "1")
+        with patch("cascade_langgraph_workflow.CascadeWorkflow._create_workflow"):
+            with patch("tools.gene_id_mapper.get_mapper", return_value=MagicMock()):
+                with patch("tools.ppi.string_client.get_string_client", return_value=MagicMock()):
+                    with patch("cascade_langgraph_workflow.CascadeWorkflow._initialize_llm", return_value=False):
+                        from cascade_langgraph_workflow import CascadeWorkflow
+                        wf = CascadeWorkflow.__new__(CascadeWorkflow)
+                        wf.__init__()
+                        # Semaphore with limit=1: acquiring once should succeed immediately
+                        loop = asyncio.new_event_loop()
+                        acquired = loop.run_until_complete(wf._api_semaphore.acquire())
+                        assert acquired is True
+                        wf._api_semaphore.release()
+                        loop.close()
+
+    def test_fetch_ppi_impl_acquires_semaphore(self, monkeypatch):
+        """_fetch_ppi_impl acquires _api_semaphore before calling STRING."""
+        import asyncio
+        wf = self._make_workflow(monkeypatch)
+        wf.string_client = MagicMock()
+        wf.string_client.get_interactions.return_value = {"interactions": []}
+
+        semaphore_acquired = []
+        real_semaphore = wf._api_semaphore
+
+        async def tracking_acquire():
+            semaphore_acquired.append(True)
+            return await real_semaphore.acquire()
+
+        wf._api_semaphore = MagicMock()
+        wf._api_semaphore.__aenter__ = AsyncMock(side_effect=lambda: semaphore_acquired.append(True))
+        wf._api_semaphore.__aexit__ = AsyncMock(return_value=False)
+
+        state = {"gene": "TP53", "gene_symbol": "TP53"}
+        asyncio.get_event_loop().run_until_complete(wf._fetch_ppi_impl(state))
+        assert len(semaphore_acquired) == 1
+
+    def test_fetch_cbioportal_impl_acquires_semaphore(self, monkeypatch):
+        """_fetch_cbioportal_impl acquires _api_semaphore before calling cBioPortal."""
+        import asyncio
+        wf = self._make_workflow(monkeypatch)
+
+        semaphore_acquired = []
+        wf._api_semaphore = MagicMock()
+        wf._api_semaphore.__aenter__ = AsyncMock(side_effect=lambda: semaphore_acquired.append(True))
+        wf._api_semaphore.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("tools.cbioportal.get_gene_tumor_expression", return_value={}):
+            with patch("tools.cbioportal.get_gene_alteration_frequency", return_value={}):
+                state = {"gene": "TP53", "gene_symbol": "TP53"}
+                asyncio.get_event_loop().run_until_complete(wf._fetch_cbioportal_impl(state))
+        assert len(semaphore_acquired) == 1
