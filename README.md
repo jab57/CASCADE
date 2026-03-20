@@ -183,7 +183,7 @@ The server provides analysis across several categories:
 | Erythrocytes | `erythrocytes/network.tsv` |
 | Monocyte-derived DCs | `monocyte-derived_dendritic_cells/network.tsv` |
 
-> **Note:** Cell-type networks represent population-averaged regulatory relationships across heterogeneous cell states (GREmLN / Zhang et al. 2025). They are not exclusively healthy or tumor tissue.
+> **Note:** Cell-type networks represent population-averaged regulatory relationships across heterogeneous cell states (GREmLN / Zhang et al. 2026). They are not exclusively healthy or tumor tissue.
 
 ### TCGA Tumor-State Networks (use with `network_source="tcga"` + `tcga_network` parameter)
 

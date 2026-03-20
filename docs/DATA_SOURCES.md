@@ -45,11 +45,11 @@ CASCADE integrates eight data sources, divided into two categories:
 **Download Location**: [GREmLN Quickstart Tutorial](https://virtualcellmodels.cziscience.com/quickstart/gremln-quickstart) (networks available via Google Drive)
 **Underlying Data**: [CellxGene Data Portal](https://cellxgene.cziscience.com/) (11M scRNA-seq profiles, 162 cell types from Census release 2024-07-01)
 **Processing Method**: ARACNe algorithm
-**Development Team**: Zhang et al. (2025), Califano Lab (Columbia University / CZ Biohub NY)
+**Development Team**: Zhang et al. (2026), Califano Lab (Columbia University / CZ Biohub NY)
 **Format**: Pre-computed networks as TSV files (`network.tsv`)
-**Publication**: bioRxiv 2025.07.03.663009
+**Publication**: ICLR 2026
 
-**Note on disease status**: The CellxGene Census corpus used by GREmLN includes both healthy and disease/cancer-infiltrating cells — disease status was not filtered to normal cells only (Zhang et al. 2025). The pre-computed networks therefore represent population-averaged regulatory relationships across heterogeneous cell states. These networks are appropriate for hypothesis generation and regulatory network analysis but should not be assumed to represent exclusively normal cell regulatory wiring.
+**Note on disease status**: The CellxGene Census corpus used by GREmLN includes both healthy and disease/cancer-infiltrating cells — disease status was not filtered to normal cells only (Zhang et al. 2026). The pre-computed networks therefore represent population-averaged regulatory relationships across heterogeneous cell states. These networks are appropriate for hypothesis generation and regulatory network analysis but should not be assumed to represent exclusively normal cell regulatory wiring.
 
 ### Supported Cell Types
 
@@ -554,7 +554,7 @@ When publishing results obtained with CASCADE, please cite the relevant underlyi
 ### Required Citations
 
 1. **GREmLN Foundation Model (networks + embeddings)**
-   Zhang, M., Swamy, V., Cassius, R., Dupire, L., Karaletsos, T., & Califano, A. (2025). "RegNetAgents: A Cellular Regulatory Network-Aware Transcriptomics Foundation Model." *bioRxiv*. https://doi.org/10.1101/2025.07.03.663009
+   Zhang, M., Swamy, V., Cassius, R., Dupire, L., Karaletsos, T., & Califano, A. (2026). "GREmLN: A Cellular Graph Structure Aware Transcriptomics Foundation Model." *ICLR 2026*. https://openreview.net/forum?id=HdvI8bkdDG
 
 2. **CellxGene Data Portal (underlying scRNA-seq data)**
    Megill, C., et al. (2021). "cellxgene: a performant, scalable exploration platform for high dimensional sparse matrices." *bioRxiv*. https://doi.org/10.1101/2021.04.05.438318
