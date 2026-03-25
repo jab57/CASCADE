@@ -1188,12 +1188,14 @@ class CascadeWorkflow:
                             network_df, gene_id, model,
                             depth=2, top_k=25, alpha=0.7,
                             embedding_gene=ensembl_id,
+                            embedding_threshold=0.1,
                         )
                     else:
                         result = simulate_overexpression_with_embeddings(
                             network_df, gene_id, model,
                             fold_change=2.0, depth=2, top_k=25, alpha=0.7,
                             embedding_gene=ensembl_id,
+                            embedding_threshold=0.1,
                         )
                     result["embedding_enhanced"] = True
                 except Exception as e:

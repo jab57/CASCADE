@@ -457,14 +457,29 @@ def simulate_knockdown_with_embeddings(
             "error": f"Could not compute similarities for gene {vocab_gene}",
         }
 
-    # Similarity map keyed by Ensembl ID
-    similarity_map = dict(zip(
-        similarities_df["ensembl_id"],
-        similarities_df["similarity"]
-    ))
-
-    # Mapper needed when network uses symbols (embedding_gene provided)
     mapper = get_mapper()
+    local_ens_to_sym: dict = mapper.cache.get("ensembl_to_symbol", {})
+    local_sym_to_ens: dict = mapper.cache.get("symbol_to_ensembl", {})
+
+    if embedding_gene is not None:
+        # Network uses symbols; similarity_map uses Ensembl IDs.
+        # Build symbol→(similarity, ensembl) using ONLY the local mapper cache
+        # (no API calls) to avoid blocking on hundreds of Ensembl lookups.
+        # Coverage improves naturally as genes accumulate in the cache.
+        sym_sim_map: dict = {}
+        above_thresh = similarities_df[similarities_df["similarity"] >= embedding_threshold]
+        for _, row in above_thresh.iterrows():
+            ens = str(row["ensembl_id"])
+            sim = float(row["similarity"])
+            sym = local_ens_to_sym.get(ens)
+            if sym:
+                sym_sim_map[sym] = (sim, ens)
+    else:
+        # Cell-type networks: Ensembl-keyed similarity lookup
+        similarity_map = dict(zip(
+            similarities_df["ensembl_id"],
+            similarities_df["similarity"]
+        ))
 
     # 3. Combine scores
     combined_effects = {}
@@ -472,9 +487,9 @@ def simulate_knockdown_with_embeddings(
     # Process genes that are in the network
     for target, net_effect in network_effects.items():
         if embedding_gene is not None:
-            # Network key is a symbol; translate to Ensembl for similarity lookup
-            target_ensembl = mapper.symbol_to_ensembl(target) or target
-            emb_sim = similarity_map.get(target_ensembl, 0.0)
+            entry = sym_sim_map.get(target)
+            emb_sim = entry[0] if entry else 0.0
+            target_ensembl = entry[1] if entry else target  # symbol as placeholder
         else:
             target_ensembl = target
             emb_sim = similarity_map.get(target, 0.0)
@@ -494,17 +509,19 @@ def simulate_knockdown_with_embeddings(
 
     # 4. Add genes with high embedding similarity but not in network
     # These are potential indirect effects
-    for _, row in similarities_df.iterrows():
-        ensembl = row["ensembl_id"]
-        emb_sim = row["similarity"]
+    above_thresh_df = similarities_df[similarities_df["similarity"] >= embedding_threshold]
+    for _, row in above_thresh_df.iterrows():
+        ensembl = str(row["ensembl_id"])
+        emb_sim = float(row["similarity"])
 
         if ensembl == vocab_gene:
             continue
-        if emb_sim < embedding_threshold:
-            continue
 
-        # Determine the network-key (symbol for TCGA, Ensembl for cell-type)
-        net_key = mapper.ensembl_to_symbol(ensembl) or ensembl if embedding_gene is not None else ensembl
+        # Determine the network-key using local cache only (no API calls)
+        if embedding_gene is not None:
+            net_key = local_ens_to_sym.get(ensembl) or ensembl
+        else:
+            net_key = ensembl
 
         if net_key in combined_effects:
             continue  # Already processed via network path
@@ -541,7 +558,15 @@ def simulate_knockdown_with_embeddings(
     for g, scores in sorted_effects:
         combined = scores["combined_effect"]
         ensembl_out = scores["_ensembl_id"]
-        symbol_out = mapper.ensembl_to_symbol(ensembl_out) or g
+        if embedding_gene is not None:
+            # Use local cache only — no API calls in output loop
+            if str(ensembl_out).upper().startswith("ENSG"):
+                symbol_out = local_ens_to_sym.get(ensembl_out) or g
+            else:
+                symbol_out = g
+                ensembl_out = local_sym_to_ens.get(g) or g
+        else:
+            symbol_out = mapper.ensembl_to_symbol(ensembl_out) or g
         affected_genes.append({
             "ensembl_id": ensembl_out,
             "symbol": symbol_out,
@@ -629,20 +654,33 @@ def simulate_overexpression_with_embeddings(
             "error": f"Could not compute similarities for gene {vocab_gene}",
         }
 
-    similarity_map = dict(zip(
-        similarities_df["ensembl_id"],
-        similarities_df["similarity"]
-    ))
-
     mapper = get_mapper()
+    local_ens_to_sym: dict = mapper.cache.get("ensembl_to_symbol", {})
+    local_sym_to_ens: dict = mapper.cache.get("symbol_to_ensembl", {})
+
+    if embedding_gene is not None:
+        sym_sim_map: dict = {}
+        above_thresh = similarities_df[similarities_df["similarity"] >= embedding_threshold]
+        for _, row in above_thresh.iterrows():
+            ens = str(row["ensembl_id"])
+            sim = float(row["similarity"])
+            sym = local_ens_to_sym.get(ens)
+            if sym:
+                sym_sim_map[sym] = (sim, ens)
+    else:
+        similarity_map = dict(zip(
+            similarities_df["ensembl_id"],
+            similarities_df["similarity"]
+        ))
 
     # 3. Combine scores
     combined_effects = {}
 
     for target, net_effect in network_effects.items():
         if embedding_gene is not None:
-            target_ensembl = mapper.symbol_to_ensembl(target) or target
-            emb_sim = similarity_map.get(target_ensembl, 0.0)
+            entry = sym_sim_map.get(target)
+            emb_sim = entry[0] if entry else 0.0
+            target_ensembl = entry[1] if entry else target
         else:
             target_ensembl = target
             emb_sim = similarity_map.get(target, 0.0)
@@ -659,16 +697,18 @@ def simulate_overexpression_with_embeddings(
         }
 
     # 4. Add embedding-only effects
-    for _, row in similarities_df.iterrows():
-        ensembl = row["ensembl_id"]
-        emb_sim = row["similarity"]
+    above_thresh_df = similarities_df[similarities_df["similarity"] >= embedding_threshold]
+    for _, row in above_thresh_df.iterrows():
+        ensembl = str(row["ensembl_id"])
+        emb_sim = float(row["similarity"])
 
         if ensembl == vocab_gene:
             continue
-        if emb_sim < embedding_threshold:
-            continue
 
-        net_key = mapper.ensembl_to_symbol(ensembl) or ensembl if embedding_gene is not None else ensembl
+        if embedding_gene is not None:
+            net_key = local_ens_to_sym.get(ensembl) or ensembl
+        else:
+            net_key = ensembl
 
         if net_key in combined_effects:
             continue
@@ -702,7 +742,14 @@ def simulate_overexpression_with_embeddings(
     for g, scores in sorted_effects:
         combined = scores["combined_effect"]
         ensembl_out = scores["_ensembl_id"]
-        symbol_out = mapper.ensembl_to_symbol(ensembl_out) or g
+        if embedding_gene is not None:
+            if str(ensembl_out).upper().startswith("ENSG"):
+                symbol_out = local_ens_to_sym.get(ensembl_out) or g
+            else:
+                symbol_out = g
+                ensembl_out = local_sym_to_ens.get(g) or g
+        else:
+            symbol_out = mapper.ensembl_to_symbol(ensembl_out) or g
         affected_genes.append({
             "ensembl_id": ensembl_out,
             "symbol": symbol_out,

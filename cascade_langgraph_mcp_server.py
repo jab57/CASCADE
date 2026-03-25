@@ -1556,11 +1556,13 @@ async def _quick_perturbation(args: dict) -> dict:
                 result = simulate_knockdown_with_embeddings(
                     network_df, gene_id, model, depth=depth, top_k=top_k,
                     embedding_gene=embedding_gene_id,
+                    embedding_threshold=0.1,
                 )
             else:
                 result = simulate_overexpression_with_embeddings(
                     network_df, gene_id, model, depth=depth, top_k=top_k,
                     embedding_gene=embedding_gene_id,
+                    embedding_threshold=0.1,
                 )
             result["embedding_enhanced"] = True
         except Exception:
