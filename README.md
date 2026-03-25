@@ -246,7 +246,15 @@ pip install gdown   # if not already installed
 python scripts/download_model.py
 ```
 
-**2. DepMap CRISPR gene effect scores** (~413 MB) — optional; only the `get_depmap_essentiality` tool needs it. The server starts and all other tools work without it. `verify_installation.py` reports a SKIP (not a failure) if the file is absent:
+**2. Gene ID cache** — pre-built Ensembl ID → gene symbol mappings for all ~19k genes in the model vocabulary. Bundled in the repo (`cache/gene_id_cache.json`), so no action is required for most users. To regenerate or update it:
+
+```bash
+python scripts/prebuild_gene_cache.py
+```
+
+This makes one batch API call to Ensembl per 1,000 genes (~5–10 minutes). The cache eliminates all Ensembl API calls during TCGA embedding analysis.
+
+**3. DepMap CRISPR gene effect scores** (~413 MB) — optional; only the `get_depmap_essentiality` tool needs it. The server starts and all other tools work without it. `verify_installation.py` reports a SKIP (not a failure) if the file is absent:
 
 - Go to https://depmap.org/portal/download/
 - Download `CRISPRGeneEffect.csv` from the latest DepMap Public release

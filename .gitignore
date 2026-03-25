@@ -3,8 +3,9 @@ env/
 venv/
 .venv/
 
-# Cache files
-cache/
+# Cache files (gene_id_cache.json is committed for zero-latency TCGA embedding)
+cache/*
+!cache/gene_id_cache.json
 __pycache__/
 *.pyc
 *.pyo
