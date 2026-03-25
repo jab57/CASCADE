@@ -1544,14 +1544,31 @@ async def _quick_perturbation(args: dict) -> dict:
         network_df = load_network(network_path)
 
     if network_source == "tcga":
-        # TCGA networks use gene symbols; embedding model uses Ensembl IDs —
-        # skip embedding-enhanced path to avoid vocabulary mismatch
-        if perturbation_type == "knockdown":
-            result = simulate_knockdown(network_df, gene_id, depth=depth, top_k=top_k)
+        # Resolve Ensembl ID for embedding lookup (network uses symbols)
+        if gene.upper().startswith("ENSG"):
+            embedding_gene_id = gene.upper()
         else:
-            result = simulate_overexpression(network_df, gene_id, depth=depth, top_k=top_k)
-        result["embedding_enhanced"] = False
-        result["note"] = "Network-only propagation (TCGA networks use gene symbols; embedding model uses Ensembl IDs)"
+            embedding_gene_id = workflow.gene_mapper.symbol_to_ensembl(gene_id)
+
+        try:
+            model = workflow._get_model()
+            if perturbation_type == "knockdown":
+                result = simulate_knockdown_with_embeddings(
+                    network_df, gene_id, model, depth=depth, top_k=top_k,
+                    embedding_gene=embedding_gene_id,
+                )
+            else:
+                result = simulate_overexpression_with_embeddings(
+                    network_df, gene_id, model, depth=depth, top_k=top_k,
+                    embedding_gene=embedding_gene_id,
+                )
+            result["embedding_enhanced"] = True
+        except Exception:
+            if perturbation_type == "knockdown":
+                result = simulate_knockdown(network_df, gene_id, depth=depth, top_k=top_k)
+            else:
+                result = simulate_overexpression(network_df, gene_id, depth=depth, top_k=top_k)
+            result["embedding_enhanced"] = False
     else:
         # Cell-type networks: use embedding-enhanced propagation (Ensembl IDs match model vocab)
         try:

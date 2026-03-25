@@ -1173,19 +1173,36 @@ class CascadeWorkflow:
             tcga_network = state.get("tcga_network", "")
             # TCGA networks use gene symbols as node IDs
             gene_id = state.get("gene_symbol") or state["ensembl_id"]
+            ensembl_id = state["ensembl_id"]
 
             def _sync_tcga():
                 network_df = load_tcga_network(tcga_network)
                 if isinstance(network_df, dict) and "error" in network_df:
                     return network_df
-                # TCGA networks use gene symbols; embedding model uses Ensembl IDs —
-                # skip embedding-enhanced path to avoid vocabulary mismatch
-                if perturbation_type == "knockdown":
-                    result = simulate_knockdown(network_df, gene_id, depth=2, top_k=25)
-                else:
-                    result = simulate_overexpression(network_df, gene_id, fold_change=2.0, depth=2, top_k=25)
-                result["embedding_enhanced"] = False
-                result["note"] = "Network-only propagation (TCGA networks use gene symbols; embedding model uses Ensembl IDs)"
+                # Use embedding_gene to pass Ensembl ID for model lookup while
+                # gene_id (symbol) is used for network propagation.
+                try:
+                    model = self._get_model()
+                    if perturbation_type == "knockdown":
+                        result = simulate_knockdown_with_embeddings(
+                            network_df, gene_id, model,
+                            depth=2, top_k=25, alpha=0.7,
+                            embedding_gene=ensembl_id,
+                        )
+                    else:
+                        result = simulate_overexpression_with_embeddings(
+                            network_df, gene_id, model,
+                            fold_change=2.0, depth=2, top_k=25, alpha=0.7,
+                            embedding_gene=ensembl_id,
+                        )
+                    result["embedding_enhanced"] = True
+                except Exception as e:
+                    logger.warning(f"Model unavailable for TCGA, using network-only: {e}")
+                    if perturbation_type == "knockdown":
+                        result = simulate_knockdown(network_df, gene_id, depth=2, top_k=25)
+                    else:
+                        result = simulate_overexpression(network_df, gene_id, fold_change=2.0, depth=2, top_k=25)
+                    result["embedding_enhanced"] = False
                 return result
 
             return await asyncio.to_thread(_sync_tcga)

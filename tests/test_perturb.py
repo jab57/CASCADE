@@ -2,6 +2,7 @@
 
 import pytest
 import numpy as np
+import pandas as pd
 from unittest.mock import patch, MagicMock
 
 from tools.perturb import (
@@ -317,3 +318,118 @@ class TestOverexpressionWithEmbeddings:
             mock_network_df, "ENSG_TF1", mock_cascade_model
         )
         assert result["status"] == "error"
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers for embedding_gene tests
+# ---------------------------------------------------------------------------
+
+def _make_symbol_mapper():
+    """Mapper that translates TF1/TARGET1/etc. ↔ ENSG_TF1/ENSG_TARGET1/etc."""
+    mapper = MagicMock()
+    sym_to_ens = {
+        "TF1": "ENSG_TF1", "TF2": "ENSG_TF2",
+        "TARGET1": "ENSG_TARGET1", "TARGET2": "ENSG_TARGET2",
+        "TARGET3": "ENSG_TARGET3", "DOWNSTREAM1": "ENSG_DOWNSTREAM1",
+    }
+    ens_to_sym = {v: k for k, v in sym_to_ens.items()}
+    mapper.symbol_to_ensembl.side_effect = lambda s: sym_to_ens.get(s)
+    mapper.ensembl_to_symbol.side_effect = lambda e: ens_to_sym.get(e)
+    return mapper
+
+
+@pytest.fixture
+def symbol_network_df():
+    """Regulatory network with gene symbols as node IDs (TCGA-style)."""
+    return pd.DataFrame({
+        "regulator": ["TF1", "TF1", "TF2", "TF2", "TARGET1"],
+        "target":    ["TARGET1", "TARGET2", "TARGET2", "TARGET3", "DOWNSTREAM1"],
+        "mi":        [0.8, 0.6, 0.5, 0.4, 0.3],
+        "scc":       [0.7, 0.5, 0.4, 0.3, 0.2],
+        "count":     [100, 80, 60, 50, 40],
+        "log_p":     [-10.0, -8.0, -6.0, -5.0, -4.0],
+    })
+
+
+class TestKnockdownWithEmbeddingGene:
+    """Tests for simulate_knockdown_with_embeddings with embedding_gene (TCGA symbol networks)."""
+
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_basic(self, mock_mapper_fn, mock_cache_fn, symbol_network_df, mock_cascade_model):
+        mock_mapper_fn.return_value = _make_symbol_mapper()
+        mock_cache = MagicMock()
+        mock_cache.get_similarities.side_effect = mock_cascade_model.get_all_similarities
+        mock_cache_fn.return_value = mock_cache
+
+        result = simulate_knockdown_with_embeddings(
+            symbol_network_df, "TF1", mock_cascade_model,
+            depth=2, top_k=10, embedding_gene="ENSG_TF1",
+        )
+        assert result["status"] == "complete"
+        assert result["perturbation_type"] == "knockdown_with_embeddings"
+        assert result["total_affected_genes"] > 0
+        for gene in result["top_affected_genes"]:
+            assert "ensembl_id" in gene
+            assert "symbol" in gene
+            assert "combined_effect" in gene
+
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_similarity_looked_up_via_embedding_gene(self, mock_mapper_fn, mock_cache_fn, symbol_network_df, mock_cascade_model):
+        """Similarity lookup uses embedding_gene (Ensembl), not the symbol."""
+        mock_mapper_fn.return_value = _make_symbol_mapper()
+        mock_cache = MagicMock()
+        mock_cache.get_similarities.side_effect = mock_cascade_model.get_all_similarities
+        mock_cache_fn.return_value = mock_cache
+
+        simulate_knockdown_with_embeddings(
+            symbol_network_df, "TF1", mock_cascade_model,
+            embedding_gene="ENSG_TF1",
+        )
+        mock_cache.get_similarities.assert_called_with("ENSG_TF1")
+
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_embedding_gene_not_in_vocab(self, mock_mapper_fn, mock_cache_fn, symbol_network_df, mock_cascade_model):
+        mock_mapper_fn.return_value = _make_symbol_mapper()
+        result = simulate_knockdown_with_embeddings(
+            symbol_network_df, "TF1", mock_cascade_model,
+            embedding_gene="ENSG_NONEXISTENT",
+        )
+        assert result["status"] == "error"
+        assert "ENSG_NONEXISTENT" in result["error"]
+
+
+class TestOverexpressionWithEmbeddingGene:
+    """Tests for simulate_overexpression_with_embeddings with embedding_gene (TCGA symbol networks)."""
+
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_basic(self, mock_mapper_fn, mock_cache_fn, symbol_network_df, mock_cascade_model):
+        mock_mapper_fn.return_value = _make_symbol_mapper()
+        mock_cache = MagicMock()
+        mock_cache.get_similarities.side_effect = mock_cascade_model.get_all_similarities
+        mock_cache_fn.return_value = mock_cache
+
+        result = simulate_overexpression_with_embeddings(
+            symbol_network_df, "TF1", mock_cascade_model,
+            fold_change=2.0, embedding_gene="ENSG_TF1",
+        )
+        assert result["status"] == "complete"
+        assert result["perturbation_type"] == "overexpression_with_embeddings"
+        assert result["total_affected_genes"] > 0
+        for gene in result["top_affected_genes"]:
+            assert "ensembl_id" in gene
+            assert "symbol" in gene
+
+    @patch("tools.cache.get_embedding_cache")
+    @patch("tools.perturb.get_mapper")
+    def test_embedding_gene_not_in_vocab(self, mock_mapper_fn, mock_cache_fn, symbol_network_df, mock_cascade_model):
+        mock_mapper_fn.return_value = _make_symbol_mapper()
+        result = simulate_overexpression_with_embeddings(
+            symbol_network_df, "TF1", mock_cascade_model,
+            embedding_gene="ENSG_NONEXISTENT",
+        )
+        assert result["status"] == "error"
+        assert "ENSG_NONEXISTENT" in result["error"]
