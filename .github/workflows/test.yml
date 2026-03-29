@@ -21,11 +21,11 @@ jobs:
           python-version: "3.12"
 
       - name: Install CPU-only PyTorch
-        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+        run: pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          grep -v "^torch" requirements.txt | pip install -r /dev/stdin
           pip install pytest pytest-cov pytest-asyncio
 
       - name: Run tests
