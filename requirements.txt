@@ -1,27 +1,27 @@
 # Core dependencies
-torch>=2.0
-numpy
-pandas
-scipy
+torch==2.6.0+cu124  # CUDA 12.4 build; use matching wheel index for other CUDA versions
+numpy==2.3.5
+pandas==2.3.3
+scipy==1.17.0
 
 # MCP framework
-fastmcp
+fastmcp==2.14.3
 
 # Gene ID lookups
-requests
+requests==2.32.5
 
 # GREmLN model (includes scGraphLLM)
-gremln @ git+https://github.com/czi-ai/GREmLN.git
+gremln @ git+https://github.com/czi-ai/GREmLN.git@e1c5d8edbe2fe96568ff5451f15bc691722bb6a1
 
 # LangGraph orchestration
-langgraph
+langgraph==1.0.7
 
 # TF regulon validation (DoRothEA)
-decoupler>=2.0
+decoupler==2.1.4
 
 # LLM insights (optional - for biological interpretation)
-ollama>=0.1.0
-python-dotenv>=1.0
+ollama==0.6.1
+python-dotenv==1.2.1
 
 # Optional: torch-geometric for graph operations
 # torch-geometric>=2.7
