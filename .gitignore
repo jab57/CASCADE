@@ -16,6 +16,9 @@ models/*.ckpt
 # DepMap CRISPR gene effect scores (~413 MB, versioned quarterly - download from depmap.org)
 data/depmap/CRISPRGeneEffect.csv
 
+# Raw LINCS investigation data (GSE106127, ~400 MB - kept locally as evidence for issue #19 decision)
+data/lincs_raw/
+
 # DoRothEA disk cache (auto-generated on first run - committed for faster cold start)
 # data/dorothea/ -- intentionally NOT ignored; parquet cache is committed
 
