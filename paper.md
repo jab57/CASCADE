@@ -14,7 +14,8 @@ authors:
 affiliations:
   - name: Bird AI Solutions
     index: 1
-date: 6 February 2026
+date: 29 April 2026
+archive_doi: 10.5281/zenodo.18883012
 bibliography: paper.bib
 ---
 
