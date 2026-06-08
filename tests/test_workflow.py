@@ -775,7 +775,7 @@ class TestFailedAnalysesCollection:
         wf._analyze_regulators_impl = AsyncMock(return_value={"regulators": []})
         wf._analyze_targets_impl = AsyncMock(return_value={"targets": []})
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             wf._batch_core_analysis(base_state)
         )
 
@@ -794,7 +794,7 @@ class TestFailedAnalysesCollection:
         wf._analyze_regulators_impl = AsyncMock(return_value={"regulators": []})
         wf._analyze_targets_impl = AsyncMock(return_value={"targets": []})
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             wf._batch_core_analysis(base_state)
         )
 
@@ -812,7 +812,7 @@ class TestFailedAnalysesCollection:
         wf._fetch_depmap_impl = AsyncMock(return_value={})
         wf._fetch_cbioportal_impl = AsyncMock(return_value={})
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             wf._batch_external_data(base_state)
         )
 
@@ -830,7 +830,7 @@ class TestFailedAnalysesCollection:
         wf._analyze_vulnerability_impl = AsyncMock(return_value={})
         wf._cross_cell_comparison_impl = AsyncMock(return_value={})
 
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             wf._batch_insights(base_state)
         )
 
@@ -875,7 +875,7 @@ class TestFailedAnalysesCollection:
             "analysis_metadata": {"start_time": time.time()},
         }
 
-        result = asyncio.get_event_loop().run_until_complete(wf._generate_report(state))
+        result = asyncio.run(wf._generate_report(state))
         report = result["comprehensive_report"]
         assert "metadata" in report
         assert "failed_analyses" in report["metadata"]
@@ -915,7 +915,7 @@ class TestProgressCallback:
                 })
                 wf.workflow = mock_workflow
 
-                result = asyncio.get_event_loop().run_until_complete(
+                result = asyncio.run(
                     wf.run("TP53", progress_cb=fake_cb)
                 )
 
@@ -939,7 +939,7 @@ class TestProgressCallback:
                 })
                 wf.workflow = mock_workflow
 
-                result = asyncio.get_event_loop().run_until_complete(
+                result = asyncio.run(
                     wf.run("TP53", progress_cb=None)
                 )
         assert result == {"summary": "ok"}
@@ -1011,7 +1011,7 @@ class TestApiRateLimiting:
         wf._api_semaphore.__aexit__ = AsyncMock(return_value=False)
 
         state = {"gene": "TP53", "gene_symbol": "TP53"}
-        asyncio.get_event_loop().run_until_complete(wf._fetch_ppi_impl(state))
+        asyncio.run(wf._fetch_ppi_impl(state))
         assert len(semaphore_acquired) == 1
 
     def test_fetch_cbioportal_impl_acquires_semaphore(self, monkeypatch):
@@ -1027,5 +1027,5 @@ class TestApiRateLimiting:
         with patch("tools.cbioportal.get_gene_tumor_expression", return_value={}):
             with patch("tools.cbioportal.get_gene_alteration_frequency", return_value={}):
                 state = {"gene": "TP53", "gene_symbol": "TP53"}
-                asyncio.get_event_loop().run_until_complete(wf._fetch_cbioportal_impl(state))
+                asyncio.run(wf._fetch_cbioportal_impl(state))
         assert len(semaphore_acquired) == 1
