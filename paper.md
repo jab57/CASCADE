@@ -8,11 +8,11 @@ tags:
   - Model Context Protocol
   - LangGraph
 authors:
-  - name: Jose Bird
+  - name: Jose A. Bird
     orcid: 0009-0006-2744-0606
     affiliation: 1
 affiliations:
-  - name: Bird AI Solutions
+  - name: Independent Researcher
     index: 1
 date: 29 April 2026
 archive_doi: 10.5281/zenodo.19891084

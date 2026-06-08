@@ -4,9 +4,9 @@ title: "CASCADE: Agentic In Silico Gene Perturbation Analysis via the Model Cont
 type: software
 authors:
   - family-names: Bird
-    given-names: Jose
+    given-names: Jose A.
     orcid: "https://orcid.org/0009-0006-2744-0606"
-    affiliation: "Bird AI Solutions"
+    affiliation: "Independent Researcher"
     email: jbird@birdaisolutions.com
 repository-code: "https://github.com/jab57/CASCADE"
 doi: "10.5281/zenodo.18883012"
