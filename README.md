@@ -553,7 +553,7 @@ CASCADE/
 ├── models/
 │   └── model.ckpt                  # GREmLN model checkpoint (120MB)
 └── cache/
-    └── gene_id_cache.pkl           # Cached gene ID mappings
+    └── gene_id_cache.json          # Cached gene ID mappings
 ```
 
 ## Performance
@@ -714,11 +714,12 @@ If you use CASCADE in your research, please cite:
 
 ```bibtex
 @software{bird2026cascade,
-  title     = {CASCADE: An MCP Server for In Silico Gene Perturbation Analysis in Immuno-Oncology},
-  author    = {Bird, Jose},
+  title     = {CASCADE: Agentic In Silico Gene Perturbation Analysis via the Model Context Protocol},
+  author    = {Bird, Jose A.},
   year      = {2026},
   url       = {https://github.com/jab57/CASCADE},
-  version   = {0.1.0},
+  doi       = {10.5281/zenodo.19891084},
+  version   = {1.1.0},
   license   = {MIT}
 }
 ```
