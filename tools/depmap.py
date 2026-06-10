@@ -14,10 +14,13 @@ https://depmap.org/portal/download/
   - Model.csv             (ModelID -> OncotreeLineage mapping)
 """
 
+import logging
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 # Paths to DepMap data files
 DEPMAP_DIR = Path(__file__).parent.parent / "data" / "depmap"
@@ -58,7 +61,7 @@ def load_depmap_data() -> tuple[pd.DataFrame, pd.Series]:
             "(DepMap Public release). See data/depmap/README.md for instructions."
         )
 
-    print(f"[DepMap] Loading gene effect scores from {GENE_EFFECT_PATH}")
+    logger.info("[DepMap] Loading gene effect scores from %s", GENE_EFFECT_PATH)
 
     # Load gene effect matrix (rows=cell lines, cols="GENE (entrez_id)")
     scores = pd.read_csv(GENE_EFFECT_PATH, index_col=0)
@@ -66,13 +69,13 @@ def load_depmap_data() -> tuple[pd.DataFrame, pd.Series]:
     # Strip Entrez IDs from column names: "MYC (4609)" -> "MYC"
     scores.columns = scores.columns.str.replace(r'\s*\(\d+\)$', '', regex=True)
 
-    print(f"[DepMap] Loaded {scores.shape[0]} cell lines x {scores.shape[1]} genes")
+    logger.info("[DepMap] Loaded %d cell lines x %d genes", scores.shape[0], scores.shape[1])
 
     # Load lineage mapping
     model_df = pd.read_csv(MODEL_PATH, usecols=lambda c: c in ("ModelID", "OncotreeLineage"))
     lineage_map = model_df.set_index("ModelID")["OncotreeLineage"]
 
-    print(f"[DepMap] Loaded lineage map for {len(lineage_map)} cell lines")
+    logger.info("[DepMap] Loaded lineage map for %d cell lines", len(lineage_map))
 
     _gene_scores = scores
     _lineage_map = lineage_map

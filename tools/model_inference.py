@@ -5,6 +5,7 @@ Provides access to learned gene embeddings from the GREmLN model checkpoint
 for enhanced perturbation analysis.
 """
 
+import logging
 from pathlib import Path
 from typing import Optional
 import numpy as np
@@ -12,6 +13,8 @@ import pandas as pd
 import torch
 
 from scGraphLLM import GeneVocab
+
+logger = logging.getLogger(__name__)
 
 
 class CascadeModel:
@@ -47,8 +50,8 @@ class CascadeModel:
         if not self.checkpoint_path.exists():
             raise FileNotFoundError(f"Model checkpoint not found: {self.checkpoint_path}")
 
-        print(f"[CASCADE] Loading model checkpoint from {self.checkpoint_path}")
-        print(f"[CASCADE] Using device: {self.device}")
+        logger.info("[CASCADE] Loading model checkpoint from %s", self.checkpoint_path)
+        logger.info("[CASCADE] Using device: %s", self.device)
 
         checkpoint = torch.load(
             self.checkpoint_path,
@@ -69,7 +72,7 @@ class CascadeModel:
         for key in embedding_keys:
             if key in state_dict:
                 self.gene_embeddings = state_dict[key].to(self.device)
-                print(f"[CASCADE] Found gene embeddings at '{key}'")
+                logger.info("[CASCADE] Found gene embeddings at '%s'", key)
                 break
 
         if self.gene_embeddings is None:
@@ -86,8 +89,8 @@ class CascadeModel:
         )
 
         self._loaded = True
-        print(f"[CASCADE] Loaded embeddings for {self.gene_embeddings.shape[0]} genes")
-        print(f"[CASCADE] Embedding dimension: {self.gene_embeddings.shape[1]}")
+        logger.info("[CASCADE] Loaded embeddings for %d genes", self.gene_embeddings.shape[0])
+        logger.info("[CASCADE] Embedding dimension: %d", self.gene_embeddings.shape[1])
 
         return self
 
@@ -153,7 +156,7 @@ class CascadeModel:
 
         # Monitor for potential artifacts
         if abs(sim) > 0.99:
-            print(f"[CASCADE] Warning: extreme similarity {sim:.4f} between {gene1} and {gene2}")
+            logger.warning("[CASCADE] Warning: extreme similarity %.4f between %s and %s", sim, gene1, gene2)
 
         return sim
 

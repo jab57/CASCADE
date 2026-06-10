@@ -9,10 +9,13 @@ https://maayanlab.cloud/Harmonizome/dataset/LINCS+L1000+CMAP+CRISPR+Knockout+Con
 """
 
 import gzip
+import logging
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 # Path to LINCS data file
 LINCS_DATA_PATH = Path(__file__).parent.parent / "data" / "lincs" / "gene_attribute_edges.txt.gz"
@@ -43,7 +46,7 @@ def load_lincs_data() -> pd.DataFrame:
             "Download from: https://maayanlab.cloud/static/hdfs/harmonizome/data/l1000crispr/gene_attribute_edges.txt.gz"
         )
 
-    print(f"[LINCS] Loading expression perturbation data from {LINCS_DATA_PATH}")
+    logger.info("[LINCS] Loading expression perturbation data from %s", LINCS_DATA_PATH)
 
     # Load gzipped TSV
     df = pd.read_csv(
@@ -58,9 +61,9 @@ def load_lincs_data() -> pd.DataFrame:
     # Clean up gene_ko column (remove _KO suffix and ID)
     # Format is like "TP53" with separate column for ID_KO
 
-    print(f"[LINCS] Loaded {len(df):,} gene-perturbation associations")
-    print(f"[LINCS] Unique genes measured: {df['gene'].nunique():,}")
-    print(f"[LINCS] Unique knockdowns: {df['gene_ko'].nunique():,}")
+    logger.info("[LINCS] Loaded %s gene-perturbation associations", f"{len(df):,}")
+    logger.info("[LINCS] Unique genes measured: %s", f"{df['gene'].nunique():,}")
+    logger.info("[LINCS] Unique knockdowns: %s", f"{df['gene_ko'].nunique():,}")
 
     _lincs_data = df
     return df

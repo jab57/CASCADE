@@ -7,10 +7,13 @@ potential sensitivity to BRD4/BET inhibitors.
 Data source: dbSUPER (http://asntech.org/dbsuper/)
 """
 
+import logging
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 # Path to super-enhancer data
 SE_DATA_PATH = Path(__file__).parent.parent / "data" / "super_enhancers" / "dbSUPER_hg19.tsv"
@@ -33,15 +36,15 @@ def load_super_enhancer_data() -> pd.DataFrame:
             "Download from: https://asntech.org/dbsuper/data/dbSUPER_SuperEnhancers_hg19.tsv"
         )
 
-    print(f"[SuperEnhancer] Loading data from {SE_DATA_PATH}")
+    logger.info("[SuperEnhancer] Loading data from %s", SE_DATA_PATH)
 
     _se_data = pd.read_csv(SE_DATA_PATH, sep='\t')
     # Clean column names (remove leading spaces)
     _se_data.columns = _se_data.columns.str.strip()
 
-    print(f"[SuperEnhancer] Loaded {len(_se_data):,} super-enhancer associations")
-    print(f"[SuperEnhancer] Unique genes: {_se_data['gene_symbol'].nunique():,}")
-    print(f"[SuperEnhancer] Cell types: {_se_data['cell_name'].nunique():,}")
+    logger.info("[SuperEnhancer] Loaded %s super-enhancer associations", f"{len(_se_data):,}")
+    logger.info("[SuperEnhancer] Unique genes: %s", f"{_se_data['gene_symbol'].nunique():,}")
+    logger.info("[SuperEnhancer] Cell types: %s", f"{_se_data['cell_name'].nunique():,}")
 
     return _se_data
 

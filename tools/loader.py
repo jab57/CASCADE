@@ -2,8 +2,11 @@
 Network and model loading utilities for CASCADE perturbation analysis.
 """
 
+import logging
 from pathlib import Path
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 # Default paths
 BASE_DIR = Path(__file__).parent.parent
@@ -138,7 +141,7 @@ def load_cascade_model(model_path: Path | str = MODEL_PATH):
         raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"[CASCADE] Loading model on: {device}")
+    logger.info("[CASCADE] Loading model on: %s", device)
 
     # weights_only=False is required: the checkpoint contains PyTorch Lightning
     # state that cannot be loaded with weights_only=True. Only load checkpoints

@@ -6,12 +6,15 @@ Converts between gene symbols and Ensembl IDs
 Consistent with RegNetAgents gene_id_mapper API.
 """
 
+import logging
 import requests
 import json
 import os
 import threading
 from typing import Dict, List, Optional
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Semaphore limiting concurrent Ensembl REST API calls across all threads.
 # Shared across all GeneIDMapper instances (module-level singleton pattern).
@@ -28,7 +31,7 @@ class GeneIDMapper:
             cache_file = str(cache_dir / "gene_id_cache.json")
         self.cache_file = cache_file
         self.cache = self._load_cache()
-        print(f"Gene mapping initialized: {len(self.cache['symbol_to_ensembl'])} genes cached")
+        logger.info("Gene mapping initialized: %d genes cached", len(self.cache['symbol_to_ensembl']))
 
     def _load_cache(self) -> Dict:
         """Load cached mappings from file"""
@@ -47,7 +50,7 @@ class GeneIDMapper:
             with open(self.cache_file, 'w', encoding='utf-8') as f:
                 json.dump(self.cache, f)
         except Exception as e:
-            print(f"Warning: Could not save cache: {e}")
+            logger.warning("Warning: Could not save cache: %s", e)
 
     def symbol_to_ensembl(self, gene_symbol: str) -> Optional[str]:
         """Convert gene symbol to Ensembl ID"""
@@ -77,7 +80,7 @@ class GeneIDMapper:
                     self._save_cache()
                     return ensembl_id
         except Exception as e:
-            print(f"Error querying Ensembl API for {gene_symbol}: {e}")
+            logger.warning("Error querying Ensembl API for %s: %s", gene_symbol, e)
 
         return None
 
@@ -104,7 +107,7 @@ class GeneIDMapper:
                     self._save_cache()
                     return gene_symbol.upper()
         except Exception as e:
-            print(f"Error querying Ensembl API for {ensembl_id}: {e}")
+            logger.warning("Error querying Ensembl API for %s: %s", ensembl_id, e)
 
         return None
 

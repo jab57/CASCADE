@@ -9,10 +9,13 @@ Data source: DoRothEA via decoupler-py
 https://decoupler-py.readthedocs.io/
 """
 
+import logging
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 # Module-level cache
 _dorothea_data: Optional[pd.DataFrame] = None
@@ -44,10 +47,10 @@ def load_dorothea_regulons(levels: list[str] | None = None) -> pd.DataFrame:
 
     # Check disk cache first — avoids re-downloading on every server restart
     if _DISK_CACHE_PATH.exists():
-        print("[DoRothEA] Loading TF regulons from disk cache...")
+        logger.info("[DoRothEA] Loading TF regulons from disk cache...")
         df = pd.read_parquet(_DISK_CACHE_PATH)
         _dorothea_data = df
-        print(f"[DoRothEA] Loaded {len(df):,} TF-target interactions from cache")
+        logger.info("[DoRothEA] Loaded %s TF-target interactions from cache", f"{len(df):,}")
         filtered = _dorothea_data[_dorothea_data["confidence"].isin(levels)]
         return filtered
 
@@ -59,7 +62,7 @@ def load_dorothea_regulons(levels: list[str] | None = None) -> pd.DataFrame:
             "Install with: pip install decoupler>=2.0"
         )
 
-    print("[DoRothEA] Downloading TF regulons from decoupler (first run only)...")
+    logger.info("[DoRothEA] Downloading TF regulons from decoupler (first run only)...")
 
     try:
         # decoupler 2.x uses dc.op.dorothea(); 1.x used dc.get_dorothea()
@@ -94,17 +97,17 @@ def load_dorothea_regulons(levels: list[str] | None = None) -> pd.DataFrame:
     elif "mor" not in df.columns:
         df["mor"] = 1.0
 
-    print(f"[DoRothEA] Loaded {len(df):,} TF-target interactions")
-    print(f"[DoRothEA] Unique TFs: {df['source'].nunique():,}")
-    print(f"[DoRothEA] Confidence levels: {sorted(df['confidence'].unique())}")
+    logger.info("[DoRothEA] Loaded %s TF-target interactions", f"{len(df):,}")
+    logger.info("[DoRothEA] Unique TFs: %s", f"{df['source'].nunique():,}")
+    logger.info("[DoRothEA] Confidence levels: %s", sorted(df['confidence'].unique()))
 
     # Save to disk cache so future server restarts don't need to download
     try:
         _DISK_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(_DISK_CACHE_PATH, index=False)
-        print(f"[DoRothEA] Saved disk cache to {_DISK_CACHE_PATH}")
+        logger.info("[DoRothEA] Saved disk cache to %s", _DISK_CACHE_PATH)
     except Exception as e:
-        print(f"[DoRothEA] Warning: could not save disk cache: {e}")
+        logger.warning("[DoRothEA] Warning: could not save disk cache: %s", e)
 
     _dorothea_data = df
 
