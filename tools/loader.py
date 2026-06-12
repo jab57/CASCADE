@@ -4,6 +4,7 @@ Network and model loading utilities for CASCADE perturbation analysis.
 
 import logging
 from pathlib import Path
+import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,14 @@ def load_network(network_path: Path | str) -> pd.DataFrame:
         for col in df.columns
     ]
 
+    # Derive signed MI from Spearman correlation: positive SCC = activation,
+    # negative SCC = repression. Zero SCC (direction unknown) defaults to +1.
+    if "mi" in df.columns and "scc" in df.columns:
+        mi_vals = df["mi"].to_numpy(dtype=float)
+        scc_vals = df["scc"].to_numpy(dtype=float)
+        scc_sign = np.where(scc_vals != 0, np.sign(scc_vals), 1.0)
+        df["signed_mi"] = mi_vals * scc_sign
+
     _network_cache[cache_key] = df
     return df
 
@@ -94,6 +103,15 @@ def load_tcga_network(cancer_type: str) -> pd.DataFrame:
 
     # Map CSV columns to CASCADE BFS-expected column names
     df = df.rename(columns={"Regulator": "regulator", "Target": "target", "Likelihood": "mi"})
+
+    # Derive signed MI from Mode-of-Action before filling placeholder defaults.
+    # MoA > 0 = activation, MoA < 0 = repression; zero defaults to +1 (unknown).
+    if "MoA" in df.columns:
+        mi_vals = df["mi"].to_numpy(dtype=float)
+        moa_vals = df["MoA"].to_numpy(dtype=float)
+        moa_sign = np.where(moa_vals != 0, np.sign(moa_vals), 1.0)
+        df["signed_mi"] = mi_vals * moa_sign
+
     df["scc"] = 0.0
     df["count"] = 0
     df["log_p"] = 0.0

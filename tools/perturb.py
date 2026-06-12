@@ -35,7 +35,12 @@ def _build_adjacency(network_df: pd.DataFrame) -> dict[str, list[tuple[str, floa
     reg_arr = network_df["regulator"].values
     tgt_arr = network_df["target"].values
 
-    if "mi" in network_df.columns:
+    if "signed_mi" in network_df.columns:
+        w_arr = network_df["signed_mi"].values.astype(float)
+        mask = np.isfinite(w_arr) & (w_arr != 0)
+        for reg, tgt, w in zip(reg_arr[mask], tgt_arr[mask], w_arr[mask]):
+            adj[reg].append((tgt, float(w)))
+    elif "mi" in network_df.columns:
         w_arr = network_df["mi"].values.astype(float)
         mask = np.isfinite(w_arr) & (w_arr > 0)
         for reg, tgt, w in zip(reg_arr[mask], tgt_arr[mask], w_arr[mask]):
@@ -64,7 +69,12 @@ def _build_reverse_adjacency(network_df: pd.DataFrame) -> dict[str, list[tuple[s
     reg_arr = network_df["regulator"].values
     tgt_arr = network_df["target"].values
 
-    if "mi" in network_df.columns:
+    if "signed_mi" in network_df.columns:
+        w_arr = network_df["signed_mi"].values.astype(float)
+        mask = np.isfinite(w_arr) & (w_arr != 0)
+        for reg, tgt, w in zip(reg_arr[mask], tgt_arr[mask], w_arr[mask]):
+            adj[tgt].append((reg, float(w)))
+    elif "mi" in network_df.columns:
         w_arr = network_df["mi"].values.astype(float)
         mask = np.isfinite(w_arr) & (w_arr > 0)
         for reg, tgt, w in zip(reg_arr[mask], tgt_arr[mask], w_arr[mask]):

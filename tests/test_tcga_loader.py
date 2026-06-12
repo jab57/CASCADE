@@ -25,7 +25,7 @@ SAMPLE_EDGES = [
     {"Regulator": "ESR1",  "Target": "GATA3", "MoA":  1.0, "Likelihood": 0.95},
     {"Regulator": "ESR1",  "Target": "FOXA1", "MoA":  1.0, "Likelihood": 0.90},
     {"Regulator": "TP53",  "Target": "CDKN1A","MoA":  1.0, "Likelihood": 0.88},
-    {"Regulator": "MYC",   "Target": "CDK4",  "MoA":  1.0, "Likelihood": 0.75},
+    {"Regulator": "MYC",   "Target": "CDK4",  "MoA": -1.0, "Likelihood": 0.75},  # repressing
 ]
 
 
@@ -73,6 +73,37 @@ class TestLoadTcgaNetwork:
         assert (df["scc"] == 0.0).all()
         assert (df["count"] == 0).all()
         assert (df["log_p"] == 0.0).all()
+
+    def test_signed_mi_column_present(self, tmp_path):
+        from tools.loader import load_tcga_network
+        _make_fake_csv(tmp_path, "brca", SAMPLE_EDGES)
+
+        with patch("tools.loader.TCGA_NETWORKS_DIR", tmp_path):
+            df = load_tcga_network("brca")
+
+        assert "signed_mi" in df.columns
+
+    def test_signed_mi_activation_positive(self, tmp_path):
+        from tools.loader import load_tcga_network
+        _make_fake_csv(tmp_path, "brca", SAMPLE_EDGES)
+
+        with patch("tools.loader.TCGA_NETWORKS_DIR", tmp_path):
+            df = load_tcga_network("brca")
+
+        # ESR1→GATA3 MoA=+1 → signed_mi == +Likelihood
+        row = df[df["target"] == "GATA3"].iloc[0]
+        assert row["signed_mi"] == pytest.approx(0.95)
+
+    def test_signed_mi_repression_negative(self, tmp_path):
+        from tools.loader import load_tcga_network
+        _make_fake_csv(tmp_path, "brca", SAMPLE_EDGES)
+
+        with patch("tools.loader.TCGA_NETWORKS_DIR", tmp_path):
+            df = load_tcga_network("brca")
+
+        # MYC→CDK4 MoA=-1 → signed_mi == -Likelihood
+        row = df[df["target"] == "CDK4"].iloc[0]
+        assert row["signed_mi"] == pytest.approx(-0.75)
 
     def test_unknown_cancer_type_returns_error(self):
         from tools.loader import load_tcga_network
@@ -147,3 +178,6 @@ class TestLoadNetworkRegression:
         assert isinstance(df, pd.DataFrame)
         assert "regulator" in df.columns
         assert df["mi"].iloc[0] == pytest.approx(0.5)
+        # signed_mi is derived from mi * sign(scc); scc=0.3 > 0 → signed_mi == mi
+        assert "signed_mi" in df.columns
+        assert df["signed_mi"].iloc[0] == pytest.approx(0.5)

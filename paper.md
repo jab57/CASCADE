@@ -67,7 +67,7 @@ The core perturbation simulation is deterministic: the same gene, cell type, and
 
 # Software Availability
 
-CASCADE is available at [https://github.com/jab57/CASCADE](https://github.com/jab57/CASCADE) under the MIT license. The repository includes 327 automated tests covering network propagation, embedding similarity, LINCS queries, gene identifier resolution, DoRothEA regulon validation, MCP tool registration, workflow orchestration, and cell-type input validation, with continuous integration via GitHub Actions.
+CASCADE is available at [https://github.com/jab57/CASCADE](https://github.com/jab57/CASCADE) under the MIT license. The repository includes 334 automated tests covering network propagation, embedding similarity, LINCS queries, gene identifier resolution, DoRothEA regulon validation, MCP tool registration, workflow orchestration, and cell-type input validation, with continuous integration via GitHub Actions.
 
 # AI Usage Disclosure
 

@@ -179,6 +179,54 @@ class TestSimulateOverexpression:
         assert mag_4x > mag_2x
 
 
+class TestSignAwarePropagation:
+    """Verify that repressing edges (negative signed_mi) flip propagated direction."""
+
+    def test_repressing_edge_flips_knockdown_direction(self, mock_network_df_with_repressor):
+        adj = _build_adjacency(mock_network_df_with_repressor)
+        effects = _propagate_effect(adj, "ENSG_TF1", initial_effect=-1.0, depth=1)
+        # TF1 activates TARGET1 → knockdown reduces TARGET1
+        assert effects["ENSG_TARGET1"] < 0
+        # TF1 represses TARGET3 → knockdown de-represses TARGET3
+        assert effects["ENSG_TARGET3"] > 0
+
+    def test_repressing_edge_flips_overexpression_direction(self, mock_network_df_with_repressor):
+        adj = _build_adjacency(mock_network_df_with_repressor)
+        effects = _propagate_effect(adj, "ENSG_TF1", initial_effect=1.0, depth=1)
+        assert effects["ENSG_TARGET1"] > 0   # activated → increases
+        assert effects["ENSG_TARGET3"] < 0   # repressed → decreases
+
+    @patch("tools.perturb.get_mapper")
+    def test_simulate_knockdown_direction_field_for_repressor_target(
+        self, mock_mapper_fn, mock_network_df_with_repressor
+    ):
+        mapper = MagicMock()
+        mapper.ensembl_to_symbol.side_effect = lambda x: x.replace("ENSG_", "")
+        mock_mapper_fn.return_value = mapper
+
+        result = simulate_knockdown(mock_network_df_with_repressor, "ENSG_TF1", depth=1)
+        assert result["status"] == "complete"
+
+        by_id = {g["ensembl_id"]: g for g in result["top_affected_genes"]}
+        assert by_id["ENSG_TARGET1"]["direction"] == "down"
+        assert by_id["ENSG_TARGET3"]["direction"] == "up"
+
+    @patch("tools.perturb.get_mapper")
+    def test_simulate_overexpression_direction_field_for_repressor_target(
+        self, mock_mapper_fn, mock_network_df_with_repressor
+    ):
+        mapper = MagicMock()
+        mapper.ensembl_to_symbol.side_effect = lambda x: x.replace("ENSG_", "")
+        mock_mapper_fn.return_value = mapper
+
+        result = simulate_overexpression(mock_network_df_with_repressor, "ENSG_TF1", depth=1)
+        assert result["status"] == "complete"
+
+        by_id = {g["ensembl_id"]: g for g in result["top_affected_genes"]}
+        assert by_id["ENSG_TARGET1"]["direction"] == "up"
+        assert by_id["ENSG_TARGET3"]["direction"] == "down"
+
+
 class TestGetRegulators:
     @patch("tools.perturb.get_mapper")
     def test_find_regulators(self, mock_mapper_fn, mock_network_df):

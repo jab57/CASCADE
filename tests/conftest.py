@@ -13,6 +13,27 @@ from unittest.mock import MagicMock, patch
 
 
 # ---------------------------------------------------------------------------
+# Cache hygiene
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def clear_perturb_adj_cache():
+    """Clear module-level adjacency caches between tests.
+
+    The caches are keyed on id(network_df). Pytest creates many short-lived
+    DataFrames per test, and Python can reuse the same memory address for a
+    new DataFrame after the old one is garbage-collected, causing a stale cache
+    hit. Clearing at test boundaries prevents this.
+    """
+    from tools import perturb
+    perturb._adj_cache.clear()
+    perturb._rev_adj_cache.clear()
+    yield
+    perturb._adj_cache.clear()
+    perturb._rev_adj_cache.clear()
+
+
+# ---------------------------------------------------------------------------
 # Mock regulatory network
 # ---------------------------------------------------------------------------
 
@@ -42,10 +63,29 @@ def mock_network_df():
             "ENSG_TARGET2", "ENSG_TARGET3",
             "ENSG_DOWNSTREAM1",
         ],
-        "mi": [0.8, 0.6, 0.5, 0.4, 0.3],
-        "scc": [0.7, 0.5, 0.4, 0.3, 0.2],
-        "count": [100, 80, 60, 50, 40],
-        "log_p": [-10.0, -8.0, -6.0, -5.0, -4.0],
+        "mi":        [0.8, 0.6, 0.5, 0.4, 0.3],
+        "scc":       [0.7, 0.5, 0.4, 0.3, 0.2],
+        "signed_mi": [0.8, 0.6, 0.5, 0.4, 0.3],  # all positive (all scc > 0)
+        "count":     [100, 80, 60, 50, 40],
+        "log_p":     [-10.0, -8.0, -6.0, -5.0, -4.0],
+    })
+
+
+@pytest.fixture
+def mock_network_df_with_repressor():
+    """Network with one repressing edge (TF1 --represses--> TARGET3).
+
+    TF1 activates TARGET1 (signed_mi > 0) and represses TARGET3 (signed_mi < 0).
+    Knockdown of TF1 should predict TARGET1 down and TARGET3 up (de-repression).
+    """
+    return pd.DataFrame({
+        "regulator": ["ENSG_TF1", "ENSG_TF1", "ENSG_TF2"],
+        "target":    ["ENSG_TARGET1", "ENSG_TARGET3", "ENSG_TARGET2"],
+        "mi":        [0.8, 0.6, 0.5],
+        "scc":       [0.7, -0.5, 0.4],
+        "signed_mi": [0.8, -0.6, 0.5],  # TF1→TARGET3 is repressing
+        "count":     [100, 80, 60],
+        "log_p":     [-10.0, -8.0, -6.0],
     })
 
 

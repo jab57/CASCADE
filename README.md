@@ -187,7 +187,7 @@ The server provides analysis across several categories:
 
 ### TCGA Tumor-State Networks (use with `network_source="tcga"` + `tcga_network` parameter)
 
-CASCADE ships with pre-computed ARACNe regulatory networks derived from TCGA tumor RNA-seq data (Bioconductor `aracne.networks`, Lim & Califano 2018). These provide tumor-state regulatory wiring and Mode of Action (MoA) annotations for 8 epithelial-origin cancer types:
+CASCADE ships with pre-computed ARACNe regulatory networks derived from TCGA tumor RNA-seq data (Bioconductor `aracne.networks`, Lim & Califano 2018). These provide tumor-state regulatory wiring and Mode of Action (MoA) annotations for 8 epithelial-origin cancer types. The MoA sign (+1 activation, −1 repression) is used directly in propagation to determine whether a knockdown or overexpression increases or decreases each target gene.
 
 | Key | Cancer Type | Edges |
 |-----|-------------|-------|
@@ -603,7 +603,7 @@ CASCADE/
 CASCADE's cell-type-specific regulatory networks are inferred from single-cell RNA-seq data. Each directed edge (`regulator → target`) is a statistically inferred regulatory relationship with the following attributes:
 
 - **mi** (mutual information): how strongly the regulator's mRNA level predicts the target's mRNA level across cells
-- **scc** (Spearman correlation): direction and strength of the expression relationship
+- **scc** (Spearman correlation): direction and strength of the expression relationship. The sign of `scc` is used to determine whether each edge is activating (positive) or repressing (negative), which sets the propagation direction for knockdown and overexpression simulations.
 - **count**: reproducibility of the edge across bootstrap iterations
 - **log_p**: statistical significance
 
