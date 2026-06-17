@@ -1909,11 +1909,11 @@ async def _get_gene_metadata(args: dict) -> dict:
     if err := _validate_cell_type(cell_type):
         return err
 
-    # Resolve gene
+    # Resolve gene (symbol_to_ensembl may call Ensembl API — run in thread)
     if gene.upper().startswith("ENSG"):
         ensembl_id = gene.upper()
     else:
-        ensembl_id = workflow.gene_mapper.symbol_to_ensembl(gene)
+        ensembl_id = await asyncio.to_thread(workflow.gene_mapper.symbol_to_ensembl, gene)
     if ensembl_id is None:
         return {"error": f"Could not resolve gene '{gene}'"}
 
@@ -2065,16 +2065,20 @@ async def _get_protein_interactions(args: dict) -> dict:
     min_score = args.get("min_score", 400)
     limit = args.get("limit", 25)
 
-    # Resolve Ensembl to symbol if needed
+    # Resolve Ensembl to symbol if needed (may call Ensembl API — run in thread)
     if gene.upper().startswith("ENSG"):
-        symbol = workflow.gene_mapper.ensembl_to_symbol(gene)
+        symbol = await asyncio.to_thread(workflow.gene_mapper.ensembl_to_symbol, gene)
         if symbol is None:
             return {"error": f"Could not resolve Ensembl ID '{gene}'"}
         gene = symbol
 
     try:
         client = get_string_client()
-        result = client.get_interactions(gene, min_score=min_score, limit=limit)
+        # STRING makes two sequential blocking HTTP requests — run in thread so the
+        # event loop stays free to handle concurrent MCP requests.
+        result = await asyncio.to_thread(
+            client.get_interactions, gene, min_score=min_score, limit=limit
+        )
         return result
     except Exception as e:
         return {"error": f"STRING API error: {str(e)}"}
