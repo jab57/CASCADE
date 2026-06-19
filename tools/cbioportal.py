@@ -9,6 +9,8 @@ API: https://www.cbioportal.org/api
 Data: TCGA PanCancer Atlas 2018 (~10,000 primary tumor samples, 32 cancer types)
 """
 
+import os
+
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
@@ -16,6 +18,7 @@ from typing import Optional
 _BASE_URL = "https://www.cbioportal.org/api"
 _TIMEOUT = 15
 _MAX_WORKERS = 8  # concurrent API calls per function call
+_SSL_VERIFY = os.environ.get("CASCADE_SSL_NO_VERIFY", "0") != "1"
 
 # TCGA PanCancer Atlas 2018 — 32 cancer types
 # Keys: cBioPortal study prefix; Values: human-readable cancer type name
@@ -58,7 +61,7 @@ _TCGA_STUDIES = {
 def _get_entrez_id(gene_symbol: str) -> Optional[int]:
     """Resolve gene symbol to Entrez ID via cBioPortal API."""
     try:
-        resp = requests.get(f"{_BASE_URL}/genes/{gene_symbol}", timeout=_TIMEOUT)
+        resp = requests.get(f"{_BASE_URL}/genes/{gene_symbol}", timeout=_TIMEOUT, verify=_SSL_VERIFY)
         if resp.status_code == 404:
             return None
         resp.raise_for_status()
@@ -86,6 +89,7 @@ def _fetch_expression_for_study(cancer_prefix: str, entrez_id: int) -> tuple:
                 "projection": "SUMMARY",
             },
             timeout=_TIMEOUT,
+            verify=_SSL_VERIFY,
         )
         if resp.status_code == 404:
             return cancer_prefix, []
@@ -125,6 +129,7 @@ def _fetch_alterations_for_study(cancer_prefix: str, entrez_id: int) -> dict:
                 "projection": "SUMMARY",
             },
             timeout=_TIMEOUT,
+            verify=_SSL_VERIFY,
         )
         if mut_resp.status_code == 200:
             mutations = mut_resp.json()
@@ -132,7 +137,7 @@ def _fetch_alterations_for_study(cancer_prefix: str, entrez_id: int) -> dict:
                 {m["sampleId"] for m in mutations if "sampleId" in m}
             )
             sl_resp = requests.get(
-                f"{_BASE_URL}/sample-lists/{seq_list}", timeout=_TIMEOUT
+                f"{_BASE_URL}/sample-lists/{seq_list}", timeout=_TIMEOUT, verify=_SSL_VERIFY
             )
             if sl_resp.status_code == 200:
                 result["mut_total"] = sl_resp.json().get("sampleCount", 0)
@@ -152,6 +157,7 @@ def _fetch_alterations_for_study(cancer_prefix: str, entrez_id: int) -> dict:
                 "projection": "SUMMARY",
             },
             timeout=_TIMEOUT,
+            verify=_SSL_VERIFY,
         )
         if cna_resp.status_code == 200:
             cna_data = cna_resp.json()
@@ -328,7 +334,7 @@ def get_gene_alteration_frequency(gene_symbol: str) -> dict:
 def get_cbioportal_stats() -> dict:
     """Return basic stats about TCGA PanCancer Atlas data via cBioPortal API."""
     try:
-        resp = requests.get(f"{_BASE_URL}/info", timeout=_TIMEOUT)
+        resp = requests.get(f"{_BASE_URL}/info", timeout=_TIMEOUT, verify=_SSL_VERIFY)
         api_reachable = resp.status_code == 200
     except Exception:
         api_reachable = False
