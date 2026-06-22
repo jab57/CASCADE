@@ -5,9 +5,13 @@ Queries the STRING database (https://string-db.org) to retrieve
 protein-protein interaction networks for human genes.
 """
 
+import os
+
 import requests
 from typing import Optional
 from dataclasses import dataclass
+
+_SSL_VERIFY = os.environ.get("CASCADE_SSL_NO_VERIFY", "0") != "1"
 
 
 @dataclass
@@ -72,7 +76,7 @@ class STRINGClient:
         }
 
         try:
-            response = requests.get(url, params=params, timeout=self.timeout)
+            response = requests.get(url, params=params, timeout=self.timeout, verify=_SSL_VERIFY)
             response.raise_for_status()
             data = response.json()
         except requests.RequestException as e:
@@ -138,7 +142,7 @@ class STRINGClient:
         }
 
         try:
-            response = requests.get(url, params=params, timeout=self.timeout)
+            response = requests.get(url, params=params, timeout=self.timeout, verify=_SSL_VERIFY)
             response.raise_for_status()
             data = response.json()
 
