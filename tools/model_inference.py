@@ -187,10 +187,13 @@ class CascadeModel:
             "similarity": similarities.cpu().numpy()
         })
 
-        # Filter out special tokens and the query gene itself
+        # Filter out special tokens and any gene sharing the query's vocab index
+        # (catches both the query gene itself and duplicate embedding rows)
         special_tokens = {"<PAD>", "<MASK>", "<CLS>"}
         result = result[~result["ensembl_id"].isin(special_tokens)]
-        result = result[result["ensembl_id"] != gene]
+        result = result[result["ensembl_id"].map(
+            lambda eid: self.vocab.gene_to_node.get(eid, -1) != idx
+        )]
 
         # Sort by similarity descending
         result = result.sort_values("similarity", ascending=False).reset_index(drop=True)
