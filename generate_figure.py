@@ -121,7 +121,7 @@ arrow(4.8, 3.22, 5.2, 3.22)
 
 # Network Resources (left, under Batch Core) — dashed border = local
 box(0.5, 0.35, 2.8, 1.25, C_LOCAL,
-    'Network Resources\n10 Cell-Type Networks\n8 TCGA Tumor Networks\nNetwork Propagation',
+    'Network Resources\n10 Cell-Type Networks\n14 TCGA Tumor Networks\nNetwork Propagation',
     fontsize=6.5, linestyle='dashed', edgecolor=C_LOCAL)
 
 # Runtime APIs (center, under Batch External) — solid border = external

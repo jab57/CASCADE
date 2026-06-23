@@ -144,9 +144,10 @@ class TestLoadTcgaNetwork:
         assert df1 is df2  # Same object from cache
 
     def test_all_valid_cancer_types_accepted(self, tmp_path):
-        """Loader accepts all 8 valid types without returning an error for the type check."""
+        """Loader accepts all 14 valid types without returning an error for the type check."""
         from tools.loader import load_tcga_network, VALID_TCGA_CANCER_TYPES
-        valid_types = ["brca", "coad", "hnsc", "luad", "lusc", "ov", "prad", "ucec"]
+        valid_types = ["blca", "brca", "cesc", "coad", "hnsc", "kirc", "lihc",
+                       "luad", "lusc", "ov", "paad", "prad", "stad", "ucec"]
         assert set(valid_types) == VALID_TCGA_CANCER_TYPES
 
         for ct in valid_types:

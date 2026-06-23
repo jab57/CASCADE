@@ -15,9 +15,10 @@ NETWORKS_DIR = BASE_DIR / "data" / "networks"
 TCGA_NETWORKS_DIR = BASE_DIR / "data" / "networks" / "tcga"
 MODEL_PATH = BASE_DIR / "models" / "model.ckpt"
 
-VALID_TCGA_CANCER_TYPES = frozenset(
-    ["brca", "coad", "hnsc", "luad", "lusc", "ov", "prad", "ucec"]
-)
+VALID_TCGA_CANCER_TYPES = frozenset([
+    "blca", "brca", "cesc", "coad", "hnsc", "kirc", "lihc",
+    "luad", "lusc", "ov", "paad", "prad", "stad", "ucec",
+])
 
 # In-process network cache: avoids re-reading TSV files on repeated calls
 # for the same cell type within a server session.
@@ -80,7 +81,7 @@ def load_tcga_network(cancer_type: str) -> pd.DataFrame:
     Results are cached in-process (same cache as load_network).
 
     Args:
-        cancer_type: One of brca, coad, hnsc, luad, lusc, ov, prad, ucec
+        cancer_type: One of blca, brca, cesc, coad, hnsc, kirc, lihc, luad, lusc, ov, paad, prad, stad, ucec
 
     Returns:
         DataFrame with columns: regulator, target, mi, scc, count, log_p

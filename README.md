@@ -187,17 +187,23 @@ The server provides analysis across several categories:
 
 ### TCGA Tumor-State Networks (use with `network_source="tcga"` + `tcga_network` parameter)
 
-CASCADE ships with pre-computed ARACNe regulatory networks derived from TCGA tumor RNA-seq data (Bioconductor `aracne.networks`, Lim & Califano 2018). These provide tumor-state regulatory wiring and Mode of Action (MoA) annotations for 8 epithelial-origin cancer types. The MoA sign (+1 activation, −1 repression) is used directly in propagation to determine whether a knockdown or overexpression increases or decreases each target gene.
+CASCADE ships with pre-computed ARACNe regulatory networks derived from TCGA tumor RNA-seq data (Bioconductor `aracne.networks`, Lim & Califano 2018). These provide tumor-state regulatory wiring and Mode of Action (MoA) annotations for 14 epithelial-origin cancer types. The MoA sign (+1 activation, −1 repression) is used directly in propagation to determine whether a knockdown or overexpression increases or decreases each target gene.
 
 | Key | Cancer Type | Edges |
 |-----|-------------|-------|
+| `blca` | Bladder Urothelial Carcinoma | 488,790 |
 | `brca` | Breast Invasive Carcinoma | 331,644 |
+| `cesc` | Cervical Squamous Cell Carcinoma | 583,523 |
 | `coad` | Colon Adenocarcinoma | 413,481 |
 | `hnsc` | Head/Neck Squamous Cell Carcinoma | 422,855 |
+| `kirc` | Kidney Renal Clear Cell Carcinoma | 350,298 |
+| `lihc` | Liver Hepatocellular Carcinoma | 469,640 |
 | `luad` | Lung Adenocarcinoma | 399,216 |
 | `lusc` | Lung Squamous Cell Carcinoma | 454,680 |
 | `ov` | Ovarian Carcinoma | 647,002 |
+| `paad` | Pancreatic Adenocarcinoma | 520,355 |
 | `prad` | Prostate Adenocarcinoma | 330,709 |
+| `stad` | Stomach Adenocarcinoma | 561,206 |
 | `ucec` | Uterine Corpus Endometrial Carcinoma | 469,523 |
 
 **Usage example** — analyze ESR1 in BRCA tumor regulatory context:
@@ -260,7 +266,7 @@ This makes one batch API call to Ensembl per 1,000 genes (~5–10 minutes). The 
 - Download `CRISPRGeneEffect.csv` from the latest DepMap Public release
 - Place it at `data/depmap/CRISPRGeneEffect.csv`
 
-All other data is already in the repository: GREmLN cell-type networks, TCGA ARACNe networks (8 cancer types), LINCS L1000, dbSUPER, DoRothEA cache, and DepMap Model.csv. See [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) for full provenance details.
+All other data is already in the repository: GREmLN cell-type networks, TCGA ARACNe networks (14 cancer types), LINCS L1000, dbSUPER, DoRothEA cache, and DepMap Model.csv. See [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) for full provenance details.
 
 ### Verify Installation
 
@@ -543,7 +549,7 @@ CASCADE/
 │   │   ├── epithelial_cell/
 │   │   ├── cd4_t_cells/
 │   │   └── ...
-│   ├── networks/tcga/              # TCGA ARACNe tumor-state networks (8 cancer types)
+│   ├── networks/tcga/              # TCGA ARACNe tumor-state networks (14 cancer types)
 │   │   ├── brca/network.csv
 │   │   ├── coad/network.csv
 │   │   └── ...

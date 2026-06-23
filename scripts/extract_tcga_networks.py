@@ -5,14 +5,14 @@ and write CSVs compatible with CASCADE's load_tcga_network() loader.
 
 Usage:
     python scripts/extract_tcga_networks.py \
-        --tarball /path/to/aracne.networks_1.36.0.tar.gz \
+        --tarball /path/to/aracne.networks_1.38.0.tar.gz \
         --output-dir data/networks/tcga
 
 Requires:
     pip install rdata requests
 
 The tarball is the Bioconductor experiment data package:
-    https://bioconductor.org/packages/release/data/experiment/src/contrib/aracne.networks_1.36.0.tar.gz
+    https://bioconductor.org/packages/release/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz
 """
 
 import argparse
@@ -32,26 +32,38 @@ MYGENE_URL = "https://mygene.info/v3/gene"
 
 # Map from Bioconductor dataset name → our cancer type key
 CANCER_TYPE_MAP = {
+    "blca": "blca",
     "brca": "brca",
+    "cesc": "cesc",
     "coad": "coad",
     "hnsc": "hnsc",
+    "kirc": "kirc",
+    "lihc": "lihc",
     "luad": "luad",
     "lusc": "lusc",
     "ov":   "ov",
+    "paad": "paad",
     "prad": "prad",
+    "stad": "stad",
     "ucec": "ucec",
 }
 
 # Known .rda filenames inside the package (data/ directory)
 # Format: aracne.networks/data/regulon{ct}.rda, variable name: regulon{ct}
 RDA_NAMES = {
+    "blca": "regulonblca.rda",
     "brca": "regulonbrca.rda",
+    "cesc": "reguloncesc.rda",
     "coad": "reguloncoad.rda",
     "hnsc": "regulonhnsc.rda",
+    "kirc": "regulonkirc.rda",
+    "lihc": "regulonlihc.rda",
     "luad": "regulonluad.rda",
     "lusc": "regulonlusc.rda",
     "ov":   "regulonov.rda",
+    "paad": "regulonpaad.rda",
     "prad": "regulonprad.rda",
+    "stad": "regulonstad.rda",
     "ucec": "regulonucec.rda",
 }
 
@@ -244,7 +256,7 @@ def main():
     if not os.path.exists(args.tarball):
         print(f"ERROR: tarball not found: {args.tarball}")
         print("Download from:")
-        print("  https://bioconductor.org/packages/release/data/experiment/src/contrib/aracne.networks_1.36.0.tar.gz")
+        print("  https://bioconductor.org/packages/release/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz")
         sys.exit(1)
 
     cancer_types = [args.cancer_type] if args.cancer_type else list(CANCER_TYPE_MAP.keys())

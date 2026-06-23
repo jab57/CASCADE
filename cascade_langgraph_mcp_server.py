@@ -443,7 +443,8 @@ async def handle_list_tools() -> list[Tool]:
     """List available LangGraph-powered tools."""
 
     cell_type_enum = [ct.value for ct in CellType]
-    tcga_network_enum = ["brca", "coad", "hnsc", "luad", "lusc", "ov", "prad", "ucec"]
+    tcga_network_enum = ["blca", "brca", "cesc", "coad", "hnsc", "kirc", "lihc",
+                          "luad", "lusc", "ov", "paad", "prad", "stad", "ucec"]
 
     return [
         Tool(
@@ -1471,7 +1472,7 @@ async def _comprehensive_analysis(args: dict, progress_cb=None) -> dict:
     if network_source == "tcga":
         if not tcga_network:
             return {"error": "tcga_network is required when network_source='tcga'. "
-                             "Valid options: brca, coad, hnsc, luad, lusc, ov, prad, ucec"}
+                             "Valid options: blca, brca, cesc, coad, hnsc, kirc, lihc, luad, lusc, ov, paad, prad, stad, ucec"}
     else:
         cell_type = args.get("cell_type", "epithelial_cell")
         if err := _validate_cell_type(cell_type):
@@ -1513,7 +1514,7 @@ async def _quick_perturbation(args: dict) -> dict:
     if network_source == "tcga":
         if not tcga_network:
             return {"error": "tcga_network is required when network_source='tcga'. "
-                             "Valid options: brca, coad, hnsc, luad, lusc, ov, prad, ucec"}
+                             "Valid options: blca, brca, cesc, coad, hnsc, kirc, lihc, luad, lusc, ov, paad, prad, stad, ucec"}
         # TCGA networks use gene symbols — resolve symbol if Ensembl ID given
         if gene.upper().startswith("ENSG"):
             symbol = workflow.gene_mapper.ensembl_to_symbol(gene)
@@ -1984,7 +1985,7 @@ async def _find_gene_regulators(args: dict) -> dict:
     if network_source == "tcga":
         if not tcga_network:
             return {"error": "tcga_network is required when network_source='tcga'. "
-                             "Valid options: brca, coad, hnsc, luad, lusc, ov, prad, ucec"}
+                             "Valid options: blca, brca, cesc, coad, hnsc, kirc, lihc, luad, lusc, ov, paad, prad, stad, ucec"}
         gene_id = gene if not gene.upper().startswith("ENSG") else (
             workflow.gene_mapper.ensembl_to_symbol(gene) or gene
         )
@@ -2027,7 +2028,7 @@ async def _find_gene_targets(args: dict) -> dict:
     if network_source == "tcga":
         if not tcga_network:
             return {"error": "tcga_network is required when network_source='tcga'. "
-                             "Valid options: brca, coad, hnsc, luad, lusc, ov, prad, ucec"}
+                             "Valid options: blca, brca, cesc, coad, hnsc, kirc, lihc, luad, lusc, ov, paad, prad, stad, ucec"}
         gene_id = gene if not gene.upper().startswith("ENSG") else (
             workflow.gene_mapper.ensembl_to_symbol(gene) or gene
         )
