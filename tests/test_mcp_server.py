@@ -71,6 +71,7 @@ class TestToolListing:
             "get_lincs_data_stats",
             "check_super_enhancer",
             "check_genes_super_enhancers",
+            "get_tf_regulon",
             "get_dorothea_regulon",
             "validate_tf_classification",
             "get_dorothea_stats",
@@ -570,6 +571,43 @@ class TestAdditionalHandlers:
         with patch("tools.dorothea.get_tf_targets",
                    return_value=[{"error": "decoupler not installed"}]):
             result = self._call("get_dorothea_regulon", {"gene": "TP53"})
+        data = json.loads(result[0].text)
+        assert "error" in data
+
+    def test_get_tf_regulon_returns_flat_symbol_list(self):
+        import pandas as pd
+        mock_df = pd.DataFrame({
+            "source": ["TP53", "TP53", "MYC"],
+            "target": ["CDKN1A", "BAX", "CDK4"],
+            "confidence": ["A", "B", "A"],
+            "mor": [1.0, 1.0, 1.0],
+        })
+        with patch("tools.dorothea.load_dorothea_regulons", return_value=mock_df):
+            result = self._call("get_tf_regulon", {"gene": "TP53"})
+        data = json.loads(result[0].text)
+        assert data["gene"] == "TP53"
+        assert data["target_count"] == 2
+        assert set(data["targets"]) == {"CDKN1A", "BAX"}
+        assert "confidence_levels" in data
+
+    def test_get_tf_regulon_unknown_tf_returns_empty(self):
+        import pandas as pd
+        mock_df = pd.DataFrame({
+            "source": ["MYC"],
+            "target": ["CDK4"],
+            "confidence": ["A"],
+            "mor": [1.0],
+        })
+        with patch("tools.dorothea.load_dorothea_regulons", return_value=mock_df):
+            result = self._call("get_tf_regulon", {"gene": "FAKEGENE"})
+        data = json.loads(result[0].text)
+        assert data["target_count"] == 0
+        assert data["targets"] == []
+
+    def test_get_tf_regulon_exception_handled(self):
+        with patch("tools.dorothea.load_dorothea_regulons",
+                   side_effect=RuntimeError("cache missing")):
+            result = self._call("get_tf_regulon", {"gene": "TP53"})
         data = json.loads(result[0].text)
         assert "error" in data
 

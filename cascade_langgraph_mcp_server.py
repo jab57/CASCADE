@@ -1180,6 +1180,37 @@ async def handle_list_tools() -> list[Tool]:
         ),
 
         Tool(
+            name="get_tf_regulon",
+            description="""
+            Get the complete DoRothEA target gene list for a transcription factor.
+
+            Returns a flat list of target gene symbols (no mor/confidence weights),
+            designed for programmatic overlap calculations — e.g., intersecting with
+            a gene signature to count how many signature genes fall in the TF's regulon.
+
+            Unlike get_dorothea_regulon, this returns the full regulon (no top-50 cap)
+            and omits per-target weight fields. Use get_dorothea_regulon when you need
+            confidence weights for individual targets.
+            """,
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gene": {
+                        "type": "string",
+                        "description": "Transcription factor gene symbol (e.g., TP53, MYC)"
+                    },
+                    "confidence_levels": {
+                        "type": "array",
+                        "items": {"type": "string", "enum": ["A", "B", "C", "D", "E"]},
+                        "description": "Confidence levels to include (default: A, B, C)",
+                        "default": ["A", "B", "C"]
+                    }
+                },
+                "required": ["gene"]
+            }
+        ),
+
+        Tool(
             name="validate_tf_classification",
             description="""
             Validate whether a gene is a known transcription factor using DoRothEA.
@@ -1428,6 +1459,9 @@ async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent
             result = await _check_genes_super_enhancers(arguments)
 
         # DoRothEA tools
+        elif name == "get_tf_regulon":
+            result = await _get_tf_regulon(arguments)
+
         elif name == "get_dorothea_regulon":
             result = await _get_dorothea_regulon(arguments)
 
@@ -2446,6 +2480,28 @@ async def _check_genes_super_enhancers(args: dict) -> dict:
 # =============================================================================
 # DOROTHEA IMPLEMENTATIONS
 # =============================================================================
+
+async def _get_tf_regulon(args: dict) -> dict:
+    """Get DoRothEA TF regulon as a flat list of target gene symbols (no cap, no weights)."""
+    from tools.dorothea import load_dorothea_regulons
+
+    gene = args["gene"]
+    confidence_levels = args.get("confidence_levels", ["A", "B", "C"])
+
+    try:
+        df = load_dorothea_regulons(levels=confidence_levels)
+        gene_upper = gene.upper()
+        mask = df["source"].str.upper() == gene_upper
+        targets = sorted(df.loc[mask, "target"].tolist())
+        return {
+            "gene": gene,
+            "confidence_levels": confidence_levels,
+            "target_count": len(targets),
+            "targets": targets,
+        }
+    except Exception as e:
+        return {"error": f"get_tf_regulon failed: {str(e)}"}
+
 
 async def _get_dorothea_regulon(args: dict) -> dict:
     """Get DoRothEA TF regulon targets."""
