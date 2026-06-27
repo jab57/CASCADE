@@ -406,7 +406,7 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 - "Get high-confidence interactions for TP53"
 - "What protein interactions would be disrupted if I knock down BRCA1?"
 
-## Available MCP Tools (28 total)
+## Available MCP Tools (29 total)
 
 ### Workflow Tools (LangGraph Orchestration)
 | Tool | Description |
@@ -462,6 +462,7 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 | Tool | Description |
 |------|-------------|
 | `get_dorothea_regulon` | Get curated TF regulon targets with confidence levels (A-E) |
+| `get_tf_regulon` | Get flat list of DoRothEA target gene symbols for programmatic overlap calculation (no top-k cap) |
 | `validate_tf_classification` | Validate gene as known TF against DoRothEA curated regulons |
 | `get_dorothea_stats` | Get DoRothEA dataset statistics |
 

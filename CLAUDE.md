@@ -67,7 +67,7 @@ python cascade_langgraph_mcp_server.py
 ## Core Files
 
 ### LangGraph Orchestration (NEW)
-- `cascade_langgraph_mcp_server.py` - MCP server with 28 tools + 5 prompt templates + 5 resources, LangGraph orchestration
+- `cascade_langgraph_mcp_server.py` - MCP server with 29 tools + 5 prompt templates + 5 resources, LangGraph orchestration
 - `cascade_langgraph_workflow.py` - Core workflow: state schema, routing logic, batch processing
 - `verify_installation.py` - Installation smoke test (networks, model, perturbation, embeddings)
 
