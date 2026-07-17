@@ -46,6 +46,9 @@ JOSS_DEVELOPMENT_PLAN.md
 FUTURE_ROADMAP.md
 RESEARCH_PAPER_PLAN.md
 
+# Private manuscript drafts (not part of the public repo)
+manuscript/
+
 # Generated analysis outputs
 outputs/
 
