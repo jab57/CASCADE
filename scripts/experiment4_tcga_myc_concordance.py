@@ -16,6 +16,7 @@ No core CASCADE server code is modified -- read-only queries against local
 TCGA network files and the public cBioPortal API. Results cached to outputs/.
 """
 
+import asyncio
 import json
 import os
 import sys
@@ -30,9 +31,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.loader import load_tcga_network
-from tools.perturb import _build_adjacency, _propagate_effect, simulate_knockdown_with_embeddings
-from tools.model_inference import get_model
-from tools.gene_id_mapper import get_mapper
+from tools.perturb import _build_adjacency, _propagate_effect
+from cascade_langgraph_workflow import CascadeWorkflow
 
 OUTPUTS_DIR = ROOT / "outputs"
 OUTPUTS_DIR.mkdir(exist_ok=True)
@@ -111,22 +111,32 @@ def batch_fetch_expression(entrez_ids: list[int]) -> dict[int, dict[str, float]]
     return out
 
 
+async def _run_workflow_knockdown(tcga_network: str, focal_gene: str, top_k: int) -> dict:
+    """Invoke CASCADE's actual agentic entry point (LangGraph orchestration +
+    MCP-equivalent workflow), not the low-level propagation function directly.
+    Returns the perturbation_effects block of the comprehensive_report."""
+    workflow = CascadeWorkflow()
+    report = await workflow.run(
+        gene=focal_gene,
+        perturbation_type="knockdown",
+        analysis_depth="basic",
+        network_source="tcga",
+        tcga_network=tcga_network,
+        top_k=top_k,
+    )
+    return report.get("perturbation_effects") or {}
+
+
 def get_predicted_targets(network_df, focal_gene: str, top_n: int) -> tuple[list[tuple[str, str]], dict]:
     """Returns (list of (gene_symbol, direction), diagnostics) for CASCADE's
     top-N predicted knockdown targets of focal_gene in the given TCGA network,
     using either the network-only or embedding-enhanced path per METHOD."""
     if METHOD == "embedding":
-        model = get_model()
-        mapper = get_mapper()
-        ensembl_id = mapper.symbol_to_ensembl(focal_gene)
-        result = simulate_knockdown_with_embeddings(
-            network_df, focal_gene, model,
-            depth=PROPAGATION_DEPTH, top_k=top_n, alpha=ALPHA,
-            embedding_gene=ensembl_id, embedding_threshold=EMBEDDING_THRESHOLD,
-        )
+        result = asyncio.run(_run_workflow_knockdown(CASCADE_CANCER_TYPE, focal_gene, top_n))
         affected = result.get("top_affected_genes", [])
         diagnostics = {
             "method": "embedding",
+            "invocation": "CascadeWorkflow.run() (agentic entry point)",
             "n_total_affected": result.get("total_affected_genes"),
             "n_embedding_only_additions": sum(1 for g in affected if g.get("source") == "embedding_only"),
         }

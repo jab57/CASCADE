@@ -27,6 +27,7 @@ comparability): housekeeping genes and tumor-expressed non-driver genes.
 No core CASCADE server code is modified. Results are cached to outputs/.
 """
 
+import asyncio
 import json
 import sys
 from pathlib import Path
@@ -41,10 +42,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.loader import load_tcga_network
-from tools.perturb import _build_adjacency, _propagate_effect, simulate_knockdown_with_embeddings
+from tools.perturb import _build_adjacency, _propagate_effect
 from tools.depmap import load_depmap_data
-from tools.model_inference import get_model
-from tools.gene_id_mapper import get_mapper
+from cascade_langgraph_workflow import CascadeWorkflow
 
 OUTPUTS_DIR = ROOT / "outputs"
 OUTPUTS_DIR.mkdir(exist_ok=True)
@@ -125,7 +125,23 @@ def fetch_oncokb_genes() -> tuple[set[str], dict]:
     return set(genes), meta
 
 
-def get_candidate_set(adj: dict, gene: str, network_df: pd.DataFrame = None) -> tuple[set[str], int]:
+async def _run_workflow_knockdown(cancer_type: str, gene: str, top_k: int) -> dict:
+    """Invoke CASCADE's actual agentic entry point (LangGraph orchestration),
+    not the low-level propagation function directly."""
+    workflow = CascadeWorkflow()
+    report = await workflow.run(
+        gene=gene,
+        perturbation_type="knockdown",
+        analysis_depth="basic",
+        network_source="tcga",
+        tcga_network=cancer_type,
+        top_k=top_k,
+    )
+    return report.get("perturbation_effects") or {}
+
+
+def get_candidate_set(adj: dict, gene: str, network_df: pd.DataFrame = None,
+                       cancer_type: str = None) -> tuple[set[str], int]:
     """Candidate set = top_k genes by |predicted effect|, matching CASCADE's own
     default single-query output (top_k=25), not the full propagation footprint.
 
@@ -135,16 +151,11 @@ def get_candidate_set(adj: dict, gene: str, network_df: pd.DataFrame = None) -> 
     calling the bare BFS propagation directly instead.
 
     METHOD="embedding": CASCADE's actual default for TCGA networks when the
-    GREmLN model is loaded -- network propagation blended with embedding
-    similarity (alpha=0.7); does not have the symbol-mapper issue (it uses
-    only the local gene-symbol cache by design)."""
+    GREmLN model is loaded -- invoked via CascadeWorkflow.run() (the actual
+    agentic entry point), which blends network propagation with embedding
+    similarity (alpha=0.7)."""
     if METHOD == "embedding":
-        model = get_model()
-        ensembl_id = get_mapper().symbol_to_ensembl(gene)
-        result = simulate_knockdown_with_embeddings(
-            network_df, gene, model, depth=PROPAGATION_DEPTH, top_k=TOP_K, alpha=ALPHA,
-            embedding_gene=ensembl_id, embedding_threshold=EMBEDDING_THRESHOLD,
-        )
+        result = asyncio.run(_run_workflow_knockdown(cancer_type, gene, TOP_K))
         top = result.get("top_affected_genes", [])
         n_total = result.get("total_affected_genes", len(top))
         return {g["symbol"] for g in top}, n_total
@@ -273,7 +284,7 @@ def run_panel(cancer_type: str, genes: list[str], adj: dict,
         if gene not in background:
             panel_results[gene] = {"skipped": True, "reason": "absent_from_network"}
             continue
-        candidate_set, n_total = get_candidate_set(adj, gene, network_df)
+        candidate_set, n_total = get_candidate_set(adj, gene, network_df, cancer_type)
         enrichment = enrichment_test(candidate_set, oncokb_genes, background, rng)
         essentiality = depmap_essentiality_test(
             candidate_set, background, lineage, depmap_scores, lineage_map, rng

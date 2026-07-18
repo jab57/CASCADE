@@ -20,6 +20,7 @@ biology rather than a shared-cohort artifact.
 No core CASCADE server code is modified. Results cached to outputs/.
 """
 
+import asyncio
 import json
 import os
 import sys
@@ -34,9 +35,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.loader import load_tcga_network
-from tools.perturb import simulate_knockdown_with_embeddings
-from tools.model_inference import get_model
-from tools.gene_id_mapper import get_mapper
+from cascade_langgraph_workflow import CascadeWorkflow
 
 OUTPUTS_DIR = ROOT / "outputs"
 OUTPUTS_DIR.mkdir(exist_ok=True)
@@ -87,15 +86,25 @@ def batch_fetch_expression(entrez_ids: list[int]) -> dict[int, dict[str, float]]
     return out
 
 
+async def _run_workflow_knockdown(top_k: int) -> dict:
+    """Invoke CASCADE's actual agentic entry point (LangGraph orchestration),
+    not the low-level propagation function directly."""
+    workflow = CascadeWorkflow()
+    report = await workflow.run(
+        gene="MYC",
+        perturbation_type="knockdown",
+        analysis_depth="basic",
+        network_source="tcga",
+        tcga_network="brca",
+        top_k=top_k,
+    )
+    return report.get("perturbation_effects") or {}
+
+
 def get_myc_predicted_targets(network_df, top_n: int) -> list[tuple[str, str]]:
     """CASCADE's actual default embedding-enhanced propagation (Section 2.1 of
     the paper): network propagation blended with GREmLN embedding similarity."""
-    model = get_model()
-    ensembl_id = get_mapper().symbol_to_ensembl("MYC")
-    result = simulate_knockdown_with_embeddings(
-        network_df, "MYC", model, depth=PROPAGATION_DEPTH, top_k=top_n, alpha=ALPHA,
-        embedding_gene=ensembl_id, embedding_threshold=EMBEDDING_THRESHOLD,
-    )
+    result = asyncio.run(_run_workflow_knockdown(top_n))
     return [(g["symbol"], g["direction"]) for g in result.get("top_affected_genes", [])]
 
 
