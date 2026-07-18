@@ -119,7 +119,7 @@ async def _run_workflow_knockdown(tcga_network: str, focal_gene: str, top_k: int
     report = await workflow.run(
         gene=focal_gene,
         perturbation_type="knockdown",
-        analysis_depth="basic",
+        analysis_depth="focused",
         network_source="tcga",
         tcga_network=tcga_network,
         top_k=top_k,

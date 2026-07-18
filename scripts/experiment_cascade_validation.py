@@ -132,7 +132,7 @@ async def _run_workflow_knockdown(cancer_type: str, gene: str, top_k: int) -> di
     report = await workflow.run(
         gene=gene,
         perturbation_type="knockdown",
-        analysis_depth="basic",
+        analysis_depth="focused",
         network_source="tcga",
         tcga_network=cancer_type,
         top_k=top_k,

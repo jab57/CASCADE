@@ -89,7 +89,7 @@ async def _run_workflow_knockdown(top_k: int) -> dict:
     report = await workflow.run(
         gene="MYC",
         perturbation_type="knockdown",
-        analysis_depth="basic",
+        analysis_depth="focused",
         network_source="tcga",
         tcga_network="brca",
         top_k=top_k,

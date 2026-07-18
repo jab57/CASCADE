@@ -100,6 +100,7 @@ class PerturbationAnalysisState(TypedDict):
     error_message: Optional[str]                # Error if any
     next_actions: List[str]                     # Pending analysis steps
     completed_actions: List[str]                # Completed analysis steps
+    required_actions: List[str]                 # Analyses required by the current analysis_depth/gene_role (set by _decide_next_steps)
 
     # === Core Network Analysis ===
     network_context: Optional[Dict]             # Gene's position in network
@@ -635,6 +636,7 @@ class CascadeWorkflow:
             "workflow_complete": False,
             "error_message": None,
             "next_actions": [],
+            "required_actions": [],
             "completed_actions": [],
             "embedding_enhanced": False,
             "analysis_metadata": {
@@ -787,6 +789,7 @@ class CascadeWorkflow:
             return {
                 "current_step": "decide_next_steps",
                 "next_actions": ["complete"],
+                "required_actions": list(required),
                 "workflow_complete": True
             }
 
@@ -807,32 +810,37 @@ class CascadeWorkflow:
         if batch_groups_with_work > 1:
             return {
                 "current_step": "decide_next_steps",
-                "next_actions": ["run_all_batches"]
+                "next_actions": ["run_all_batches"],
+                "required_actions": list(required)
             }
 
         # Single batch group remaining — run its individual batch node
         if len(core_pending) > 1:
             return {
                 "current_step": "decide_next_steps",
-                "next_actions": ["batch_core"]
+                "next_actions": ["batch_core"],
+                "required_actions": list(required)
             }
 
         if len(external_pending) > 1:
             return {
                 "current_step": "decide_next_steps",
-                "next_actions": ["batch_external"]
+                "next_actions": ["batch_external"],
+                "required_actions": list(required)
             }
 
         if len(insights_pending) > 1:
             return {
                 "current_step": "decide_next_steps",
-                "next_actions": ["batch_insights"]
+                "next_actions": ["batch_insights"],
+                "required_actions": list(required)
             }
 
         # Single pending action
         next_action = list(pending)[0]
         return {
             "current_step": "decide_next_steps",
+            "required_actions": list(required),
             "next_actions": [next_action]
         }
 
@@ -877,18 +885,19 @@ class CascadeWorkflow:
         logger.info("Running batch core analysis (parallel)")
 
         completed = set(state.get("completed_actions", []))
+        required = set(state.get("required_actions") or [])
         tasks = []
         task_names = []
 
-        if "perturbation" not in completed:
+        if "perturbation" in required and "perturbation" not in completed:
             tasks.append(self._run_perturbation_impl(state))
             task_names.append("perturbation")
 
-        if "regulators" not in completed:
+        if "regulators" in required and "regulators" not in completed:
             tasks.append(self._analyze_regulators_impl(state))
             task_names.append("regulators")
 
-        if "targets" not in completed:
+        if "targets" in required and "targets" not in completed:
             tasks.append(self._analyze_targets_impl(state))
             task_names.append("targets")
 
@@ -922,30 +931,31 @@ class CascadeWorkflow:
         logger.info("Running batch external data (parallel)")
 
         completed = set(state.get("completed_actions", []))
+        required = set(state.get("required_actions") or [])
         tasks = []
         task_names = []
 
-        if "ppi" not in completed:
+        if "ppi" in required and "ppi" not in completed:
             tasks.append(self._fetch_ppi_impl(state))
             task_names.append("ppi")
 
-        if "lincs" not in completed:
+        if "lincs" in required and "lincs" not in completed:
             tasks.append(self._fetch_lincs_impl(state))
             task_names.append("lincs")
 
-        if "super_enhancers" not in completed:
+        if "super_enhancers" in required and "super_enhancers" not in completed:
             tasks.append(self._check_super_enhancers_impl(state))
             task_names.append("super_enhancers")
 
-        if "dorothea" not in completed:
+        if "dorothea" in required and "dorothea" not in completed:
             tasks.append(self._fetch_dorothea_impl(state))
             task_names.append("dorothea")
 
-        if "depmap" not in completed:
+        if "depmap" in required and "depmap" not in completed:
             tasks.append(self._fetch_depmap_impl(state))
             task_names.append("depmap")
 
-        if "cbioportal" not in completed:
+        if "cbioportal" in required and "cbioportal" not in completed:
             tasks.append(self._fetch_cbioportal_impl(state))
             task_names.append("cbioportal")
 
@@ -983,18 +993,19 @@ class CascadeWorkflow:
         logger.info("Running batch insights (parallel)")
 
         completed = set(state.get("completed_actions", []))
+        required = set(state.get("required_actions") or [])
         tasks = []
         task_names = []
 
-        if "similar" not in completed:
+        if "similar" in required and "similar" not in completed:
             tasks.append(self._find_similar_genes_impl(state))
             task_names.append("similar")
 
-        if "vulnerability" not in completed:
+        if "vulnerability" in required and "vulnerability" not in completed:
             tasks.append(self._analyze_vulnerability_impl(state))
             task_names.append("vulnerability")
 
-        if "cross_cell" not in completed:
+        if "cross_cell" in required and "cross_cell" not in completed:
             tasks.append(self._cross_cell_comparison_impl(state))
             task_names.append("cross_cell")
 
@@ -2122,6 +2133,7 @@ Rules: Name specific genes from the data. Do not invent genes not listed above. 
             "workflow_complete": False,
             "error_message": None,
             "next_actions": [],
+            "required_actions": [],
             "completed_actions": [],
             "network_context": None,
             "perturbation_result": None,
