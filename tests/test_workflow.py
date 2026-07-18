@@ -761,6 +761,11 @@ class TestFailedAnalysesCollection:
             "gene_symbol": "TP53",
             "gene_role": "master_regulator",
             "completed_actions": [],
+            "required_actions": [
+                "perturbation", "regulators", "targets",
+                "ppi", "lincs", "super_enhancers", "dorothea", "depmap", "cbioportal",
+                "similar", "vulnerability", "cross_cell",
+            ],
             "failed_analyses": None,
             "network_context": {"num_targets": 100},
             "network_df": None,
