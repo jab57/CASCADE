@@ -156,7 +156,7 @@ def main() -> None:
     print(f"  Binomial test: p={binom_result.pvalue:.6f}")
 
     print(f"\nBuilding background pool ({BACKGROUND_POOL_SIZE} random network genes) for permutation control...")
-    all_genes = list(set(network_df["regulator"].unique()) | set(network_df["target"].unique()))
+    all_genes = sorted(set(network_df["regulator"].unique()) | set(network_df["target"].unique()))
     predicted_gene_set = {g for g, _, _ in resolved_predicted}
     candidate_bg = [g for g in all_genes if g not in predicted_gene_set and g != "MYC"]
     bg_sample = list(rng.choice(candidate_bg, size=min(BACKGROUND_POOL_SIZE, len(candidate_bg)), replace=False))

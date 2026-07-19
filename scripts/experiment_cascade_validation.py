@@ -125,7 +125,7 @@ def fetch_oncokb_genes() -> tuple[set[str], dict]:
     return set(genes), meta
 
 
-async def _run_workflow_knockdown(cancer_type: str, gene: str, top_k: int) -> dict:
+async def _run_workflow_knockdown(cancer_type: str, gene: str, top_k: int, depth: int) -> dict:
     """Invoke CASCADE's actual agentic entry point (LangGraph orchestration),
     not the low-level propagation function directly."""
     workflow = CascadeWorkflow()
@@ -136,6 +136,7 @@ async def _run_workflow_knockdown(cancer_type: str, gene: str, top_k: int) -> di
         network_source="tcga",
         tcga_network=cancer_type,
         top_k=top_k,
+        propagation_depth=depth,
     )
     return report.get("perturbation_effects") or {}
 
@@ -155,7 +156,7 @@ def get_candidate_set(adj: dict, gene: str, network_df: pd.DataFrame = None,
     agentic entry point), which blends network propagation with embedding
     similarity (alpha=0.7)."""
     if METHOD == "embedding":
-        result = asyncio.run(_run_workflow_knockdown(cancer_type, gene, TOP_K))
+        result = asyncio.run(_run_workflow_knockdown(cancer_type, gene, TOP_K, PROPAGATION_DEPTH))
         top = result.get("top_affected_genes", [])
         n_total = result.get("total_affected_genes", len(top))
         return {g["symbol"] for g in top}, n_total
@@ -184,7 +185,7 @@ def enrichment_test(candidate_set: set[str], oncokb_genes: set[str],
     d = len(background) - n_candidates - c
     odds_ratio, p_value = fisher_exact([[a, b], [c, d]], alternative="greater")
 
-    background_list = list(background)
+    background_list = sorted(background)
     perm_ors = np.empty(N_PERMUTATIONS)
     for i in range(N_PERMUTATIONS):
         sample = set(rng.choice(background_list, size=n_candidates, replace=False))
@@ -255,7 +256,7 @@ def depmap_essentiality_test(candidate_set: set[str], background: set[str],
 
     observed_mean = float(lineage_scores[list(candidates_available)].mean().mean())
 
-    background_list = list(available_genes)
+    background_list = sorted(available_genes)
     n = len(candidates_available)
     perm_means = np.empty(N_PERMUTATIONS)
     for i in range(N_PERMUTATIONS):
@@ -289,8 +290,12 @@ def run_panel(cancer_type: str, genes: list[str], adj: dict,
         essentiality = depmap_essentiality_test(
             candidate_set, background, lineage, depmap_scores, lineage_map, rng
         )
+        # Direct network out-degree (Table role_rules' "downstream targets"),
+        # distinct from n_total_affected (full transitive propagation footprint).
+        out_degree = len(adj.get(gene, []))
         panel_results[gene] = {
             "n_total_affected": n_total,
+            "out_degree": out_degree,
             "oncokb_enrichment": enrichment,
             "depmap_essentiality": essentiality,
         }
