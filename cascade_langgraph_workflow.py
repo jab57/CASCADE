@@ -88,6 +88,7 @@ class PerturbationAnalysisState(TypedDict):
     network_source: str                         # "cell_type" (default) or "tcga"
     tcga_network: Optional[str]                 # TCGA cancer type (brca, coad, ...) when network_source="tcga"
     top_k: int                                  # Number of top-affected genes returned by perturbation propagation (default 25)
+    propagation_depth: int                       # BFS hop depth for perturbation propagation (default 2)
 
     # === Resolved Gene Info ===
     ensembl_id: Optional[str]                   # Resolved Ensembl ID
@@ -1181,6 +1182,7 @@ class CascadeWorkflow:
         network_source = state.get("network_source", "cell_type")
         perturbation_type = state.get("perturbation_type", "knockdown")
         top_k = state.get("top_k") or 25
+        depth = state.get("propagation_depth") or 2
 
         if network_source == "tcga":
             tcga_network = state.get("tcga_network", "")
@@ -1199,14 +1201,14 @@ class CascadeWorkflow:
                     if perturbation_type == "knockdown":
                         result = simulate_knockdown_with_embeddings(
                             network_df, gene_id, model,
-                            depth=2, top_k=top_k, alpha=0.7,
+                            depth=depth, top_k=top_k, alpha=0.7,
                             embedding_gene=ensembl_id,
                             embedding_threshold=0.1,
                         )
                     else:
                         result = simulate_overexpression_with_embeddings(
                             network_df, gene_id, model,
-                            fold_change=2.0, depth=2, top_k=top_k, alpha=0.7,
+                            fold_change=2.0, depth=depth, top_k=top_k, alpha=0.7,
                             embedding_gene=ensembl_id,
                             embedding_threshold=0.1,
                         )
@@ -1214,9 +1216,9 @@ class CascadeWorkflow:
                 except Exception as e:
                     logger.warning(f"Model unavailable for TCGA, using network-only: {e}")
                     if perturbation_type == "knockdown":
-                        result = simulate_knockdown(network_df, gene_id, depth=2, top_k=top_k)
+                        result = simulate_knockdown(network_df, gene_id, depth=depth, top_k=top_k)
                     else:
-                        result = simulate_overexpression(network_df, gene_id, fold_change=2.0, depth=2, top_k=top_k)
+                        result = simulate_overexpression(network_df, gene_id, fold_change=2.0, depth=depth, top_k=top_k)
                     result["embedding_enhanced"] = False
                 return result
 
@@ -1234,20 +1236,20 @@ class CascadeWorkflow:
                 if perturbation_type == "knockdown":
                     result = simulate_knockdown_with_embeddings(
                         network_df, ensembl_id, model,
-                        depth=2, top_k=top_k, alpha=0.7
+                        depth=depth, top_k=top_k, alpha=0.7
                     )
                 else:
                     result = simulate_overexpression_with_embeddings(
                         network_df, ensembl_id, model,
-                        fold_change=2.0, depth=2, top_k=top_k, alpha=0.7
+                        fold_change=2.0, depth=depth, top_k=top_k, alpha=0.7
                     )
                 result["embedding_enhanced"] = True
             except Exception as e:
                 logger.warning(f"Model unavailable, using network-only: {e}")
                 if perturbation_type == "knockdown":
-                    result = simulate_knockdown(network_df, ensembl_id, depth=2, top_k=top_k)
+                    result = simulate_knockdown(network_df, ensembl_id, depth=depth, top_k=top_k)
                 else:
-                    result = simulate_overexpression(network_df, ensembl_id, fold_change=2.0, depth=2, top_k=top_k)
+                    result = simulate_overexpression(network_df, ensembl_id, fold_change=2.0, depth=depth, top_k=top_k)
                 result["embedding_enhanced"] = False
             return result
 
@@ -2101,6 +2103,7 @@ Rules: Name specific genes from the data. Do not invent genes not listed above. 
         network_source: str = "cell_type",
         tcga_network: Optional[str] = None,
         top_k: int = 25,
+        propagation_depth: int = 2,
         progress_cb=None,
     ) -> Dict:
         """
@@ -2114,6 +2117,8 @@ Rules: Name specific genes from the data. Do not invent genes not listed above. 
             include_llm_insights: Whether to generate LLM-powered biological interpretation
             top_k: Number of top-affected genes to return from perturbation propagation
                 (default 25, matching CASCADE's historical default)
+            propagation_depth: BFS hop depth for perturbation propagation
+                (default 2, matching CASCADE's historical default)
 
         Returns:
             Comprehensive analysis report
@@ -2126,6 +2131,7 @@ Rules: Name specific genes from the data. Do not invent genes not listed above. 
             "network_source": network_source,
             "tcga_network": tcga_network,
             "top_k": top_k,
+            "propagation_depth": propagation_depth,
             "ensembl_id": None,
             "gene_symbol": None,
             "gene_role": None,
