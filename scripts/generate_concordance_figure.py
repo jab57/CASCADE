@@ -7,9 +7,10 @@ experiments (Sections 3.2-3.5).
 Values for the twelve combinations already reported in earlier drafts are
 the exact figures published in the paper text/tables (recovered from the
 vector paths of the previous figure_concordance_summary.pdf, since the
-live cBioPortal-derived permutation baseline is not bit-for-bit
-reproducible run-to-run). Values for AURKA, CCNE1, and MDM2 are read
-directly from this session's experiment4_tcga_myc_concordance.py output.
+live cBioPortal-derived permutation baseline was not bit-for-bit
+reproducible run-to-run before experiment4_tcga_myc_concordance.py's
+background-pool ordering fix). Values for AURKA, CCNE1, MDM2, and ESR1
+are read directly from that script's (now-reproducible) output.
 """
 
 import matplotlib.pyplot as plt
@@ -37,6 +38,7 @@ DATA = [
     ("SOX9\nBRCA", 38.78, 50.54, "red"),
     ("FOXA1\nBRCA", 34.00, 48.73, "red"),
     ("GATA3\nBRCA", 0.00, 51.60, "red"),
+    ("ESR1\nBRCA", 4.00, 51.24, "red"),
 ]
 
 labels = [d[0] for d in DATA]
