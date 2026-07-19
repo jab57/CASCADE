@@ -1,8 +1,8 @@
 {
   "title": "CASCADE: Agentic In Silico Gene Perturbation Analysis via the Model Context Protocol",
-  "version": "1.1.2",
-  "publication_date": "2026-06-12",
-  "description": "CASCADE is a Model Context Protocol (MCP) server for in silico gene perturbation analysis in cancer and immuno-oncology research. It provides 28 tools for simulating gene knockdowns and overexpression using pre-computed regulatory networks and GREmLN model embeddings across 10 immune and epithelial cell types. Features LangGraph-based workflow orchestration with intelligent routing, parallel batch execution, cross-source evidence synthesis across 8 integrated data sources, and optional LLM-powered biological interpretation via Ollama.",
+  "version": "1.2.0",
+  "publication_date": "2026-07-19",
+  "description": "CASCADE is a Model Context Protocol (MCP) server for in silico gene perturbation analysis in cancer and immuno-oncology research. It provides 29 tools for simulating gene knockdowns and overexpression using pre-computed regulatory networks and GREmLN model embeddings across 10 immune and epithelial cell types. Features LangGraph-based workflow orchestration with intelligent routing, parallel batch execution, cross-source evidence synthesis across 8 integrated data sources, and optional LLM-powered biological interpretation via Ollama.",
   "creators": [
     {
       "name": "Bird, Jose",
