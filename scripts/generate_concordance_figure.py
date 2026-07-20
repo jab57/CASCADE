@@ -9,8 +9,9 @@ the exact figures published in the paper text/tables (recovered from the
 vector paths of the previous figure_concordance_summary.pdf, since the
 live cBioPortal-derived permutation baseline was not bit-for-bit
 reproducible run-to-run before experiment4_tcga_myc_concordance.py's
-background-pool ordering fix). Values for AURKA, CCNE1, MDM2, and ESR1
-are read directly from that script's (now-reproducible) output.
+background-pool ordering fix). Values for AURKA, CCNE1, MDM2, ESR1,
+FOXM1, TOP2A, and RPS6KB1 are read directly from that script's
+(now-reproducible) output.
 """
 
 import matplotlib.pyplot as plt
@@ -32,6 +33,9 @@ DATA = [
     ("AURKA\nBRCA", 100.00, 43.52, "green"),
     ("CCNE1\nBRCA", 100.00, 50.12, "green"),
     ("MDM2\nBRCA", 68.00, 49.94, "green"),
+    ("FOXM1\nBRCA", 100.00, 53.04, "green"),
+    ("TOP2A\nBRCA", 100.00, 43.56, "green"),
+    ("RPS6KB1\nBRCA", 89.58, 47.47, "green"),
     ("ERBB2\nBRCA", 18.00, 45.90, "red"),
     ("ERBB2\nCOAD", 14.29, 49.55, "red"),
     ("ERBB2\nSTAD", 93.62, 53.75, "red"),
