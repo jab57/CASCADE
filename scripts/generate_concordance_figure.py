@@ -11,7 +11,12 @@ live cBioPortal-derived permutation baseline was not bit-for-bit
 reproducible run-to-run before experiment4_tcga_myc_concordance.py's
 background-pool ordering fix). Values for AURKA, CCNE1, MDM2, ESR1,
 FOXM1, TOP2A, and RPS6KB1 are read directly from that script's
-(now-reproducible) output.
+(now-reproducible) output. AURKA/COAD, CCND1/STAD, CCNE1/STAD, MDM2/STAD,
+and TOP2A/STAD were added in the cross-cancer-type extension of the
+generalization panel (five proliferation-machinery genes re-tested in a
+second cancer type wherever amplified-sample eligibility allowed it);
+their bars are colored green (category) regardless of individual outcome,
+matching the ERBB2 convention already used for the original panel.
 """
 
 import matplotlib.pyplot as plt
@@ -30,11 +35,16 @@ DATA = [
     ("MYC\nMETABRIC", 87.23, 49.17, "green"),
     ("E2F3\nBRCA", 96.00, 47.70, "green"),
     ("CCND1\nBRCA", 96.00, 48.40, "green"),
+    ("CCND1\nSTAD", 57.14, 49.33, "green"),
     ("AURKA\nBRCA", 100.00, 43.52, "green"),
+    ("AURKA\nCOAD", 92.00, 46.83, "green"),
     ("CCNE1\nBRCA", 100.00, 50.12, "green"),
+    ("CCNE1\nSTAD", 97.96, 53.74, "green"),
     ("MDM2\nBRCA", 68.00, 49.94, "green"),
+    ("MDM2\nSTAD", 42.00, 50.93, "green"),
     ("FOXM1\nBRCA", 100.00, 53.04, "green"),
     ("TOP2A\nBRCA", 100.00, 43.56, "green"),
+    ("TOP2A\nSTAD", 100.00, 51.79, "green"),
     ("RPS6KB1\nBRCA", 89.58, 47.47, "green"),
     ("ERBB2\nBRCA", 18.00, 45.90, "red"),
     ("ERBB2\nCOAD", 14.29, 49.55, "red"),
