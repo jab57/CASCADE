@@ -1,6 +1,6 @@
 """
 Direction-split diagnostic for the baseline comparison (Section 3.3,
-experiment4_hallmark_baseline.py / experiment4_hallmark_matched_n.py).
+experiment4_hallmark_baseline.py).
 
 Question: is CASCADE's own predicted-target panel itself close to a uniform
 "down" call (matching the naive assumption used for the Hallmark baselines),
