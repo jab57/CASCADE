@@ -10,7 +10,9 @@ This script answers only the feasibility question, not the concordance
 question itself. It checks, using data already downloaded locally for the
 issue #19 raw-LINCS investigation (data/lincs_raw/GSE106127_CGS_*, shRNA
 consensus gene signatures, 978 L1000 landmark genes x 33,839 signatures
-across 15 cell lines):
+across a fixed panel of cell lines -- the exact count is computed from the
+data file at runtime, not hardcoded, since it's cited in the paper's
+Limitations section):
 
 1. Does an MCF7 knockdown signature exist for each focal gene at all, and
    how many independent shRNA reagents / how internally consistent is it
@@ -73,14 +75,19 @@ MIN_OVERLAP = 10  # coverage threshold below which a concordance test isn't well
 def load_mcf7_signature_index() -> tuple:
     """gene symbol -> {n_reagents, replicate_consistency} for MCF7 shRNA
     consensus signatures (empty if no MCF7 signature exists for that gene),
-    plus a second gene -> count of signatures in ANY cell line, so a missing
-    MCF7 entry can be distinguished from "never in this study's shRNA reagent
-    library at all" (0 rows anywhere) vs. "profiled elsewhere but not MCF7"."""
+    a second gene -> count of signatures in ANY cell line (so a missing MCF7
+    entry can be distinguished from "never in this study's shRNA reagent
+    library at all" (0 rows anywhere) vs. "profiled elsewhere but not MCF7"),
+    and the total number of distinct cell lines profiled in the whole file
+    (computed here, not assumed, so it stays correct if the underlying data
+    file is ever swapped for a different GEO release)."""
     index = {}
     any_cell_line_counts = {gene: 0 for gene in FOCAL_GENES}
+    all_cell_lines = set()
     with gzip.open(META_PATH, "rt") as f:
         reader = csv.DictReader(f, delimiter="\t")
         for row in reader:
+            all_cell_lines.add(row["cell_id"])
             if row["pert_iname"] not in FOCAL_GENES:
                 continue
             any_cell_line_counts[row["pert_iname"]] += 1
@@ -90,7 +97,7 @@ def load_mcf7_signature_index() -> tuple:
                 "n_reagents": int(row["distil_nsample"]),
                 "replicate_consistency_cc_q75": float(row["distil_cc_q75"]),
             }
-    return index, any_cell_line_counts
+    return index, any_cell_line_counts, len(all_cell_lines)
 
 
 def load_landmark_genes() -> set:
@@ -132,7 +139,7 @@ def get_predicted_targets(network_df, focal_gene: str, top_n: int) -> list:
 
 
 def main() -> None:
-    mcf7_index, any_cell_line_counts = load_mcf7_signature_index()
+    mcf7_index, any_cell_line_counts, n_cell_lines = load_mcf7_signature_index()
     landmark_genes = load_landmark_genes()
     print(f"Loaded MCF7 signature index ({len(mcf7_index)}/{len(FOCAL_GENES)} focal genes have a signature) "
           f"and {len(landmark_genes)} L1000 landmark genes.")
@@ -144,8 +151,8 @@ def main() -> None:
         sig = mcf7_index.get(gene)
         if sig is None:
             n_any = any_cell_line_counts[gene]
-            reason = ("never in this study's shRNA reagent library (0 signatures in any of the 15 "
-                      "cell lines profiled)" if n_any == 0 else
+            reason = (f"never in this study's shRNA reagent library (0 signatures in any of the "
+                      f"{n_cell_lines} cell lines profiled)" if n_any == 0 else
                       f"profiled in {n_any} other cell line(s) but not MCF7")
             results[gene] = {
                 "mcf7_signature_exists": False,
@@ -184,6 +191,7 @@ def main() -> None:
         "top_n": TOP_N,
         "min_overlap_threshold": MIN_OVERLAP,
         "cell_line": CELL_LINE,
+        "n_cell_lines_in_dataset": n_cell_lines,
         "source": "GSE106127 (shRNA consensus gene signatures, 978 L1000 landmark genes)",
         "results": results,
         "n_testable": n_testable,
