@@ -20,29 +20,39 @@ default the server would actually apply, not against a bare None.
 Categories:
   1. baseline_tcga         - straightforward gene + TCGA cancer type
   2. baseline_immune       - straightforward gene + immune cell type
-  3. gene_alias            - gene synonyms; a deliberate mix of ones CASCADE
-                             now resolves (HER2, p53 -- see
-                             tools/gene_id_mapper.py GENE_SYMBOL_ALIASES) and
-                             ones it still does NOT (PD-L1, HER3), to make
-                             this an honest test of what remains unresolved
+  3. gene_alias            - gene synonyms, all of which CASCADE now resolves
+                             server-side via tools/gene_id_mapper.py
+                             GENE_SYMBOL_ALIASES (HER2, p53, PD-L1, HER3);
+                             scored both against the model's raw output and
+                             against CASCADE's server-side resolution
   4. cancer_type_name      - informal/full cancer-type names -> enum abbreviation
   5. perturbation_phrasing - non-canonical wording for knockdown/overexpression
   6. implicit_params       - queries that omit parameters, relying on defaults
   7. multi_entity          - a distractor gene/cancer type mentioned but not
                              the one actually requested
 
-Two models tested: llama3.1:8b (CASCADE's own documented OLLAMA_MODEL
-default) as the primary/representative result, and qwen2.5:72b-instruct-q4_0
-as a secondary, larger-model comparison. Ollama sampling is not seeded, so
-a rerun may reproduce slightly different exact figures; the qualitative
+Two models are run by default and are the ones reported in the paper:
+llama3.1:8b (CASCADE's own documented OLLAMA_MODEL default) as the
+primary/representative result, and qwen2.5:72b-instruct-q4_0 as a
+secondary, larger local-model comparison. Ollama sampling is not seeded,
+so a rerun may reproduce slightly different exact figures; the qualitative
 per-category pattern reported in the paper was stable across runs.
 
-Usage: python scripts/experiment6_agent_tool_grounding.py
-Requires a local Ollama server (http://localhost:11434) with both models
-pulled.
+Optional cloud models (e.g. gpt-oss:120b via Ollama Cloud) can be run with
+--models but are not part of the paper's reported results.
+
+Usage: python scripts/experiment6_agent_tool_grounding.py [--models m1,m2,...]
+Local models require a local Ollama server (http://localhost:11434) with
+the models pulled. Any model not in LOCAL_MODELS is routed to
+https://ollama.com and requires OLLAMA_API_KEY to be set in the
+environment (see .env.example). Results merge into the existing output
+file rather than overwrite it, so re-running a subset of models leaves the
+others' previously recorded results untouched.
 """
 
+import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -58,8 +68,12 @@ OUTPUTS_DIR = ROOT / "outputs"
 OUTPUTS_DIR.mkdir(exist_ok=True)
 RESULTS_PATH = OUTPUTS_DIR / "experiment6_agent_tool_grounding.json"
 
-OLLAMA_HOST = "http://localhost:11434"
+LOCAL_OLLAMA_HOST = "http://localhost:11434"
+CLOUD_OLLAMA_HOST = "https://ollama.com"
+LOCAL_MODELS = {"llama3.1:8b", "qwen2.5:72b-instruct-q4_0"}
 MODELS = ["llama3.1:8b", "qwen2.5:72b-instruct-q4_0"]
+
+_SSL_VERIFY = os.environ.get("CASCADE_SSL_NO_VERIFY", "0") != "1"
 
 CELL_TYPE_ENUM = [
     "epithelial_cell", "cd4_t_cells", "cd8_t_cells", "cd14_monocytes",
@@ -209,10 +223,25 @@ QUERIES = [
 
 
 def run_model(model: str) -> list[dict]:
+    is_local = model in LOCAL_MODELS
+    api_key = os.environ.get("OLLAMA_API_KEY")
+    headers = {}
+    if is_local:
+        host = LOCAL_OLLAMA_HOST
+    else:
+        if not api_key:
+            raise RuntimeError(
+                f"{model} is a cloud model but OLLAMA_API_KEY is not set "
+                "(see .env.example, 'Ollama Cloud Mode')"
+            )
+        host = CLOUD_OLLAMA_HOST
+        headers = {"Authorization": f"Bearer {api_key}"}
+
     results = []
     for item in QUERIES:
         resp = requests.post(
-            f"{OLLAMA_HOST}/api/chat",
+            f"{host}/api/chat",
+            headers=headers,
             json={
                 "model": model,
                 "messages": [{"role": "user", "content": item["query"]}],
@@ -220,6 +249,7 @@ def run_model(model: str) -> list[dict]:
                 "stream": False,
             },
             timeout=180,
+            verify=_SSL_VERIFY if not is_local else True,
         )
         resp.raise_for_status()
         data = resp.json()
@@ -317,8 +347,21 @@ def score(results: list[dict]) -> dict:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--models", type=str, default=None,
+        help="Comma-separated subset of MODELS to run (default: all). "
+             "Results merge into the existing output file; models not "
+             "rerun keep their previously recorded results.",
+    )
+    args = parser.parse_args()
+    models_to_run = args.models.split(",") if args.models else MODELS
+
     all_summaries = {}
-    for model in MODELS:
+    if RESULTS_PATH.exists():
+        all_summaries = json.loads(RESULTS_PATH.read_text(encoding="utf-8"))
+
+    for model in models_to_run:
         print(f"\n=== {model} ===")
         results = run_model(model)
         summary = score(results)
