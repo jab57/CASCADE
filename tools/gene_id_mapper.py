@@ -21,6 +21,25 @@ logger = logging.getLogger(__name__)
 _ensembl_semaphore = threading.Semaphore(int(os.getenv('API_RATE_LIMIT', '3')))
 
 
+# Common informal/clinical gene names that do not match the official HGNC
+# symbol CASCADE's networks and Ensembl lookups expect (e.g. a TCGA network
+# contains "ERBB2", not "HER2", so an unresolved alias fails exact-match
+# lookup even though the gene is the correct one).
+GENE_SYMBOL_ALIASES = {
+    "HER2": "ERBB2",
+    "HER-2": "ERBB2",
+    "HER2/NEU": "ERBB2",
+    "NEU": "ERBB2",
+    "P53": "TP53",
+    "ER": "ESR1",
+    "ER-ALPHA": "ESR1",
+    "ERALPHA": "ESR1",
+    "HDM2": "MDM2",
+    "C-MYC": "MYC",
+    "CMYC": "MYC",
+}
+
+
 class GeneIDMapper:
     """Maps between gene symbols and Ensembl IDs using Ensembl REST API"""
 
@@ -52,11 +71,21 @@ class GeneIDMapper:
         except Exception as e:
             logger.warning("Warning: Could not save cache: %s", e)
 
+    def resolve_alias(self, gene_symbol: str) -> str:
+        """Map a common informal/clinical gene name to its official HGNC symbol.
+
+        Returns the input uppercased and unchanged if it is not a known alias.
+        """
+        gene_upper = gene_symbol.upper()
+        return GENE_SYMBOL_ALIASES.get(gene_upper, gene_upper)
+
     def symbol_to_ensembl(self, gene_symbol: str) -> Optional[str]:
         """Convert gene symbol to Ensembl ID"""
         # If already an Ensembl ID, return as-is
         if gene_symbol.upper().startswith("ENSG"):
             return gene_symbol.upper()
+
+        gene_symbol = self.resolve_alias(gene_symbol)
 
         # Check cache first
         gene_upper = gene_symbol.upper()

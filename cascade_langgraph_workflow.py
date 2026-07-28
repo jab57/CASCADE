@@ -654,8 +654,8 @@ class CascadeWorkflow:
             ensembl_id = gene.upper()
             symbol = self.gene_mapper.ensembl_to_symbol(gene)
         else:
-            symbol = gene.upper()
-            ensembl_id = self.gene_mapper.symbol_to_ensembl(gene)
+            symbol = self.gene_mapper.resolve_alias(gene)
+            ensembl_id = self.gene_mapper.symbol_to_ensembl(symbol)
 
         if ensembl_id is None:
             return {

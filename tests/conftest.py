@@ -191,6 +191,7 @@ def mock_gene_id_mapper():
         }
         mapper.symbol_to_ensembl.side_effect = lambda s: mapper.cache["symbol_to_ensembl"].get(s.upper())
         mapper.ensembl_to_symbol.side_effect = lambda e: mapper.cache["ensembl_to_symbol"].get(e)
+        mapper.resolve_alias.side_effect = lambda s: s.upper()
         mapper.get_cache_stats.return_value = {
             "cached_symbols": 4,
             "cached_ensembls": 4,
