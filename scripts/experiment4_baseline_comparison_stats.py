@@ -3,10 +3,24 @@ Baseline comparison statistics (Section 3.3 / Table tab:baseline_comparison,
 Appendix app:baseline).
 
 Combines CASCADE's own concordance counts (from experiment4_tcga_myc_concordance.py
-and experiment4_e2f3_brca_concordance.py runs) with each public baseline gene set's
-concordance counts (from experiment4_hallmark_baseline.py runs) into the nine
-Fisher's-exact-test comparisons reported in the paper, then applies
-Benjamini-Hochberg FDR correction across all nine.
+and experiment4_e2f3_brca_concordance.py runs) with each public, identity-matched
+baseline gene set's concordance counts (from experiment4_hallmark_baseline.py runs)
+into the four Fisher's-exact-test comparisons reported in the paper, then applies
+Benjamini-Hochberg FDR correction across all four.
+
+Only identity-matched comparisons are included (MYC_TARGETS_V1 against MYC,
+E2F_TARGETS against E2F3) -- gene sets whose own defining characterization
+already implies the "down upon knockdown" direction being tested. An earlier
+version of this script and the paper also included three "generic" proliferation
+gene-set comparisons (G2M_CHECKPOINT, MITOTIC_SPINDLE, E2F_TARGETS reused as a
+generic comparator against MYC) that carry no MYC- or E2F-specific identity of
+their own; those required inventing an artificial uniform-direction convention
+just to make the comparison computable, which is not a defensible statistical
+design, and were removed rather than kept with caveats -- notably, that was also
+the only comparison of the original nine to survive BH-FDR correction, which is
+better explained by it comparing CASCADE's real signal against a baseline with
+no real directional signal of its own (its own rate was not distinguishable from
+random chance, permutation-empirical p=0.103) than by it being a meaningful result.
 
 This step reads only the cached JSON files already written to outputs/ by the
 scripts above -- it does not re-fetch any data or re-run CASCADE. It exists to
@@ -33,16 +47,6 @@ COMPARISONS = [
      "experiment4_myc_stad_concordance_n50_embedding.json", "experiment4_hallmark_baseline_stad.json"),
     ("E2F-identity (E2F_TARGETS), vs. E2F3", "BRCA",
      "experiment4_e2f3_brca_concordance_n50_embedding.json", "experiment4_hallmark_baseline_e2f_brca.json"),
-    ("Generic (G2M_CHECKPOINT)", "BRCA",
-     "experiment4_myc_brca_concordance_n50_embedding.json", "experiment4_hallmark_baseline_g2m_brca.json"),
-    ("Generic (MITOTIC_SPINDLE)", "BRCA",
-     "experiment4_myc_brca_concordance_n50_embedding.json", "experiment4_hallmark_baseline_spindle_brca.json"),
-    ("Generic (E2F_TARGETS vs. MYC)", "BRCA",
-     "experiment4_myc_brca_concordance_n50_embedding.json", "experiment4_hallmark_baseline_e2f_vs_myc_brca.json"),
-    ("Generic (G2M_CHECKPOINT)", "COAD",
-     "experiment4_myc_coad_concordance_n50_embedding.json", "experiment4_hallmark_baseline_g2m_coad.json"),
-    ("Generic (G2M_CHECKPOINT)", "STAD",
-     "experiment4_myc_stad_concordance_n50_embedding.json", "experiment4_hallmark_baseline_g2m_stad.json"),
 ]
 
 

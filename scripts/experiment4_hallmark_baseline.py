@@ -117,75 +117,9 @@ HALLMARK_E2F_TARGETS = [
 ]
 assert len(HALLMARK_E2F_TARGETS) == 200, f"expected 200 genes, got {len(HALLMARK_E2F_TARGETS)}"
 
-# HALLMARK_G2M_CHECKPOINT, MSigDB systematic name M5901, 200 genes.
-# Source: https://www.gsea-msigdb.org/gsea/msigdb/human/geneset/HALLMARK_G2M_CHECKPOINT.html
-# Extracted verbatim from the page's raw gene member table (same method as above).
-# Unlike HALLMARK_MYC_TARGETS_V1 and HALLMARK_E2F_TARGETS, this set carries no
-# MYC/E2F identity claim at all -- it is defined purely as "genes involved in the
-# G2/M checkpoint." Used as a generic-proliferation control: if this set, tested
-# against MYC-amplification status, scores comparably to the MYC-identity set,
-# that indicates the signal reflects general tumor proliferative state rather
-# than anything MYC-specific.
-HALLMARK_G2M_CHECKPOINT = [
-    "ABL1", "AMD1", "ARID4A", "ATF5", "ATRX", "AURKA", "AURKB", "BARD1", "BCL3", "BIRC5",
-    "BRCA2", "BUB1", "BUB3", "CASC5", "CASP8AP2", "CBX1", "CCNA2", "CCNB2", "CCND1", "CCNF",
-    "CCNT1", "CDC20", "CDC25A", "CDC25B", "CDC27", "CDC45", "CDC6", "CDC7", "CDK1", "CDK4",
-    "CDKN1B", "CDKN2C", "CDKN3", "CENPA", "CENPE", "CENPF", "CHAF1A", "CHEK1", "CHMP1A", "CKS1B",
-    "CKS2", "CTCF", "CUL1", "CUL3", "CUL4A", "CUL5", "DBF4", "DDX39A", "DKC1", "DMD",
-    "DR1", "DTYMK", "E2F1", "E2F2", "E2F3", "E2F4", "EFNA5", "EGF", "ESPL1", "EWSR1",
-    "EXO1", "EZH2", "FANCC", "FBXO5", "FOXN3", "G3BP1", "GINS2", "GSPT1", "H2AFV", "H2AFX",
-    "H2AFZ", "HIF1A", "HIRA", "HIST1H2BK", "HMGA1", "HMGB3", "HMGN2", "HMMR", "HN1", "HNRNPD",
-    "HNRNPU", "HOXC10", "HSPA8", "HUS1", "ILF3", "INCENP", "KATNA1", "KIF11", "KIF15", "KIF20B",
-    "KIF22", "KIF23", "KIF2C", "KIF4A", "KIF5B", "KPNA2", "KPNB1", "LBR", "LIG3", "LMNB1",
-    "MAD2L1", "MAPK14", "MARCKS", "MCM2", "MCM3", "MCM5", "MCM6", "MEIS1", "MEIS2", "MKI67",
-    "MNAT1", "MT2A", "MTF2", "MYBL2", "MYC", "NASP", "NCL", "NDC80", "NEK2", "NOLC1",
-    "NOTCH2", "NUMA1", "NUP50", "NUP98", "NUSAP1", "ODC1", "ODF2", "ORC5", "ORC6", "PAFAH1B1",
-    "PAPD7", "PBK", "PDS5B", "PLK1", "PLK4", "PML", "POLA2", "POLE", "POLQ", "PRC1",
-    "PRIM2", "PRMT5", "PRPF4B", "PTTG1", "PTTG3P", "PURA", "RACGAP1", "RAD21", "RAD23B", "RAD54L",
-    "RASAL2", "RBL1", "RBM14", "RPA2", "RPS6KA5", "SAP30", "SETD8", "SFPQ", "SLC12A2", "SLC38A1",
-    "SLC7A1", "SLC7A5", "SMAD3", "SMARCC1", "SMC1A", "SMC2", "SMC4", "SNRPD1", "SQLE", "SRSF1",
-    "SRSF10", "SRSF2", "SS18", "STAG1", "STIL", "STMN1", "SUV39H1", "SYNCRIP", "TACC3", "TFDP1",
-    "TGFB1", "TLE3", "TMPO", "TNPO2", "TOP1", "TOP2A", "TPX2", "TRA2B", "TRAIP", "TROAP",
-    "TTK", "UBE2C", "UBE2S", "UCK2", "UPF1", "WHSC1", "WRN", "XPO1", "YTHDC1", "ZAK",
-]
-assert len(HALLMARK_G2M_CHECKPOINT) == 200, f"expected 200 genes, got {len(HALLMARK_G2M_CHECKPOINT)}"
-
-# HALLMARK_MITOTIC_SPINDLE, MSigDB systematic name M5893, 200 genes.
-# Source: https://www.gsea-msigdb.org/gsea/msigdb/human/geneset/HALLMARK_MITOTIC_SPINDLE.html
-# Extracted verbatim from the page's raw gene member table (same method as above).
-# A third generic-proliferation control: "genes important for mitotic spindle
-# assembly" -- structural/cytoskeletal mitotic machinery, no MYC or E2F identity
-# claim, and (unlike G2M_CHECKPOINT and E2F_TARGETS) does not contain MYC itself.
-HALLMARK_MITOTIC_SPINDLE = [
-    "ABI1", "ABL1", "ABR", "ACTN4", "AKAP13", "ALMS1", "ALS2", "ANLN", "APC", "ARAP3",
-    "ARF6", "ARFGEF1", "ARFIP2", "ARHGAP10", "ARHGAP27", "ARHGAP29", "ARHGAP4", "ARHGAP5", "ARHGDIA", "ARHGEF11",
-    "ARHGEF12", "ARHGEF2", "ARHGEF3", "ARHGEF7", "ARL8A", "ATG4B", "AURKA", "AZI1", "BCAR1", "BCL2L11",
-    "BCR", "BIN1", "BIRC5", "BRCA2", "BUB1", "CAPZB", "CCDC88A", "CCNB2", "CD2AP", "CDC27",
-    "CDC42", "CDC42BPA", "CDC42EP1", "CDC42EP2", "CDC42EP4", "CDK1", "CDK5RAP2", "CENPE", "CENPF", "CENPJ",
-    "CEP192", "CEP250", "CEP57", "CEP72", "CKAP5", "CLASP1", "CLIP1", "CLIP2", "CNTRL", "CNTROB",
-    "CRIPAK", "CSNK1D", "CTTN", "CYTH2", "DLG1", "DLGAP5", "DOCK2", "DOCK4", "DST", "DYNC1H1",
-    "DYNLL2", "ECT2", "EPB41", "EPB41L2", "ESPL1", "EZR", "FARP1", "FBXO5", "FGD4", "FGD6",
-    "FLNA", "FLNB", "FSCN1", "GEMIN4", "GSN", "HDAC6", "HOOK3", "INCENP", "ITSN1", "KATNA1",
-    "KATNB1", "KIF11", "KIF15", "KIF1B", "KIF20B", "KIF22", "KIF23", "KIF2C", "KIF3B", "KIF3C",
-    "KIF4A", "KIF5B", "KIFAP3", "KLC1", "KNTC1", "KPTN", "LATS1", "LLGL1", "LMNB1", "LRPPRC",
-    "MAP1S", "MAP3K11", "MAPRE1", "MARCKS", "MARK4", "MID1", "MID1IP1", "MYH10", "MYH9", "MYO1E",
-    "MYO9B", "NCK1", "NCK2", "NDC80", "NEDD9", "NEK2", "NET1", "NF1", "NIN", "NOTCH2",
-    "NUMA1", "NUSAP1", "OPHN1", "PAFAH1B1", "PALLD", "PCGF5", "PCM1", "PCNT", "PDLIM5", "PIF1",
-    "PKD2", "PLEKHG2", "PLK1", "PPP4R2", "PRC1", "PREX1", "PXN", "RAB3GAP1", "RABGAP1", "RACGAP1",
-    "RALBP1", "RANBP9", "RAPGEF5", "RAPGEF6", "RASA1", "RASA2", "RASAL2", "RFC1", "RHOF", "RHOT2",
-    "RICTOR", "ROCK1", "SAC3D1", "SASS6", "SEPT9", "SHROOM1", "SHROOM2", "SMC1A", "SMC3", "SMC4",
-    "SORBS2", "SOS1", "SPTAN1", "SPTBN1", "SSH2", "STAU1", "STK38L", "SUN2", "SYNPO", "TAOK2",
-    "TBCD", "TIAM1", "TLK1", "TOP2A", "TPX2", "TRIO", "TSC1", "TTK", "TUBA4A", "TUBD1",
-    "TUBGCP2", "TUBGCP3", "TUBGCP5", "TUBGCP6", "UXT", "VCL", "WASF1", "WASF2", "WASL", "YWHAE",
-]
-assert len(HALLMARK_MITOTIC_SPINDLE) == 200, f"expected 200 genes, got {len(HALLMARK_MITOTIC_SPINDLE)}"
-
 GENE_SETS = {
     "myc": ("MYC", "HALLMARK_MYC_TARGETS_V1", "MSigDB M5926", HALLMARK_MYC_TARGETS_V1),
     "e2f": ("E2F3", "HALLMARK_E2F_TARGETS", "MSigDB M5925", HALLMARK_E2F_TARGETS),
-    "g2m": ("MYC", "HALLMARK_G2M_CHECKPOINT", "MSigDB M5901", HALLMARK_G2M_CHECKPOINT),
-    "spindle": ("MYC", "HALLMARK_MITOTIC_SPINDLE", "MSigDB M5893", HALLMARK_MITOTIC_SPINDLE),
-    "e2f_vs_myc": ("MYC", "HALLMARK_E2F_TARGETS (vs MYC amp, generic-proliferation reuse)", "MSigDB M5925", HALLMARK_E2F_TARGETS),
 }
 FOCAL_GENE, GENE_SET_LABEL, GENE_SET_SOURCE, GENE_SET_LIST = GENE_SETS[GENE_SET_NAME]
 
