@@ -43,11 +43,17 @@ pulled.
 """
 
 import json
+import sys
 from pathlib import Path
 
 import requests
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tools.gene_id_mapper import get_mapper
+
 OUTPUTS_DIR = ROOT / "outputs"
 OUTPUTS_DIR.mkdir(exist_ok=True)
 RESULTS_PATH = OUTPUTS_DIR / "experiment6_agent_tool_grounding.json"
@@ -240,19 +246,34 @@ def resolved_value(actual, key: str):
 
 
 def score(results: list[dict]) -> dict:
+    """Score each query two ways: `exact_match` against the model's raw
+    tool-call output (what the benchmark has always measured), and
+    `server_exact_match`, which additionally runs the model's `gene` value
+    through CASCADE's real `resolve_alias()` before comparing -- the same
+    step CASCADE's own MCP server runs before any network lookup. This
+    distinguishes gene-alias cases the model gets wrong but CASCADE's
+    server would silently fix (e.g. a model saying "HER2", which
+    resolve_alias() maps to ERBB2) from cases neither the model nor
+    CASCADE's alias table can resolve (e.g. an alias not yet in the table).
+    """
+    mapper = get_mapper()
     per_category: dict = {}
     field_mismatches: dict = {}
+    server_field_mismatches: dict = {}
     total_exact = 0
+    total_server_exact = 0
     scored_results = []
 
     for r in results:
         cat = r["category"]
-        per_category.setdefault(cat, {"n": 0, "exact": 0})
+        per_category.setdefault(cat, {"n": 0, "exact": 0, "server_exact": 0})
         per_category[cat]["n"] += 1
 
         mismatches = []
+        server_mismatches = []
         if r["actual"] is None:
             mismatches = ["no_tool_call"]
+            server_mismatches = ["no_tool_call"]
         else:
             for k, expected_v in r["expected"].items():
                 actual_v = resolved_value(r["actual"], k)
@@ -260,19 +281,37 @@ def score(results: list[dict]) -> dict:
                     mismatches.append(f"{k}: expected={expected_v!r} got={actual_v!r}")
                     field_mismatches[k] = field_mismatches.get(k, 0) + 1
 
+                server_v = mapper.resolve_alias(actual_v) if k == "gene" and actual_v is not None else actual_v
+                if str(server_v).strip().lower() != str(expected_v).strip().lower():
+                    server_mismatches.append(f"{k}: expected={expected_v!r} got={server_v!r}")
+                    server_field_mismatches[k] = server_field_mismatches.get(k, 0) + 1
+
         exact = not mismatches
+        server_exact = not server_mismatches
         if exact:
             total_exact += 1
             per_category[cat]["exact"] += 1
+        if server_exact:
+            total_server_exact += 1
+            per_category[cat]["server_exact"] += 1
 
-        scored_results.append({**r, "exact_match": exact, "mismatches": mismatches})
+        scored_results.append({
+            **r,
+            "exact_match": exact,
+            "mismatches": mismatches,
+            "server_exact_match": server_exact,
+            "server_mismatches": server_mismatches,
+        })
 
     return {
         "n": len(results),
         "overall_exact": total_exact,
         "overall_exact_pct": round(100 * total_exact / len(results), 1),
+        "overall_server_exact": total_server_exact,
+        "overall_server_exact_pct": round(100 * total_server_exact / len(results), 1),
         "per_category": per_category,
         "field_mismatches": field_mismatches,
+        "server_field_mismatches": server_field_mismatches,
         "results": scored_results,
     }
 
@@ -284,9 +323,10 @@ def main() -> None:
         results = run_model(model)
         summary = score(results)
         all_summaries[model] = summary
-        print(f"  {summary['overall_exact']}/{summary['n']} ({summary['overall_exact_pct']}%)")
+        print(f"  raw:    {summary['overall_exact']}/{summary['n']} ({summary['overall_exact_pct']}%)")
+        print(f"  server: {summary['overall_server_exact']}/{summary['n']} ({summary['overall_server_exact_pct']}%)")
         for cat, v in summary["per_category"].items():
-            print(f"    {cat}: {v['exact']}/{v['n']}")
+            print(f"    {cat}: raw {v['exact']}/{v['n']}, server {v['server_exact']}/{v['n']}")
 
     RESULTS_PATH.write_text(json.dumps(all_summaries, indent=2), encoding="utf-8")
     print(f"\nWrote results to {RESULTS_PATH}")

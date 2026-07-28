@@ -37,6 +37,9 @@ GENE_SYMBOL_ALIASES = {
     "HDM2": "MDM2",
     "C-MYC": "MYC",
     "CMYC": "MYC",
+    "PD-L1": "CD274",
+    "PDL1": "CD274",
+    "HER3": "ERBB3",
 }
 
 
