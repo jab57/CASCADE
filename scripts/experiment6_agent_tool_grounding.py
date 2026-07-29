@@ -31,6 +31,19 @@ Categories:
   7. multi_entity          - a distractor gene/cancer type mentioned but not
                              the one actually requested
 
+Perturbation-type ambiguity fix (Section 3.6): three implicit_params queries
+("What does MYC do?", "Is APC a good drug target?", "What genes are affected
+by GATA3?") give no directional cue at all -- CASCADE's MCP server used to
+silently default perturbation_type to "knockdown" for these. The server now
+takes an optional "query" argument (the caller's original NL request) and,
+when perturbation_type is omitted, scans it for directional cues before
+defaulting; if none (or conflicting cues) are found, it returns
+clarification_needed instead of guessing. This benchmark tests that fix
+end-to-end: the tool schema advertises the new "query" field, and whether the
+model actually populates it is itself measured (a model can omit
+perturbation_type but not comply with sending "query", in which case the old
+silent default still applies -- see score_ambiguity_handling()).
+
 Two models are run by default and are the ones reported in the paper:
 llama3.1:8b (CASCADE's own documented OLLAMA_MODEL default) as the
 primary/representative result, and qwen2.5:72b-instruct-q4_0 as a
@@ -53,6 +66,7 @@ others' previously recorded results untouched.
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -129,6 +143,16 @@ TOOL_SCHEMA = {
                     "enum": TCGA_NETWORK_ENUM,
                     "description": "TCGA cancer type network (required when network_source=tcga). Epithelial-origin only.",
                 },
+                "query": {
+                    "type": "string",
+                    "description": (
+                        "Optional: the user's original natural-language request, verbatim. "
+                        "If perturbation_type is not given, this text is scanned for "
+                        "directional cues (e.g. 'knock down'/'silence' vs 'overexpress'/"
+                        "'boost') instead of silently defaulting to knockdown. If omitted "
+                        "or the cues are absent/conflicting, behavior is unchanged."
+                    ),
+                },
             },
             "required": ["gene"],
         },
@@ -141,6 +165,103 @@ DEFAULTS = {
     "analysis_depth": "comprehensive",
     "network_source": "cell_type",
 }
+
+# Mirrored from cascade_langgraph_mcp_server.py's _detect_perturbation_direction
+# and _KNOCKDOWN_CUES/_OVEREXPRESSION_CUES (Section 3.6 fix). Kept as a literal
+# copy rather than imported so this benchmark doesn't pull in the full server
+# module's heavy dependencies (torch, mcp.server, langgraph) just to score
+# tool-call args; keep in sync with the server if the cue lists change.
+_KNOCKDOWN_CUES = [
+    r"knock(?:ed|ing)?[\s-]?down",
+    r"silenc\w*",
+    r"suppress\w*",
+    r"inhibit\w*",
+    r"delet\w*",
+    r"disrupt\w*",
+    r"deplet\w*",
+]
+_OVEREXPRESSION_CUES = [
+    r"overexpress\w*",
+    r"over[\s-]express\w*",
+    r"boost\w*",
+    r"increas\w*",
+    r"activat\w*",
+    r"upregulat\w*",
+    r"up[\s-]regulat\w*",
+    r"amplif\w*",
+    r"enhanc\w*",
+]
+
+
+def _classify_perturbation_cues(query_text: str) -> tuple[str | None, str]:
+    """Same detection logic as cascade_langgraph_mcp_server.py's
+    _detect_perturbation_direction (that one is the actual server-side gate;
+    this mirrors it for benchmark simulation), but also reports *why* it
+    returned no single direction --
+      'no_cues'          - no directional cue at all (the original gap this
+                            fix targets, e.g. the 3 known-ambiguous queries).
+      'conflicting_cues' - cues for BOTH directions are present, typically
+                            because a multi-entity query mentions two genes
+                            with different directions ("knocked down GATA3,
+                            now overexpress FOXA1"). The keyword scanner has
+                            no way to attribute each cue to the right gene,
+                            so this is a distinct, disclosed limitation of
+                            the fix's naive text-matching -- not the same
+                            failure mode as the original no-cue gap, and not
+                            a generic unexplained regression either.
+    The server's real gate doesn't need this distinction (it only needs
+    direction-or-None to decide default vs. clarification); it exists here
+    purely so the benchmark can report *why* a query landed where it did.
+    """
+    text = query_text.lower()
+    directions = set()
+    if any(re.search(p, text) for p in _KNOCKDOWN_CUES):
+        directions.add("knockdown")
+    if any(re.search(p, text) for p in _OVEREXPRESSION_CUES):
+        directions.add("overexpression")
+    if len(directions) == 1:
+        return directions.pop(), "single_cue"
+    if len(directions) == 0:
+        return None, "no_cues"
+    return None, "conflicting_cues"
+
+
+def simulate_server_perturbation_handling(actual: dict | None) -> dict:
+    """Mirrors the gate in cascade_langgraph_mcp_server.py's
+    _comprehensive_analysis: given the model's raw tool-call args, determines
+    what the real (fixed) server would do for perturbation_type, and which
+    of the three ambiguity-fix outcome cases applies:
+
+      explicit_guess   - model supplied perturbation_type itself; the fix
+                          never engages (out of scope by design -- this fix
+                          only replaces the *default*, not an explicit value).
+      omitted_complied  - model omitted perturbation_type but did supply the
+                          new "query" field, so the server can run detection.
+      omitted_no_query  - model omitted perturbation_type and did not supply
+                          "query"; the server silently falls back to the old
+                          "knockdown" default, unchanged from before the fix.
+      no_tool_call      - model did not call the tool at all.
+
+    Also returns "cue_reason" (see _classify_perturbation_cues) whenever
+    detection actually ran, so callers can distinguish a true no-cue result
+    from a multi-entity conflicting-cue false positive.
+    """
+    if actual is None:
+        return {"case": "no_tool_call", "status": "no_tool_call", "resolved_perturbation_type": None, "cue_reason": None}
+
+    perturbation_type = actual.get("perturbation_type")
+    if perturbation_type:
+        return {"case": "explicit_guess", "status": "resolved", "resolved_perturbation_type": perturbation_type, "cue_reason": None}
+
+    query_text = actual.get("query")
+    if query_text:
+        direction, reason = _classify_perturbation_cues(query_text)
+        if direction is None:
+            return {"case": "omitted_complied", "status": "clarification_needed", "resolved_perturbation_type": None, "cue_reason": reason}
+        return {"case": "omitted_complied", "status": "resolved", "resolved_perturbation_type": direction, "cue_reason": reason}
+
+    return {"case": "omitted_no_query", "status": "resolved", "resolved_perturbation_type": DEFAULTS["perturbation_type"], "cue_reason": None}
+
 
 QUERIES = [
     {"category": "baseline_tcga", "query": "What happens if we knock down TP53 in liver cancer?",
@@ -198,15 +319,15 @@ QUERIES = [
     {"category": "perturbation_phrasing", "query": "Delete AURKA function in bladder cancer",
      "expected": {"gene": "AURKA", "perturbation_type": "knockdown", "network_source": "tcga", "tcga_network": "blca"}},
 
-    {"category": "implicit_params", "query": "What does MYC do?",
+    {"category": "implicit_params", "query": "What does MYC do?", "ambiguous": True,
      "expected": {"gene": "MYC", "perturbation_type": "knockdown", "cell_type": "epithelial_cell", "network_source": "cell_type"}},
     {"category": "implicit_params", "query": "Tell me about knocking down TP53",
      "expected": {"gene": "TP53", "perturbation_type": "knockdown", "cell_type": "epithelial_cell", "network_source": "cell_type"}},
-    {"category": "implicit_params", "query": "Is APC a good drug target?",
+    {"category": "implicit_params", "query": "Is APC a good drug target?", "ambiguous": True,
      "expected": {"gene": "APC", "perturbation_type": "knockdown", "cell_type": "epithelial_cell", "network_source": "cell_type"}},
     {"category": "implicit_params", "query": "Overexpress ESR1",
      "expected": {"gene": "ESR1", "perturbation_type": "overexpression", "cell_type": "epithelial_cell", "network_source": "cell_type"}},
-    {"category": "implicit_params", "query": "What genes are affected by GATA3?",
+    {"category": "implicit_params", "query": "What genes are affected by GATA3?", "ambiguous": True,
      "expected": {"gene": "GATA3", "perturbation_type": "knockdown", "cell_type": "epithelial_cell", "network_source": "cell_type"}},
 
     {"category": "multi_entity", "query": "We're studying MYC and TP53 together, but for now just knock down MYC in breast cancer",
@@ -260,6 +381,7 @@ def run_model(model: str) -> list[dict]:
             "query": item["query"],
             "expected": item["expected"],
             "actual": args,
+            "ambiguous": item.get("ambiguous", False),
         })
     return results
 
@@ -346,6 +468,86 @@ def score(results: list[dict]) -> dict:
     }
 
 
+def score_ambiguity_handling(scored_results: list[dict]) -> dict:
+    """New scoring category for the perturbation-type ambiguity fix (Section
+    3.6). Independent of score() above -- exact_match/server_exact_match are
+    unchanged and still compare the model's raw args against the old
+    "knockdown"-default ground truth. This instead asks: for the 3 queries
+    with no directional cue at all, does the (simulated) fixed server return
+    clarification_needed rather than silently guessing? Takes score()'s
+    `results` list (post-scoring, so "mismatches" is available for the
+    network_source regression check below), not the raw run_model() output.
+
+    Also reports, across all 35 queries:
+      - query_field_compliance: how often the model populated the new
+        optional "query" field at all (a prerequisite for the fix to engage
+        when perturbation_type is omitted -- see simulate_server_perturbation_handling).
+      - round_trip_triggers: how many queries would get a clarification
+        response instead of a direct result under the fix (the added-latency
+        cost of the fix, as a fraction of the 35-query set).
+      - non_ambiguous_regressions: any non-ambiguous query that unexpectedly
+        triggers clarification_needed. Each is tagged with a failure_category
+        so a distinct, known limitation (multi-entity queries where the
+        keyword scanner sees conflicting cues from two different genes, e.g.
+        "knocked down GATA3, now overexpress FOXA1") is reported separately
+        from a generic, unexplained regression -- these are different
+        findings and conflating them would muddy the before/after comparison
+        for the perturbation-type fix itself.
+    """
+    ambiguous_detail = []
+    query_field_compliance = 0
+    round_trip_triggers = 0
+    non_ambiguous_regressions = []
+
+    for r in scored_results:
+        sim = simulate_server_perturbation_handling(r["actual"])
+        query_supplied = bool(r["actual"].get("query")) if r["actual"] else False
+        if query_supplied:
+            query_field_compliance += 1
+
+        if sim["status"] == "clarification_needed":
+            round_trip_triggers += 1
+            if not r["ambiguous"]:
+                if r["category"] == "multi_entity" and sim.get("cue_reason") == "conflicting_cues":
+                    failure_category = "multi_entity_keyword_conflict"
+                else:
+                    failure_category = "unexpected_non_ambiguous_regression"
+                non_ambiguous_regressions.append({
+                    "category": r["category"], "query": r["query"], "case": sim["case"],
+                    "cue_reason": sim.get("cue_reason"), "failure_category": failure_category,
+                })
+
+        if r["ambiguous"]:
+            # Independent of the perturbation_type outcome: does this query
+            # *also* still exhibit the (unfixed, out-of-scope) network_source
+            # misroute? Reported separately, not folded into one pass/fail.
+            network_source_mismatch = any(
+                m.startswith("network_source:") for m in r.get("mismatches", [])
+            )
+            ambiguous_detail.append({
+                "query": r["query"],
+                "case": sim["case"],
+                "status": sim["status"],
+                "correctly_flagged": sim["status"] == "clarification_needed",
+                "network_source_mismatch": network_source_mismatch,
+            })
+
+    n = len(scored_results)
+    n_ambiguous = len(ambiguous_detail)
+    n_correctly_flagged = sum(1 for d in ambiguous_detail if d["correctly_flagged"])
+
+    return {
+        "n_ambiguous": n_ambiguous,
+        "n_correctly_flagged": n_correctly_flagged,
+        "ambiguous_detail": ambiguous_detail,
+        "query_field_compliance": query_field_compliance,
+        "query_field_compliance_pct": round(100 * query_field_compliance / n, 1),
+        "round_trip_triggers": round_trip_triggers,
+        "round_trip_triggers_pct": round(100 * round_trip_triggers / n, 1),
+        "non_ambiguous_regressions": non_ambiguous_regressions,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -363,13 +565,46 @@ def main() -> None:
 
     for model in models_to_run:
         print(f"\n=== {model} ===")
+        old_summary = all_summaries.get(model)  # pre-rerun, for before/after reporting
         results = run_model(model)
         summary = score(results)
+        ambiguity = score_ambiguity_handling(summary["results"])
+        summary["ambiguity_handling"] = ambiguity
         all_summaries[model] = summary
+
         print(f"  raw:    {summary['overall_exact']}/{summary['n']} ({summary['overall_exact_pct']}%)")
         print(f"  server: {summary['overall_server_exact']}/{summary['n']} ({summary['overall_server_exact_pct']}%)")
         for cat, v in summary["per_category"].items():
             print(f"    {cat}: raw {v['exact']}/{v['n']}, server {v['server_exact']}/{v['n']}")
+
+        print(f"\n  --- perturbation-type ambiguity fix (Section 3.6) ---")
+        print(f"  correctly flagged as ambiguous: {ambiguity['n_correctly_flagged']}/{ambiguity['n_ambiguous']}")
+        for d in ambiguity["ambiguous_detail"]:
+            before = None
+            if old_summary:
+                old_r = next((x for x in old_summary.get("results", []) if x["query"] == d["query"]), None)
+                if old_r is not None:
+                    before = "matched knockdown default" if old_r.get("exact_match") else "mismatched"
+            before_str = f", before={before}" if before is not None else ""
+            extra = " [network_source misroute persists, unfixed by design]" if d["network_source_mismatch"] else ""
+            print(f"    [{d['case']}] {d['query']!r} -> {d['status']}{before_str}{extra}")
+
+        print(f"  query-field compliance (all {summary['n']}): "
+              f"{ambiguity['query_field_compliance']}/{summary['n']} ({ambiguity['query_field_compliance_pct']}%)")
+        print(f"  added round-trip cost (all {summary['n']}): "
+              f"{ambiguity['round_trip_triggers']}/{summary['n']} ({ambiguity['round_trip_triggers_pct']}%)")
+        if ambiguity["non_ambiguous_regressions"]:
+            multi_entity_conflicts = [r for r in ambiguity["non_ambiguous_regressions"]
+                                       if r["failure_category"] == "multi_entity_keyword_conflict"]
+            other_regressions = [r for r in ambiguity["non_ambiguous_regressions"]
+                                  if r["failure_category"] != "multi_entity_keyword_conflict"]
+            if multi_entity_conflicts:
+                print(f"  KNOWN LIMITATION -- multi-entity keyword conflict "
+                      f"(scanner can't attribute cues to the right gene): {multi_entity_conflicts}")
+            if other_regressions:
+                print(f"  WARNING -- unexplained non-ambiguous regression(s): {other_regressions}")
+        else:
+            print(f"  regression check: no previously-non-ambiguous query triggered clarification")
 
     RESULTS_PATH.write_text(json.dumps(all_summaries, indent=2), encoding="utf-8")
     print(f"\nWrote results to {RESULTS_PATH}")

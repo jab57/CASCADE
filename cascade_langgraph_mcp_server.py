@@ -30,6 +30,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import sys
 
 # Load .env file if present (before any os.getenv calls)
@@ -508,6 +509,16 @@ async def handle_list_tools() -> list[Tool]:
                         "type": "string",
                         "enum": tcga_network_enum,
                         "description": "TCGA cancer type network (required when network_source=tcga). Epithelial-origin only."
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": (
+                            "Optional: the user's original natural-language request, verbatim. "
+                            "If perturbation_type is not given, this text is scanned for "
+                            "directional cues (e.g. 'knock down'/'silence' vs 'overexpress'/"
+                            "'boost') instead of silently defaulting to knockdown. If omitted "
+                            "or the cues are absent/conflicting, behavior is unchanged."
+                        )
                     }
                 },
                 "required": ["gene"]
@@ -1498,6 +1509,49 @@ async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent
         )]
 
 
+# Directional cues for perturbation_type ambiguity detection (Section 3.6 fix).
+# Regexes rather than plain substrings so inflections (e.g. "knocking down",
+# "suppressed") match without also matching unrelated words.
+_KNOCKDOWN_CUES = [
+    r"knock(?:ed|ing)?[\s-]?down",
+    r"silenc\w*",
+    r"suppress\w*",
+    r"inhibit\w*",
+    r"delet\w*",
+    r"disrupt\w*",
+    r"deplet\w*",
+]
+_OVEREXPRESSION_CUES = [
+    r"overexpress\w*",
+    r"over[\s-]express\w*",
+    r"boost\w*",
+    r"increas\w*",
+    r"activat\w*",
+    r"upregulat\w*",
+    r"up[\s-]regulat\w*",
+    r"amplif\w*",
+    r"enhanc\w*",
+]
+
+
+def _detect_perturbation_direction(query_text: str) -> str | None:
+    """Scan free text for perturbation-direction cues.
+
+    Returns "knockdown" or "overexpression" if exactly one direction's cues
+    are present. Returns None if there are no cues, or cues for both
+    directions (conflicting) -- both cases are treated as unresolved.
+    """
+    text = query_text.lower()
+    directions = set()
+    if any(re.search(p, text) for p in _KNOCKDOWN_CUES):
+        directions.add("knockdown")
+    if any(re.search(p, text) for p in _OVEREXPRESSION_CUES):
+        directions.add("overexpression")
+    if len(directions) == 1:
+        return directions.pop()
+    return None
+
+
 async def _comprehensive_analysis(args: dict, progress_cb=None) -> dict:
     """Run comprehensive perturbation analysis via workflow."""
     network_source = args.get("network_source", "cell_type")
@@ -1512,12 +1566,32 @@ async def _comprehensive_analysis(args: dict, progress_cb=None) -> dict:
         if err := _validate_cell_type(cell_type):
             return err
 
+    perturbation_type = args.get("perturbation_type")
+    if perturbation_type is None:
+        query_text = args.get("query")
+        if query_text:
+            direction = _detect_perturbation_direction(query_text)
+            if direction is None:
+                return {
+                    "status": "clarification_needed",
+                    "field": "perturbation_type",
+                    "message": (
+                        f"Your request doesn't specify whether to knock down or "
+                        f"overexpress {args.get('gene', 'this gene')} -- which "
+                        "would you like to simulate?"
+                    ),
+                    "options": ["knockdown", "overexpression"],
+                }
+            perturbation_type = direction
+        else:
+            perturbation_type = "knockdown"
+
     workflow = await get_workflow()
 
     return await workflow.run(
         gene=args["gene"],
         cell_type=args.get("cell_type", "epithelial_cell"),
-        perturbation_type=args.get("perturbation_type", "knockdown"),
+        perturbation_type=perturbation_type,
         analysis_depth=args.get("analysis_depth", "comprehensive"),
         include_llm_insights=args.get("include_llm_insights", False),
         network_source=network_source,
