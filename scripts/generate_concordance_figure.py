@@ -17,6 +17,10 @@ generalization panel (five proliferation-machinery genes re-tested in a
 second cancer type wherever amplified-sample eligibility allowed it);
 their bars are colored green (category) regardless of individual outcome,
 matching the ERBB2 convention already used for the original panel.
+CCND2/BRCA and CCND3/BRCA were added once a local gene-identifier
+resolution gap for those two genes (unrelated to CASCADE itself) was
+fixed; both are colored green (proliferation-machinery category)
+regardless of CCND2's own non-concordant outcome, same convention.
 """
 
 import matplotlib.pyplot as plt
@@ -36,6 +40,8 @@ DATA = [
     ("E2F3/BRCA", 96.00, 47.70, "green"),
     ("CCND1/BRCA", 96.00, 48.40, "green"),
     ("CCND1/STAD", 57.14, 49.33, "green"),
+    ("CCND2/BRCA", 38.00, 43.41, "green"),
+    ("CCND3/BRCA", 76.00, 51.49, "green"),
     ("AURKA/BRCA", 100.00, 43.52, "green"),
     ("AURKA/COAD", 92.00, 46.83, "green"),
     ("CCNE1/BRCA", 100.00, 50.12, "green"),
