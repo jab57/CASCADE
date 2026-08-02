@@ -21,6 +21,10 @@ CCND2/BRCA and CCND3/BRCA were added once a local gene-identifier
 resolution gap for those two genes (unrelated to CASCADE itself) was
 fixed; both are colored green (proliferation-machinery category)
 regardless of CCND2's own non-concordant outcome, same convention.
+CCND2/COAD and CCND3/STAD were added when both genes were confirmed
+eligible (out-degree and amplified-sample count) for a second cancer
+type but had not yet been tested; read directly from
+experiment4_tcga_myc_concordance.py's output, same convention.
 """
 
 import matplotlib.pyplot as plt
@@ -41,7 +45,9 @@ DATA = [
     ("CCND1/BRCA", 96.00, 48.40, "green"),
     ("CCND1/STAD", 57.14, 49.33, "green"),
     ("CCND2/BRCA", 38.00, 43.41, "green"),
+    ("CCND2/COAD", 54.17, 49.20, "green"),
     ("CCND3/BRCA", 76.00, 51.49, "green"),
+    ("CCND3/STAD", 79.59, 50.18, "green"),
     ("AURKA/BRCA", 100.00, 43.52, "green"),
     ("AURKA/COAD", 92.00, 46.83, "green"),
     ("CCNE1/BRCA", 100.00, 50.12, "green"),
