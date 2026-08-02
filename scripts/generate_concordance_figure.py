@@ -1,7 +1,7 @@
 """
 Generates figure_concordance_summary.pdf for the CASCADE research paper:
 observed directional concordance vs. permutation baseline, for every
-gene x cancer-type combination tested in the patient-data concordance
+gene-cancer-type combination tested in the patient-data concordance
 experiments (Sections 3.2-3.5).
 
 Values for the twelve combinations already reported in earlier drafts are
@@ -77,7 +77,7 @@ ax.axhline(50, color="black", linestyle=":", linewidth=1, zorder=2)
 ax.set_ylim(0, 100)
 ax.set_ylabel("Concordance rate (%)", fontsize=13)
 ax.set_title(
-    "Directional concordance vs. permutation baseline, all tested gene×cancer-type combinations",
+    "Directional concordance vs. permutation baseline, all tested gene-cancer-type combinations",
     fontsize=15,
 )
 ax.set_xticks(x)
