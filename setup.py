@@ -5,7 +5,7 @@ long_description = Path("README.md").read_text(encoding="utf-8")
 
 setup(
     name="cascade",
-    version="1.2.0",
+    version="1.3.0",
     author="Jose Bird",
     author_email="jbird@birdaisolutions.com",
     description="MCP server for in silico gene perturbation analysis in cancer and immuno-oncology research",
