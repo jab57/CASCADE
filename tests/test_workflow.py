@@ -656,6 +656,130 @@ class TestNoNetworkTargetsNote:
         assert note is None
 
 
+class TestEmbeddingFallbackNote:
+    """Predictions sourced purely from embedding similarity (no real network edge) must be
+    flagged in the report rather than reading as network-validated."""
+
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _state_with_targets(self, top_affected_genes):
+        return {
+            "gene": "PLK1",
+            "gene_symbol": "PLK1",
+            "cell_type": "epithelial_cell",
+            "gene_role": "effector",
+            "perturbation_type": "knockdown",
+            "perturbation_result": {
+                "total_affected_genes": len(top_affected_genes),
+                "top_affected_genes": top_affected_genes,
+            },
+            "ppi_interactions": None,
+            "lincs_effects": None,
+            "similar_genes": None,
+            "regulators_analysis": None,
+            "targets_analysis": None,
+            "dorothea_regulons": None,
+            "super_enhancer_status": None,
+            "vulnerability_analysis": None,
+            "network_context": None,
+            "cross_cell_comparison": None,
+            "embedding_enhanced": False,
+            "analysis_metadata": {},
+            "completed_actions": [],
+            "ensembl_id": None,
+            "include_llm_insights": False,
+        }
+
+    @pytest.mark.asyncio
+    async def test_all_embedding_only_flagged(self, wf):
+        genes = [
+            {"symbol": "GENE1", "direction": "down", "source": "embedding_only"},
+            {"symbol": "GENE2", "direction": "up", "source": "embedding_only"},
+        ]
+        state = self._state_with_targets(genes)
+        result = await wf._generate_report(state)
+        analysis = result["comprehensive_report"]["network_analysis"]
+        assert analysis["embedding_only_prediction_count"] == 2
+        assert analysis["network_backed_prediction_count"] == 0
+        assert "embedding" in analysis["embedding_fallback_note"].lower()
+        assert "All 2" in analysis["embedding_fallback_note"]
+
+    @pytest.mark.asyncio
+    async def test_partial_embedding_only_flagged(self, wf):
+        genes = [
+            {"symbol": "GENE1", "direction": "down", "source": "embedding_only"},
+            {"symbol": "GENE2", "direction": "up", "source": "network+embedding"},
+        ]
+        state = self._state_with_targets(genes)
+        result = await wf._generate_report(state)
+        analysis = result["comprehensive_report"]["network_analysis"]
+        assert analysis["embedding_only_prediction_count"] == 1
+        assert analysis["network_backed_prediction_count"] == 1
+        assert "1 of 2" in analysis["embedding_fallback_note"]
+
+    @pytest.mark.asyncio
+    async def test_no_embedding_only_no_note(self, wf):
+        genes = [{"symbol": "GENE1", "direction": "down", "source": "network+embedding"}]
+        state = self._state_with_targets(genes)
+        result = await wf._generate_report(state)
+        analysis = result["comprehensive_report"]["network_analysis"]
+        assert analysis["embedding_only_prediction_count"] == 0
+        assert analysis["embedding_fallback_note"] is None
+
+
+class TestSynthesizeEvidenceEmbeddingFallback:
+    """embedding_only predictions must not be tagged network_propagation -- that would let
+    fallback-only genes masquerade as network-validated in multi-source confidence scoring."""
+
+    @pytest.fixture
+    def wf(self):
+        return _make_workflow()
+
+    def _state_with_ppi_overlap(self, source):
+        """PLK1TGT appears in both top_affected_genes and STRING PPI, so it's multi-source
+        and shows up in the returned multi_source_genes list regardless of its perturb.py
+        source tag."""
+        return {
+            "gene": "PLK1",
+            "gene_symbol": "PLK1",
+            "gene_role": "effector",
+            "perturbation_result": {
+                "top_affected_genes": [
+                    {"symbol": "PLK1TGT", "direction": "down", "combined_effect": -0.5,
+                     "source": source},
+                ]
+            },
+            "ppi_interactions": {"interactions": [
+                {"partner": "PLK1TGT", "combined_score": 900}
+            ]},
+            "lincs_effects": None,
+            "similar_genes": None,
+            "regulators_analysis": None,
+            "targets_analysis": None,
+            "dorothea_regulons": None,
+            "depmap_essentiality": None,
+            "cbioportal_tumor_data": None,
+        }
+
+    def test_embedding_only_tagged_as_embedding_similarity(self, wf):
+        state = self._state_with_ppi_overlap("embedding_only")
+        result = wf._synthesize_evidence(state)
+        entry = next(g for g in result["multi_source_genes"] if g["symbol"] == "PLK1TGT")
+        assert "network_propagation" not in entry["sources"]
+        assert "embedding_similarity" in entry["sources"]
+        assert entry["evidence"]["network"]["embedding_fallback"] is True
+
+    def test_network_backed_tagged_as_network_propagation(self, wf):
+        state = self._state_with_ppi_overlap("network+embedding")
+        result = wf._synthesize_evidence(state)
+        entry = next(g for g in result["multi_source_genes"] if g["symbol"] == "PLK1TGT")
+        assert "network_propagation" in entry["sources"]
+        assert "embedding_similarity" not in entry["sources"]
+        assert entry["evidence"]["network"]["embedding_fallback"] is False
+
+
 class TestRouteNextAction:
     """Test _route_next_action maps state to correct node names."""
 

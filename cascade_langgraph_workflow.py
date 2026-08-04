@@ -1503,14 +1503,21 @@ class CascadeWorkflow:
         # --- 1. Collect gene appearances across sources ---
 
         # Network propagation (perturbation_result -> top_affected_genes)
+        # Entries tagged source="embedding_only" have no real network edge behind them
+        # (pure embedding-similarity fallback) -- tag as embedding_similarity instead of
+        # network_propagation so they don't inflate multi-source confidence.
         perturbation = state.get("perturbation_result") or {}
         for gene in perturbation.get("top_affected_genes", []):
             sym = gene["symbol"].upper()
-            evidence[sym]["sources"].append("network_propagation")
+            is_embedding_fallback = gene.get("source") == "embedding_only"
+            source_tag = "embedding_similarity" if is_embedding_fallback else "network_propagation"
+            if source_tag not in evidence[sym]["sources"]:
+                evidence[sym]["sources"].append(source_tag)
             evidence[sym]["evidence"]["network"] = {
                 "effect": gene.get("predicted_effect") or gene.get("combined_effect"),
                 "direction": gene["direction"],
-                "magnitude": gene.get("magnitude")
+                "magnitude": gene.get("magnitude"),
+                "embedding_fallback": is_embedding_fallback
             }
 
         # STRING PPI (ppi_interactions -> interactions)
@@ -1821,6 +1828,29 @@ class CascadeWorkflow:
                     f"for the most informative evidence."
                 )
 
+        # Build embedding_fallback_note: flag when predicted affected genes are partly or
+        # wholly embedding-similarity fallback (no real network edge), so a report doesn't
+        # read as network-validated when it's actually unvalidated embedding output.
+        perturbation = state.get("perturbation_result") or {}
+        top_affected = perturbation.get("top_affected_genes", []) or []
+        embedding_only_count = sum(1 for g in top_affected if g.get("source") == "embedding_only")
+        network_backed_count = len(top_affected) - embedding_only_count
+        embedding_fallback_note = None
+        if top_affected and embedding_only_count == len(top_affected):
+            embedding_fallback_note = (
+                f"All {len(top_affected)} predicted affected genes come from embedding similarity "
+                f"only (source=embedding_only) -- none are backed by real network propagation edges "
+                f"in the {state.get('cell_type', 'this')} regulatory network. Treat these as "
+                f"low-confidence exploratory leads, not network-validated effects."
+            )
+        elif embedding_only_count > 0:
+            embedding_fallback_note = (
+                f"{embedding_only_count} of {len(top_affected)} predicted affected genes come from "
+                f"embedding similarity only (source=embedding_only), not real network propagation "
+                f"edges -- treat these as lower-confidence than the {network_backed_count} "
+                f"network-backed prediction(s)."
+            )
+
         # Build summary with optional DoRothEA validation
         summary = {
             "gene": gene_symbol,
@@ -1842,7 +1872,10 @@ class CascadeWorkflow:
                 "regulators": state.get("regulators_analysis"),
                 "targets": state.get("targets_analysis"),
                 "vulnerability": state.get("vulnerability_analysis"),
-                "no_network_targets_note": no_network_targets_note
+                "no_network_targets_note": no_network_targets_note,
+                "embedding_only_prediction_count": embedding_only_count,
+                "network_backed_prediction_count": network_backed_count,
+                "embedding_fallback_note": embedding_fallback_note
             },
             "external_data": {
                 "protein_interactions": state.get("ppi_interactions"),
