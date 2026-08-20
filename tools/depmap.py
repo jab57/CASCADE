@@ -226,6 +226,14 @@ def get_gene_codependency(gene_a: str, gene_b: str) -> dict:
     cell lines is evidence the genes act together (e.g. same pathway or protein
     complex), as opposed to being independently essential.
 
+    Caveat: broadly-essential genes (e.g. core cell-cycle/proliferation
+    machinery) correlate with each other genome-wide purely from shared
+    essentiality, independent of any direct functional link. A significant
+    correlation alone does not distinguish direct pathway/complex coupling
+    from this general covariation -- compare against an unrelated/control
+    gene pair before treating a hit as corroborating evidence for a specific
+    claimed relationship.
+
     Args:
         gene_a: Gene symbol (e.g., "MYC")
         gene_b: Gene symbol (e.g., "MAX")

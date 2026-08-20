@@ -1314,6 +1314,14 @@ async def handle_list_tools() -> list[Tool]:
             pathway or protein complex), not just two independently important
             genes.
 
+            Caveat: broadly-essential genes (e.g. core cell-cycle/proliferation
+            machinery) correlate with each other genome-wide purely from shared
+            essentiality, independent of any direct functional link. A
+            significant correlation alone does not distinguish direct
+            pathway/complex coupling from this general covariation -- compare
+            against an unrelated/control gene pair before treating a hit as
+            corroborating evidence for a specific claimed relationship.
+
             Returns:
             - pearson_r: correlation coefficient (-1 to 1)
             - p_value: statistical significance of the correlation
@@ -1322,9 +1330,8 @@ async def handle_list_tools() -> list[Tool]:
 
             Use this to:
             - Test whether two genes are functionally coupled (same complex/pathway)
-            - Distinguish genuine co-dependency from coincidental co-essentiality
             - Corroborate network- or embedding-predicted gene relationships with
-              orthogonal experimental evidence
+              orthogonal experimental evidence, alongside a control comparison
             """,
             inputSchema={
                 "type": "object",
