@@ -1301,6 +1301,47 @@ async def handle_list_tools() -> list[Tool]:
             }
         ),
 
+        Tool(
+            name="get_gene_codependency",
+            description="""
+            Compute pairwise genetic co-dependency between two genes using DepMap
+            CRISPR Chronos scores across matched cancer cell lines.
+
+            Pulls each gene's fitness-effect score across all matched cell lines
+            and computes the Pearson correlation between the two score vectors.
+            High correlation means the two genes' importance rises and falls
+            together across cell lines -- evidence they act together (e.g. same
+            pathway or protein complex), not just two independently important
+            genes.
+
+            Returns:
+            - pearson_r: correlation coefficient (-1 to 1)
+            - p_value: statistical significance of the correlation
+            - n_cell_lines: number of matched cell lines with data for both genes
+            - interpretation: plain-language summary of the strength/significance
+
+            Use this to:
+            - Test whether two genes are functionally coupled (same complex/pathway)
+            - Distinguish genuine co-dependency from coincidental co-essentiality
+            - Corroborate network- or embedding-predicted gene relationships with
+              orthogonal experimental evidence
+            """,
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "gene_a": {
+                        "type": "string",
+                        "description": "First gene symbol (e.g., MYC)"
+                    },
+                    "gene_b": {
+                        "type": "string",
+                        "description": "Second gene symbol (e.g., MAX)"
+                    }
+                },
+                "required": ["gene_a", "gene_b"]
+            }
+        ),
+
         # =====================================================================
         # CBIOPORTAL TCGA PRIMARY TUMOR TOOLS
         # =====================================================================
@@ -1485,6 +1526,9 @@ async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent
         # DepMap tools
         elif name == "get_depmap_essentiality":
             result = await _get_depmap_essentiality(arguments)
+
+        elif name == "get_gene_codependency":
+            result = await _get_gene_codependency(arguments)
 
         # cBioPortal tools
         elif name == "get_tumor_expression_profile":
@@ -2640,6 +2684,21 @@ async def _get_depmap_essentiality(args: dict) -> dict:
         return {"error": str(e), "not_found": True}
     except Exception as e:
         return {"error": f"DepMap query failed: {str(e)}", "not_found": True}
+
+
+async def _get_gene_codependency(args: dict) -> dict:
+    """Compute pairwise DepMap CRISPR co-dependency between two genes."""
+    from tools.depmap import get_gene_codependency
+
+    gene_a = args["gene_a"]
+    gene_b = args["gene_b"]
+
+    try:
+        return get_gene_codependency(gene_a, gene_b)
+    except FileNotFoundError as e:
+        return {"error": str(e), "not_found": True}
+    except Exception as e:
+        return {"error": f"DepMap co-dependency query failed: {str(e)}", "not_found": True}
 
 
 # =============================================================================

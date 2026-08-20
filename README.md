@@ -406,7 +406,7 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 - "Get high-confidence interactions for TP53"
 - "What protein interactions would be disrupted if I knock down BRCA1?"
 
-## Available MCP Tools (29 total)
+## Available MCP Tools (30 total)
 
 ### Workflow Tools (LangGraph Orchestration)
 | Tool | Description |
@@ -470,6 +470,7 @@ The repo includes a skill at `.claude/skills/cascade/SKILL.md` that teaches Clau
 | Tool | Description |
 |------|-------------|
 | `get_depmap_essentiality` | Chronos gene effect scores across 1,000+ cancer cell lines — pan-cancer essential flag, lineage breakdown, strongly essential fraction |
+| `get_gene_codependency` | Pearson correlation between two genes' Chronos fitness-effect profiles across matched cell lines — evidence the genes act together (same pathway/complex) rather than being independently essential |
 
 ### Primary Tumor Data (cBioPortal / TCGA)
 | Tool | Description |

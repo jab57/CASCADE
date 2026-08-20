@@ -76,6 +76,7 @@ class TestToolListing:
             "validate_tf_classification",
             "get_dorothea_stats",
             "get_depmap_essentiality",
+            "get_gene_codependency",
         }
         missing = expected - names
         assert not missing, f"Missing tools: {missing}"
@@ -681,6 +682,48 @@ class TestAdditionalHandlers:
         with patch("tools.depmap.get_gene_essentiality",
                    side_effect=FileNotFoundError("DepMap data not found")):
             result = self._call("get_depmap_essentiality", {"gene": "MYC"})
+        data = json.loads(result[0].text)
+        assert "error" in data
+        assert data["not_found"] is True
+
+    def test_get_gene_codependency_success(self):
+        with patch("tools.depmap.get_gene_codependency",
+                   return_value={
+                       "gene_a": "MYC",
+                       "gene_b": "MAX",
+                       "pearson_r": 0.32,
+                       "p_value": 1.17e-29,
+                       "n_cell_lines": 1186,
+                       "interpretation": "Strong co-dependency...",
+                       "data_source": "DepMap CRISPR (Chronos)",
+                       "not_found": False,
+                   }):
+            result = self._call("get_gene_codependency", {"gene_a": "MYC", "gene_b": "MAX"})
+        data = json.loads(result[0].text)
+        assert data["gene_a"] == "MYC"
+        assert data["gene_b"] == "MAX"
+        assert data["pearson_r"] == 0.32
+        assert data["not_found"] is False
+        assert data["n_cell_lines"] == 1186
+
+    def test_get_gene_codependency_gene_not_found(self):
+        with patch("tools.depmap.get_gene_codependency",
+                   return_value={
+                       "gene_a": "MYC",
+                       "gene_b": "NOTAGENE",
+                       "not_found": True,
+                       "error": "Gene(s) not found in DepMap data: NOTAGENE",
+                       "data_source": "DepMap CRISPR (Chronos)",
+                   }):
+            result = self._call("get_gene_codependency", {"gene_a": "MYC", "gene_b": "NOTAGENE"})
+        data = json.loads(result[0].text)
+        assert data["not_found"] is True
+        assert "NOTAGENE" in data["error"]
+
+    def test_get_gene_codependency_file_not_found(self):
+        with patch("tools.depmap.get_gene_codependency",
+                   side_effect=FileNotFoundError("DepMap data not found")):
+            result = self._call("get_gene_codependency", {"gene_a": "MYC", "gene_b": "MAX"})
         data = json.loads(result[0].text)
         assert "error" in data
         assert data["not_found"] is True

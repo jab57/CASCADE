@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+from scipy.stats import pearsonr
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +179,114 @@ def get_gene_essentiality(gene: str) -> dict:
         "common_essential": essential_frac > 0.9,
         "cell_lines_tested": n_lines,
         "top_lineages": top_lineages,
+        "data_source": "DepMap CRISPR (Chronos)",
+        "not_found": False
+    }
+
+
+def _find_gene_column(scores: pd.DataFrame, gene: str) -> Optional[str]:
+    """Case-insensitive lookup of a gene's column name in the scores matrix."""
+    gene_upper = gene.upper()
+    for col in scores.columns:
+        if col.upper() == gene_upper:
+            return col
+    return None
+
+
+def _interpret_codependency(r: float, p_value: float) -> str:
+    """Human-readable interpretation of a gene-pair co-dependency correlation."""
+    if p_value >= 0.05:
+        return "No significant co-dependency detected across matched cell lines."
+
+    abs_r = abs(r)
+    if abs_r >= 0.3:
+        return (
+            "Strong co-dependency: fitness effects of these genes rise and fall "
+            "together across cell lines, consistent with an obligate relationship "
+            "(e.g. same protein complex or pathway)."
+        )
+    elif abs_r >= 0.15:
+        return (
+            "Moderate co-dependency: statistically significant correlation "
+            "suggesting a possible functional relationship."
+        )
+    else:
+        return (
+            "Weak but statistically significant co-dependency; effect size is "
+            "small so interpret with caution."
+        )
+
+
+def get_gene_codependency(gene_a: str, gene_b: str) -> dict:
+    """
+    Compute pairwise genetic co-dependency between two genes using DepMap
+    CRISPR Chronos scores across matched cancer cell lines.
+
+    High Pearson correlation between two genes' fitness-effect profiles across
+    cell lines is evidence the genes act together (e.g. same pathway or protein
+    complex), as opposed to being independently essential.
+
+    Args:
+        gene_a: Gene symbol (e.g., "MYC")
+        gene_b: Gene symbol (e.g., "MAX")
+
+    Returns:
+        Dict with:
+        - gene_a, gene_b: str
+        - pearson_r: float  (-1 to 1; higher magnitude = stronger co-dependency)
+        - p_value: float
+        - n_cell_lines: int  (matched cell lines with data for both genes)
+        - interpretation: str
+        - data_source: str
+        - not_found: bool
+    """
+    try:
+        scores, _ = load_depmap_data()
+    except FileNotFoundError as e:
+        return {
+            "gene_a": gene_a,
+            "gene_b": gene_b,
+            "not_found": True,
+            "error": str(e),
+            "data_source": "DepMap CRISPR (Chronos)"
+        }
+
+    col_a = _find_gene_column(scores, gene_a)
+    col_b = _find_gene_column(scores, gene_b)
+
+    missing = [g for g, c in ((gene_a, col_a), (gene_b, col_b)) if c is None]
+    if missing:
+        return {
+            "gene_a": gene_a,
+            "gene_b": gene_b,
+            "not_found": True,
+            "error": f"Gene(s) not found in DepMap data: {', '.join(missing)}",
+            "data_source": "DepMap CRISPR (Chronos)"
+        }
+
+    paired = scores[[col_a, col_b]].dropna()
+    n_lines = int(len(paired))
+
+    if n_lines < 3:
+        return {
+            "gene_a": gene_a,
+            "gene_b": gene_b,
+            "not_found": True,
+            "error": f"Insufficient matched cell lines (n={n_lines}) to compute correlation",
+            "data_source": "DepMap CRISPR (Chronos)"
+        }
+
+    result = pearsonr(paired[col_a], paired[col_b])
+    r = float(result.statistic)
+    p_value = float(result.pvalue)
+
+    return {
+        "gene_a": gene_a,
+        "gene_b": gene_b,
+        "pearson_r": round(r, 4),
+        "p_value": p_value,
+        "n_cell_lines": n_lines,
+        "interpretation": _interpret_codependency(r, p_value),
         "data_source": "DepMap CRISPR (Chronos)",
         "not_found": False
     }
