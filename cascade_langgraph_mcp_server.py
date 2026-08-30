@@ -789,6 +789,17 @@ async def handle_list_tools() -> list[Tool]:
                         "type": "string",
                         "enum": cell_type_enum,
                         "default": "epithelial_cell"
+                    },
+                    "network_source": {
+                        "type": "string",
+                        "enum": ["cell_type", "tcga"],
+                        "description": "Use 'tcga' to classify the gene's role in a tumor-state regulatory network; requires tcga_network param",
+                        "default": "cell_type"
+                    },
+                    "tcga_network": {
+                        "type": "string",
+                        "enum": tcga_network_enum,
+                        "description": "TCGA cancer type network (required when network_source=tcga). Epithelial-origin only."
                     }
                 },
                 "required": ["gene"]
@@ -2060,33 +2071,52 @@ async def _lookup_gene(args: dict) -> dict:
 
 async def _get_gene_metadata(args: dict) -> dict:
     """Get gene classification and network role metadata."""
-    from pathlib import Path
-    from tools.loader import load_network
+    from tools.loader import load_network, load_tcga_network
 
     workflow = await get_workflow()
     gene = args["gene"]
-    cell_type = args.get("cell_type", "epithelial_cell")
-    if err := _validate_cell_type(cell_type):
-        return err
+    network_source = args.get("network_source", "cell_type")
+    tcga_network = args.get("tcga_network")
 
-    # Resolve gene (symbol_to_ensembl may call Ensembl API — run in thread)
-    if gene.upper().startswith("ENSG"):
-        ensembl_id = gene.upper()
+    if network_source == "tcga":
+        if not tcga_network:
+            return {"error": "tcga_network is required when network_source='tcga'. "
+                             "Valid options: blca, brca, cesc, coad, hnsc, kirc, lihc, luad, lusc, ov, paad, prad, stad, ucec"}
+        # TCGA networks use gene symbols natively; convert an Ensembl ID back to a symbol.
+        if gene.upper().startswith("ENSG"):
+            ensembl_id = gene.upper()
+            gene_id = workflow.gene_mapper.ensembl_to_symbol(gene) or gene
+        else:
+            ensembl_id = await asyncio.to_thread(workflow.gene_mapper.symbol_to_ensembl, gene)
+            gene_id = gene
+        network_df = load_tcga_network(tcga_network)
+        if isinstance(network_df, dict) and "error" in network_df:
+            return network_df
+        cell_type = tcga_network
     else:
-        ensembl_id = await asyncio.to_thread(workflow.gene_mapper.symbol_to_ensembl, gene)
-    if ensembl_id is None:
-        return {"error": f"Could not resolve gene '{gene}'"}
+        cell_type = args.get("cell_type", "epithelial_cell")
+        if err := _validate_cell_type(cell_type):
+            return err
 
-    # Load network
-    network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
-    if not network_path.exists():
-        return {"error": f"Network not found for {cell_type}"}
+        # Resolve gene (symbol_to_ensembl may call Ensembl API — run in thread)
+        if gene.upper().startswith("ENSG"):
+            ensembl_id = gene.upper()
+        else:
+            ensembl_id = await asyncio.to_thread(workflow.gene_mapper.symbol_to_ensembl, gene)
+        if ensembl_id is None:
+            return {"error": f"Could not resolve gene '{gene}'"}
+        gene_id = ensembl_id
 
-    network_df = load_network(network_path)
+        # Load network
+        network_path = workflow.NETWORKS_DIR / cell_type / "network.tsv"
+        if not network_path.exists():
+            return {"error": f"Network not found for {cell_type}"}
+
+        network_df = load_network(network_path)
 
     # Count targets and regulators
-    targets = network_df[network_df["regulator"] == ensembl_id]
-    regulators = network_df[network_df["target"] == ensembl_id]
+    targets = network_df[network_df["regulator"] == gene_id]
+    regulators = network_df[network_df["target"] == gene_id]
 
     num_targets = len(targets)
     num_regulators = len(regulators)
@@ -2120,6 +2150,7 @@ async def _get_gene_metadata(args: dict) -> dict:
     return {
         "gene": gene,
         "ensembl_id": ensembl_id,
+        "network_source": network_source,
         "cell_type": cell_type,
         "gene_type": gene_type,
         "description": description,

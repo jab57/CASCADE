@@ -397,6 +397,35 @@ class TestAdditionalHandlers:
         # Should return a gene_type (effector, isolated, or regulator)
         assert "gene_type" in data or "error" in data  # pass either way
 
+    def test_get_gene_metadata_tcga_uses_tcga_network(self):
+        """network_source='tcga' classifies role from the TCGA network (symbol-keyed)."""
+        import pandas as pd
+        # TCGA networks are symbol-keyed: TP53 regulates many targets here.
+        tcga_df = pd.DataFrame({
+            "regulator": ["TP53"] * 60,
+            "target": [f"GENE{i}" for i in range(60)],
+            "mi": [0.5] * 60,
+        })
+        with patch("tools.loader.load_tcga_network", return_value=tcga_df) as mock_tcga, \
+             patch("tools.loader.load_network") as mock_cell:
+            result = self._call("get_gene_metadata", {
+                "gene": "TP53", "network_source": "tcga", "tcga_network": "brca",
+            })
+        data = json.loads(result[0].text)
+        mock_tcga.assert_called_once_with("brca")
+        mock_cell.assert_not_called()
+        assert data["network_source"] == "tcga"
+        assert data["cell_type"] == "brca"
+        assert data["gene_type"] == "master_regulator"
+        assert data["num_targets"] == 60
+
+    def test_get_gene_metadata_tcga_requires_network_name(self):
+        result = self._call("get_gene_metadata", {
+            "gene": "TP53", "network_source": "tcga",
+        })
+        data = json.loads(result[0].text)
+        assert "error" in data
+
     # --- find_gene_regulators / find_gene_targets ---
 
     def test_find_gene_regulators_gene_not_found(self):
