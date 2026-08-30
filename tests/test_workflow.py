@@ -420,6 +420,22 @@ class TestWorkflowNodeResolveGene:
         # mock_gene_id_mapper uses .upper() in symbol_to_ensembl side_effect
         assert result["ensembl_id"] == "ENSG00000141510"
 
+    @pytest.mark.asyncio
+    async def test_unresolved_symbol_fatal_for_cell_type(self, wf):
+        """A symbol with no Ensembl ID still aborts a cell-type (Ensembl-keyed) run."""
+        result = await wf._resolve_gene({"gene": "ADGRD2", "network_source": "cell_type"})
+        assert result["next_actions"] == ["error"]
+
+    @pytest.mark.asyncio
+    async def test_unresolved_symbol_nonfatal_for_tcga(self, wf):
+        """TCGA networks are symbol-native — an unresolved Ensembl ID must not abort;
+        the run continues on the symbol alone (the Ensembl-unreachable degraded path)."""
+        result = await wf._resolve_gene({"gene": "ADGRD2", "network_source": "tcga"})
+        assert "error_message" not in result
+        assert result["ensembl_id"] is None
+        assert result["gene_symbol"] == "ADGRD2"
+        assert result["current_step"] == "resolve_gene"
+
 
 class TestWorkflowNodeAnalyzeNetworkContext:
     """Test _analyze_network_context classifies gene roles from network data."""

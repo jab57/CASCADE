@@ -649,6 +649,7 @@ class CascadeWorkflow:
     async def _resolve_gene(self, state: PerturbationAnalysisState) -> Dict:
         """Resolve gene symbol to Ensembl ID and vice versa."""
         gene = state["gene"]
+        network_source = state.get("network_source", "cell_type")
 
         if gene.upper().startswith("ENSG"):
             ensembl_id = gene.upper()
@@ -656,6 +657,19 @@ class CascadeWorkflow:
         else:
             symbol = self.gene_mapper.resolve_alias(gene)
             ensembl_id = self.gene_mapper.symbol_to_ensembl(symbol)
+
+        # TCGA networks are symbol-native — the Ensembl ID is only used for
+        # optional enrichment (embeddings, PPI). A symbol input that failed to
+        # resolve (e.g. Ensembl unreachable) must NOT abort the analysis.
+        if ensembl_id is None and network_source == "tcga" and symbol:
+            logger.warning(
+                "Ensembl ID unresolved for '%s'; continuing on symbol only (TCGA network)", gene
+            )
+            return {
+                "current_step": "resolve_gene",
+                "ensembl_id": None,
+                "gene_symbol": symbol.upper(),
+            }
 
         if ensembl_id is None:
             return {
@@ -1851,6 +1865,22 @@ class CascadeWorkflow:
                 f"network-backed prediction(s)."
             )
 
+        # Flag degraded gene-ID enrichment: if Ensembl was unreachable this run,
+        # symbol/ID cross-referencing (embeddings, PPI lookups) may be partial.
+        ensembl_enrichment_note = None
+        try:
+            from tools.gene_id_mapper import ensembl_unreachable
+            if ensembl_unreachable():
+                ensembl_enrichment_note = (
+                    "Ensembl gene-ID resolution was unavailable during this run "
+                    "(circuit breaker tripped after repeated failures). Core network "
+                    "propagation is unaffected, but embedding/PPI cross-referencing for "
+                    "affected genes may be incomplete. Retry later or set "
+                    "CASCADE_SSL_NO_VERIFY=1 on networks with corporate SSL inspection."
+                )
+        except Exception:
+            pass
+
         # Build summary with optional DoRothEA validation
         summary = {
             "gene": gene_symbol,
@@ -1895,6 +1925,7 @@ class CascadeWorkflow:
                 "execution_time_seconds": round(execution_time, 2),
                 "completed_analyses": state.get("completed_actions", []),
                 "failed_analyses": state.get("failed_analyses") or [],
+                "ensembl_enrichment_note": ensembl_enrichment_note,
                 "workflow_version": metadata.get("workflow_version", "1.0.0")
             }
         }
