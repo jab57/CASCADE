@@ -1,7 +1,7 @@
 """
 PAM50 subtype control for experiment4_tcga_myc_concordance.py (BRCA).
 
-RESEARCH_PAPER_PLAN.md flagged a real confound: MYC amplification is not
+The validation-study design flagged a real confound: MYC amplification is not
 uniformly distributed across PAM50 molecular subtypes (observed here:
 BRCA_Basal 61 amp/13 non-amp, BRCA_LumA 36/251, BRCA_LumB 32/33, BRCA_Her2
 18/20, BRCA_Normal 6/21). If predicted-target concordance were actually

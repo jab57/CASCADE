@@ -726,8 +726,8 @@ If you use CASCADE in your research, please cite:
   author    = {Bird, Jose A.},
   year      = {2026},
   url       = {https://github.com/jab57/CASCADE},
-  doi       = {10.5281/zenodo.19891084},
-  version   = {1.1.0},
+  doi       = {10.5281/zenodo.18883012},
+  version   = {1.4.1},
   license   = {MIT}
 }
 ```

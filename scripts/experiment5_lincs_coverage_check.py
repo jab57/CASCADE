@@ -56,7 +56,7 @@ META_PATH = LINCS_RAW_DIR / "GSE106127_CGS_meta.txt.gz"
 GENE_INFO_PATH = LINCS_RAW_DIR / "GSE106127_gene_info.txt.gz"
 
 # The four lineage-identity genes whose amplification-based concordance was
-# null or negative in the generalization panel (RESEARCH_PAPER_PLAN.md).
+# null or negative in the generalization panel (per the validation-study design).
 FOCAL_GENES = ["GATA3", "FOXA1", "SOX9", "ESR1"]
 CELL_LINE = "MCF7"
 CASCADE_CANCER_TYPE = "brca"

@@ -1,5 +1,5 @@
 """
-Experiment 4 (from RESEARCH_PAPER_PLAN.md): TCGA MYC/BRCA directional
+Experiment 4 of the validation-study design: TCGA MYC/BRCA directional
 concordance test.
 
 Tests CASCADE's predicted MYC-knockdown effects against real patient tumor
@@ -62,7 +62,7 @@ _CNA_LIST = f"{_STUDY}{_SUFFIX}_cna"
 _EXPR_PROFILE = f"{_STUDY}{_SUFFIX}_rna_seq_v2_mrna_median_Zscores"
 _EXPR_LIST = f"{_STUDY}{_SUFFIX}_rna_seq_v2_mrna"
 
-TOP_N = _TOP_N_ARG or 50  # predicted-gene panel size (RESEARCH_PAPER_PLAN.md suggested 50/100/200; 50 chosen for scope; overridable via sys.argv[3] for sensitivity checks)
+TOP_N = _TOP_N_ARG or 50  # predicted-gene panel size (validation-study design suggested 50/100/200; 50 chosen for scope; overridable via sys.argv[3] for sensitivity checks)
 PROPAGATION_DEPTH = 2  # CASCADE's own default
 ALPHA = 0.7  # CASCADE's own default embedding/network blend weight (cascade_langgraph_workflow.py)
 EMBEDDING_THRESHOLD = 0.1  # CASCADE's own default for the TCGA embedding path
