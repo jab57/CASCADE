@@ -103,5 +103,5 @@ for spine in ("top", "right"):
     ax.spines[spine].set_visible(False)
 
 plt.tight_layout()
-plt.savefig("manuscript/figure_concordance_summary.pdf", bbox_inches="tight")
-print("Wrote manuscript/figure_concordance_summary.pdf")
+plt.savefig("private/figure_concordance_summary.pdf", bbox_inches="tight")
+print("Wrote private/figure_concordance_summary.pdf")

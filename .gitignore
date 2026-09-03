@@ -42,7 +42,7 @@ htmlcov/
 .ipynb_checkpoints/
 
 # Private companion repo (planning docs, release runbook, paper drafts, archived material)
-manuscript/
+private/
 
 # Generated analysis outputs
 outputs/
