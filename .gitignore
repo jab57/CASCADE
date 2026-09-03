@@ -41,12 +41,7 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
-# Internal planning docs
-DEVELOPMENT_PLAN.md
-FUTURE_ROADMAP.md
-RESEARCH_PAPER_PLAN.md
-
-# Private manuscript drafts (not part of the public repo)
+# Private companion repo (planning docs, release runbook, paper drafts, archived material)
 manuscript/
 
 # Generated analysis outputs
