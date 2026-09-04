@@ -103,5 +103,6 @@ for spine in ("top", "right"):
     ax.spines[spine].set_visible(False)
 
 plt.tight_layout()
-plt.savefig("private/figure_concordance_summary.pdf", bbox_inches="tight")
-print("Wrote private/figure_concordance_summary.pdf")
+_OUT = "private/manuscript/arxiv/cascade-perturbation-prediction/figures/figure_concordance_summary.pdf"
+plt.savefig(_OUT, bbox_inches="tight")
+print(f"Wrote {_OUT}")
