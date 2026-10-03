@@ -52,3 +52,6 @@ dist/
 build/
 *.egg-info/
 .env
+
+# TCGA ARACNe networks: upstream license forbids redistribution; generate locally
+data/networks/tcga/

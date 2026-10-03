@@ -187,7 +187,7 @@ The server provides analysis across several categories:
 
 ### TCGA Tumor-State Networks (use with `network_source="tcga"` + `tcga_network` parameter)
 
-CASCADE ships with pre-computed ARACNe regulatory networks derived from TCGA tumor RNA-seq data (Bioconductor `aracne.networks`, Giorgi; inferred with ARACNe-AP, Lachmann et al. 2016). These provide tumor-state regulatory wiring and Mode of Action (MoA) annotations for 14 epithelial-origin cancer types. The MoA sign (+1 activation, −1 repression) is used directly in propagation to determine whether a knockdown or overexpression increases or decreases each target gene.
+CASCADE supports ARACNe regulatory networks derived from TCGA tumor RNA-seq data (Bioconductor `aracne.networks`, Giorgi; inferred with ARACNe-AP, Lachmann et al. 2016). The network files are **not included in this repository** because their upstream licenses do not permit redistribution; generate them locally with one script (see [Data Setup](#data-setup)). These provide tumor-state regulatory wiring and Mode of Action (MoA) annotations for 14 epithelial-origin cancer types. The MoA sign (+1 activation, −1 repression) is used directly in propagation to determine whether a knockdown or overexpression increases or decreases each target gene.
 
 | Key | Cancer Type | Edges |
 |-----|-------------|-------|
@@ -266,7 +266,17 @@ This makes one batch API call to Ensembl per 1,000 genes (~5–10 minutes). The 
 - Download `CRISPRGeneEffect.csv` from the latest DepMap Public release
 - Place it at `data/depmap/CRISPRGeneEffect.csv`
 
-All other data is already in the repository: GREmLN cell-type networks, TCGA ARACNe networks (14 cancer types), LINCS L1000, dbSUPER, DoRothEA cache, and DepMap Model.csv. See [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) for full provenance details.
+**4. TCGA ARACNe networks** (~213 MB download) — optional; only needed for `network_source="tcga"`. The files are not redistributed with CASCADE (see [License](#license)), so download the Bioconductor package and convert it locally (~5 min, needs internet for Entrez → symbol mapping):
+
+```bash
+pip install rdata
+curl -o aracne.networks.tar.gz https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz
+python scripts/extract_tcga_networks.py --tarball aracne.networks.tar.gz --output-dir data/networks/tcga
+```
+
+Without them, TCGA requests return an error explaining how to generate the files; everything else works.
+
+All other data is already in the repository: GREmLN cell-type networks, LINCS L1000, dbSUPER, DoRothEA cache, and DepMap Model.csv. See [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) for full provenance details.
 
 ### Verify Installation
 
@@ -551,7 +561,7 @@ CASCADE/
 │   │   ├── epithelial_cell/
 │   │   ├── cd4_t_cells/
 │   │   └── ...
-│   ├── networks/tcga/              # TCGA ARACNe tumor-state networks (14 cancer types)
+│   ├── networks/tcga/              # TCGA ARACNe tumor-state networks (14 cancer types; generated locally, not in repo)
 │   │   ├── brca/network.csv
 │   │   ├── coad/network.csv
 │   │   └── ...
@@ -736,4 +746,4 @@ A `CITATION.cff` file is included for GitHub's citation feature.
 
 ## License
 
-MIT
+MIT — this covers CASCADE's code. Third-party data keeps its upstream license; see [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md). In particular, the TCGA ARACNe networks (`aracne.networks`) are licensed for non-commercial academic research only (Columbia University license; network files CC BY-NC-ND 4.0) and are therefore not included here.

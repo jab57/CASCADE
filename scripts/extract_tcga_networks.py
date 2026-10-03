@@ -12,7 +12,7 @@ Requires:
     pip install rdata requests
 
 The tarball is the Bioconductor experiment data package:
-    https://bioconductor.org/packages/release/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz
+    https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz
 """
 
 import argparse
@@ -256,7 +256,7 @@ def main():
     if not os.path.exists(args.tarball):
         print(f"ERROR: tarball not found: {args.tarball}")
         print("Download from:")
-        print("  https://bioconductor.org/packages/release/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz")
+        print("  https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz")
         sys.exit(1)
 
     cancer_types = [args.cancer_type] if args.cancer_type else list(CANCER_TYPE_MAP.keys())

@@ -13,7 +13,6 @@ CASCADE integrates eight data sources, divided into two categories:
 | Source | Purpose | Location | Size |
 |--------|---------|----------|------|
 | GREmLN regulatory networks | Population-averaged cell-type regulatory network topology | `data/networks/` | ~2 MB total |
-| TCGA ARACNe networks | Tumor-state regulatory networks (14 cancer types) | `data/networks/tcga/` | ~155 MB total |
 | LINCS L1000 | Experimental CRISPR knockout expression effects | `data/lincs/` | ~35 MB |
 | dbSUPER | Super-enhancer annotations (BRD4/BET sensitivity) | `data/super_enhancers/` | ~3.7 MB |
 | DoRothEA disk cache | TF regulon parquet cache for fast server startup | `data/dorothea/` | ~1 MB |
@@ -25,6 +24,7 @@ CASCADE integrates eight data sources, divided into two categories:
 |--------|---------|----------|------|
 | GREmLN model checkpoint | Gene embeddings (256-dim, 19,247 genes) | `models/model.ckpt` | ~120 MB |
 | DepMap CRISPR scores | Chronos gene essentiality (1000+ cancer lines) | `data/depmap/CRISPRGeneEffect.csv` | ~413 MB |
+| TCGA ARACNe networks (optional) | Tumor-state regulatory networks (14 cancer types); generated locally, not redistributed — see [TCGA section](#tcga-tumor-state-aracne-networks) | `data/networks/tcga/` | ~155 MB generated |
 
 **Python package + live APIs (no local files required):**
 
@@ -457,7 +457,7 @@ Martin, F.J., et al. (2023). Ensembl 2023. *Nucleic Acids Research*, 51(D1), D93
 
 CASCADE supports **14 TCGA cancer-type-specific ARACNe networks** derived from The Cancer Genome Atlas (TCGA) tumor expression data. These complement the GREmLN population-averaged cell-type networks with tumor-state regulatory wiring and include **Mode of Action (MoA)** annotations (activation vs. repression) not present in the GREmLN networks.
 
-> **Note for standard users:** Pre-built network CSVs for all 14 cancer types are committed to this repository at `data/networks/tcga/`. Cloning the repo is sufficient — no separate download or build step is required. The instructions below document how to regenerate the CSVs from the Bioconductor source tarball if you need to reproduce or update them.
+> **Not included in this repository.** The `aracne.networks` package is distributed under a Columbia University license permitting non-commercial academic research use only and prohibiting redistribution, and its network files are licensed CC BY-NC-ND 4.0 (Zenodo record [22918956](https://doi.org/10.5281/zenodo.22918956)). CASCADE therefore does not redistribute the networks or its converted CSVs. To use `network_source="tcga"`, generate the CSVs locally with the steps under [How to Generate from Source](#how-to-generate-from-source); you are responsible for complying with the upstream license terms. All other CASCADE features work without these files.
 
 ### Supported Cancer Types
 
@@ -484,7 +484,7 @@ GBM and LAML are intentionally excluded — no reference network of the appropri
 
 **Package**: Bioconductor `aracne.networks` v1.38.0 (Giorgi, F.M.). doi:10.18129/B9.bioc.aracne.networks
 **Algorithm**: ARACNe-AP (Lachmann et al., 2016). doi:10.1093/bioinformatics/btw216
-**Download URL**: `https://bioconductor.org/packages/release/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz`
+**Download URL**: `https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz`
 
 Networks are derived from TCGA tumor RNA-seq data processed through the ARACNe-AP algorithm at the Califano Lab (Columbia University).
 
@@ -506,15 +506,15 @@ TP53,MDM2,-1.0,0.251
 | `MoA` | Mode of Action: +1 activation, -1 repression, 0 unknown |
 | `Likelihood` | Edge confidence score (0–1) |
 
-### How to Regenerate from Source
+### How to Generate from Source
 
-The pre-built CSVs are already in the repository. These instructions apply only if you need to regenerate them (e.g., after a new `aracne.networks` release).
+These steps download the Bioconductor package (Bioconductor 3.23 release, pinned) and convert its networks to the CSVs CASCADE reads. The same `.rda` files are also available from the Zenodo record above.
 
 #### Step 1: Download the Bioconductor tarball (~213 MB)
 
 ```bash
 curl -o /tmp/aracne.networks.tar.gz \
-  https://bioconductor.org/packages/release/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz
+  https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz
 ```
 
 #### Step 2: Install required Python packages
@@ -590,7 +590,7 @@ When publishing results obtained with CASCADE, please cite the relevant underlyi
 
 ## Quick Reference: What to Do After Cloning
 
-Most data is bundled in the repository. Only two steps are required after `git clone`:
+Most data is bundled in the repository. Two steps are required after `git clone`, plus an optional third for TCGA networks:
 
 ```bash
 # Step 1: Download the GREmLN model checkpoint (~120 MB)
@@ -603,7 +603,9 @@ python scripts/download_model.py
 #   - Place at: data/depmap/CRISPRGeneEffect.csv
 ```
 
-Everything else is already in the repository: GREmLN cell-type networks, TCGA ARACNe networks (14 cancer types), LINCS L1000, dbSUPER, DoRothEA cache, and DepMap Model.csv.
+Optional: generate the TCGA ARACNe networks (not redistributed; see [How to Generate from Source](#how-to-generate-from-source)).
+
+Everything else is already in the repository: GREmLN cell-type networks, LINCS L1000, dbSUPER, DoRothEA cache, and DepMap Model.csv.
 
 Verify the full installation after both steps:
 
