@@ -187,7 +187,7 @@ The server provides analysis across several categories:
 
 ### TCGA Tumor-State Networks (use with `network_source="tcga"` + `tcga_network` parameter)
 
-CASCADE ships with pre-computed ARACNe regulatory networks derived from TCGA tumor RNA-seq data (Bioconductor `aracne.networks`, Lim & Califano 2018). These provide tumor-state regulatory wiring and Mode of Action (MoA) annotations for 14 epithelial-origin cancer types. The MoA sign (+1 activation, −1 repression) is used directly in propagation to determine whether a knockdown or overexpression increases or decreases each target gene.
+CASCADE ships with pre-computed ARACNe regulatory networks derived from TCGA tumor RNA-seq data (Bioconductor `aracne.networks`, Giorgi; inferred with ARACNe-AP, Lachmann et al. 2016). These provide tumor-state regulatory wiring and Mode of Action (MoA) annotations for 14 epithelial-origin cancer types. The MoA sign (+1 activation, −1 repression) is used directly in propagation to determine whether a knockdown or overexpression increases or decreases each target gene.
 
 | Key | Cancer Type | Edges |
 |-----|-------------|-------|

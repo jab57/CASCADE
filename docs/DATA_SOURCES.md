@@ -482,8 +482,8 @@ GBM and LAML are intentionally excluded — no reference network of the appropri
 
 ### Data Source
 
-**Package**: Bioconductor `aracne.networks` (Lim & Califano, 2018)
-**Source paper**: Lim, W.K. & Califano, A. (2018). "Mapping the hallmarks of lung adenocarcinoma with massively parallel sequencing." *Cell Syst.* 6(4):446–460. doi:10.1016/j.cels.2018.02.011
+**Package**: Bioconductor `aracne.networks` v1.38.0 (Giorgi, F.M.). doi:10.18129/B9.bioc.aracne.networks
+**Algorithm**: ARACNe-AP (Lachmann et al., 2016). doi:10.1093/bioinformatics/btw216
 **Download URL**: `https://bioconductor.org/packages/release/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz`
 
 Networks are derived from TCGA tumor RNA-seq data processed through the ARACNe-AP algorithm at the Califano Lab (Columbia University).
@@ -549,7 +549,9 @@ The script reads each `.rda` file from the tarball, batch-converts all Entrez ID
 
 ### Citation
 
-Lim, W.K. & Califano, A. (2018). "ARACNe-AP: gene network reverse engineering through adaptive partitioning inference of mutual information." *Cell Systems*, 6(4):446–460. https://doi.org/10.1016/j.cels.2018.02.011
+Giorgi, F.M. *aracne.networks: ARACNe-inferred gene networks from TCGA tumor datasets.* Bioconductor package, v1.38.0. https://doi.org/10.18129/B9.bioc.aracne.networks
+
+Networks were inferred with ARACNe-AP: Lachmann, A., et al. (2016). "ARACNe-AP: gene network reverse engineering through adaptive partitioning inference of mutual information." *Bioinformatics*, 32(14), 2233–2235. https://doi.org/10.1093/bioinformatics/btw216
 
 ---
 
@@ -582,7 +584,7 @@ When publishing results obtained with CASCADE, please cite the relevant underlyi
 
 9. **Ensembl** — Martin et al. (2023), *Nucleic Acids Research*, 51(D1), D933–D941. https://doi.org/10.1093/nar/gkac958
 
-10. **TCGA ARACNe networks** — Lim, W.K. & Califano, A. (2018). *Cell Systems*, 6(4):446–460. https://doi.org/10.1016/j.cels.2018.02.011
+10. **TCGA ARACNe networks** — Giorgi, F.M. *aracne.networks*, Bioconductor package v1.38.0. https://doi.org/10.18129/B9.bioc.aracne.networks
 
 ---
 
