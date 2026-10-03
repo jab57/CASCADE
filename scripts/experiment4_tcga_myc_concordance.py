@@ -3,14 +3,13 @@ Experiment 4 of the validation-study design: TCGA MYC/BRCA directional
 concordance test.
 
 Tests CASCADE's predicted MYC-knockdown effects against real patient tumor
-data, rather than a curated gene list (OncoKB). Hypothesis: genes CASCADE
+data, rather than a curated gene list. Hypothesis: genes CASCADE
 predicts as positively regulated by MYC (down upon knockdown) should show
 higher expression in MYC-amplified BRCA tumors than non-amplified tumors;
 genes predicted as negatively regulated (up upon knockdown) should show
 lower expression in amplified tumors. This is a directional concordance
 test against real patient copy-number/expression data (TCGA PanCancer
-Atlas via cBioPortal), independent of the OncoKB-enrichment axis already
-tested in experiment_cascade_validation.py.
+Atlas via cBioPortal).
 
 No core CASCADE server code is modified -- read-only queries against local
 TCGA network files and the public cBioPortal API. Results cached to outputs/.
