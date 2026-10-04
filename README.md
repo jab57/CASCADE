@@ -746,4 +746,4 @@ A `CITATION.cff` file is included for GitHub's citation feature.
 
 ## License
 
-MIT — this covers CASCADE's code. Third-party data keeps its upstream license; see [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md). In particular, the TCGA ARACNe networks (`aracne.networks`) are licensed for non-commercial academic research only (Columbia University license; network files CC BY-NC-ND 4.0) and are therefore not included here.
+MIT — this covers CASCADE's code. Third-party data keeps its upstream license; see [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md). In particular, the TCGA ARACNe network files are licensed CC BY-NC-ND 4.0 by their authors ([Zenodo record 22918956](https://doi.org/10.5281/zenodo.22918956)): non-commercial use only, and modified versions may not be shared. CASCADE's converted network files are modified versions, so they are not included here. (The Bioconductor `aracne.networks` package, which also contains the files, carries a separate Columbia University license for non-commercial academic research.)

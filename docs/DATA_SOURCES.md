@@ -457,7 +457,7 @@ Martin, F.J., et al. (2023). Ensembl 2023. *Nucleic Acids Research*, 51(D1), D93
 
 CASCADE supports **14 TCGA cancer-type-specific ARACNe networks** derived from The Cancer Genome Atlas (TCGA) tumor expression data. These complement the GREmLN population-averaged cell-type networks with tumor-state regulatory wiring and include **Mode of Action (MoA)** annotations (activation vs. repression) not present in the GREmLN networks.
 
-> **Not included in this repository.** The `aracne.networks` package is distributed under a Columbia University license permitting non-commercial academic research use only and prohibiting redistribution, and its network files are licensed CC BY-NC-ND 4.0 (Zenodo record [22918956](https://doi.org/10.5281/zenodo.22918956)). CASCADE therefore does not redistribute the networks or its converted CSVs. To use `network_source="tcga"`, generate the CSVs locally with the steps under [How to Generate from Source](#how-to-generate-from-source); you are responsible for complying with the upstream license terms. All other CASCADE features work without these files.
+> **Not included in this repository.** The network files are published by their authors on Zenodo (record [22918956](https://doi.org/10.5281/zenodo.22918956)) under CC BY-NC-ND 4.0: attribution required, non-commercial use only, and modified versions may not be shared. CASCADE's converted CSVs are modified versions, so CASCADE does not redistribute them; keep locally generated CSVs local. The Bioconductor `aracne.networks` package, which contains the same files, carries a separate Columbia University license (non-commercial academic research use only, no redistribution). To use `network_source="tcga"`, generate the CSVs locally with the steps under [How to Generate from Source](#how-to-generate-from-source); you are responsible for complying with the license of the source you download from. All other CASCADE features work without these files.
 
 ### Supported Cancer Types
 
@@ -482,6 +482,7 @@ GBM and LAML are intentionally excluded — no reference network of the appropri
 
 ### Data Source
 
+**Data files**: Zenodo record 22918956 (Giorgi, F.M. & Alvarez, M.J., 2026), CC BY-NC-ND 4.0. doi:10.5281/zenodo.22918956 — identical to the data sets distributed with `aracne.networks` up to version 1.39.0
 **Package**: Bioconductor `aracne.networks` v1.38.0 (Giorgi, F.M.). doi:10.18129/B9.bioc.aracne.networks
 **Algorithm**: ARACNe-AP (Lachmann et al., 2016). doi:10.1093/bioinformatics/btw216
 **Download URL**: `https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz`
@@ -549,6 +550,8 @@ The script reads each `.rda` file from the tarball, batch-converts all Entrez ID
 
 ### Citation
 
+Giorgi, F.M., & Alvarez, M.J. (2026). *ARACNe-AP gene regulatory networks from TCGA tumor datasets* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.22918956
+
 Giorgi, F.M. *aracne.networks: ARACNe-inferred gene networks from TCGA tumor datasets.* Bioconductor package, v1.38.0. https://doi.org/10.18129/B9.bioc.aracne.networks
 
 Networks were inferred with ARACNe-AP: Lachmann, A., et al. (2016). "ARACNe-AP: gene network reverse engineering through adaptive partitioning inference of mutual information." *Bioinformatics*, 32(14), 2233–2235. https://doi.org/10.1093/bioinformatics/btw216
@@ -584,7 +587,7 @@ When publishing results obtained with CASCADE, please cite the relevant underlyi
 
 9. **Ensembl** — Martin et al. (2023), *Nucleic Acids Research*, 51(D1), D933–D941. https://doi.org/10.1093/nar/gkac958
 
-10. **TCGA ARACNe networks** — Giorgi, F.M. *aracne.networks*, Bioconductor package v1.38.0. https://doi.org/10.18129/B9.bioc.aracne.networks
+10. **TCGA ARACNe networks** — Giorgi, F.M., & Alvarez, M.J. (2026). *ARACNe-AP gene regulatory networks from TCGA tumor datasets* [Data set]. Zenodo. https://doi.org/10.5281/zenodo.22918956; and Giorgi, F.M. *aracne.networks*, Bioconductor package v1.38.0. https://doi.org/10.18129/B9.bioc.aracne.networks
 
 ---
 
