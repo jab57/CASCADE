@@ -48,6 +48,7 @@ CASCADE integrates eight data sources, divided into two categories:
 **Development Team**: Zhang et al. (2026), Califano Lab (Columbia University / CZ Biohub NY)
 **Format**: Pre-computed networks as TSV files (`network.tsv`)
 **Publication**: ICLR 2026
+**Terms**: Obtained under the [Virtual Cells Platform Terms of Use](https://virtualcellmodels.cziscience.com/terms-of-use) (scientific research use). The GREmLN model is MIT-licensed; no separate license is stated for the tutorial networks, and they are not covered by the MIT license of the CASCADE source code. They are bundled for convenience and research use and will be removed on request of the rights holder. The underlying CELLxGENE Census data is CC BY 4.0; see [Required Citations](#required-citations). See also `data/networks/README.md`.
 
 **Note on disease status**: The CellxGene Census corpus used by GREmLN includes both healthy and disease/cancer-infiltrating cells — disease status was not filtered to normal cells only (Zhang et al. 2026). The pre-computed networks therefore represent population-averaged regulatory relationships across heterogeneous cell states. These networks are appropriate for hypothesis generation and regulatory network analysis but should not be assumed to represent exclusively normal cell regulatory wiring.
 
@@ -567,8 +568,10 @@ When publishing results obtained with CASCADE, please cite the relevant underlyi
 1. **GREmLN Foundation Model (networks + embeddings)**
    Zhang, M., Swamy, V., Cassius, R., Dupire, L., Karaletsos, T., & Califano, A. (2026). "GREmLN: A Cellular Graph Structure Aware Transcriptomics Foundation Model." *ICLR 2026*. https://openreview.net/forum?id=HdvI8bkdDG
 
-2. **CellxGene Data Portal (underlying scRNA-seq data)**
-   Megill, C., et al. (2021). "cellxgene: a performant, scalable exploration platform for high dimensional sparse matrices." *bioRxiv*. https://doi.org/10.1101/2021.04.05.438318
+2. **CELLxGENE Census (underlying scRNA-seq data, CC BY 4.0; attribution is a license condition)**
+   CZI Cell Science Program, Abdulla, S., Aevermann, B., et al. (2025). "CZ CELLxGENE Discover: a single-cell data platform for scalable exploration, analysis and modeling of aggregated data." *Nucleic Acids Research*, 53(D1), D886–D900. https://doi.org/10.1093/nar/gkae1142
+
+   cellxgene explorer tool: Megill, C., et al. (2021). "cellxgene: a performant, scalable exploration platform for high dimensional sparse matrices." *bioRxiv*. https://doi.org/10.1101/2021.04.05.438318
 
 3. **ARACNe Algorithm**
    Lachmann, A., et al. (2016). "ARACNe-AP: gene network reverse engineering through adaptive partitioning inference of mutual information." *Bioinformatics*, 32(14), 2233–2235. https://doi.org/10.1093/bioinformatics/btw216
