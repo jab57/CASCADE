@@ -534,6 +534,16 @@ A subset can be installed with `--cancer-type brca coad`. Downloaded `.rda` file
 
 The Zenodo and Bioconductor inputs give identical networks (the same SHA-256 per file).
 
+#### What the conversion changes
+
+The installer converts each network from R's `.rda` format to CSV. In doing so it:
+
+- relabels Entrez Gene IDs as gene symbols, using a frozen mapping (`scripts/data/tcga_entrez_to_symbol.json.gz`);
+- rounds the mode-of-action (`MoA`) and `Likelihood` values to six decimals;
+- omits edges where the regulator or the target has no gene symbol, and self-regulation edges.
+
+For example, BRCA has 331,919 edges in the Zenodo file and 331,644 in the CSV (272 edges omitted for a gene without a symbol, 3 self-regulation edges); COAD goes from 413,789 to 413,481 and OV from 647,358 to 647,002. The CSVs are local, adapted copies for your own non-commercial use; do not share them (CC BY-NC-ND 4.0).
+
 ### Network Statistics
 
 | Cancer Type | Genes  | Edges   | Regulons |
