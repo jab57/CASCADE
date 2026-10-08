@@ -206,6 +206,7 @@ def test_main_rejects_both_tarball_and_rda_dir(mod, monkeypatch):
 def test_main_zenodo_failure_exits_with_fallback_hint(mod, monkeypatch, tmp_path):
     monkeypatch.setattr(sys, "argv", ["x", "--accept-license", "--cancer-type", "brca",
                                       "--download-dir", str(tmp_path)])
+    monkeypatch.setitem(sys.modules, "rdata", MagicMock())  # the test must not need rdata installed
     with patch.object(mod, "download_from_zenodo", side_effect=RuntimeError("offline")):
         with pytest.raises(SystemExit) as exc:
             mod.main()
