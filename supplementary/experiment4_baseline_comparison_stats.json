@@ -1,0 +1,42 @@
+[
+  {
+    "comparison": "MYC-identity (MYC_TARGETS_V1)",
+    "cancer_type": "BRCA",
+    "cascade_rate": 0.9,
+    "cascade_n": 50,
+    "baseline_rate": 0.9424,
+    "baseline_n": 191,
+    "fisher_p": 0.3357153260583401,
+    "bh_fdr_q": 0.7672913030035915
+  },
+  {
+    "comparison": "MYC-identity (MYC_TARGETS_V1)",
+    "cancer_type": "COAD",
+    "cascade_rate": 0.72,
+    "cascade_n": 50,
+    "baseline_rate": 0.6963,
+    "baseline_n": 191,
+    "fisher_p": 0.8626051026028931,
+    "bh_fdr_q": 0.8626051026028931
+  },
+  {
+    "comparison": "MYC-identity (MYC_TARGETS_V1)",
+    "cancer_type": "STAD",
+    "cascade_rate": 0.8571,
+    "cascade_n": 49,
+    "baseline_rate": 0.8691,
+    "baseline_n": 191,
+    "fisher_p": 0.815652427642074,
+    "bh_fdr_q": 0.8626051026028931
+  },
+  {
+    "comparison": "E2F-identity (E2F_TARGETS), vs. E2F3",
+    "cancer_type": "BRCA",
+    "cascade_rate": 0.96,
+    "cascade_n": 50,
+    "baseline_rate": 0.9072,
+    "baseline_n": 194,
+    "fisher_p": 0.38364565150179575,
+    "bh_fdr_q": 0.7672913030035915
+  }
+]

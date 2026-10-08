@@ -1,0 +1,512 @@
+{
+  "method": "embedding",
+  "diagnostics": {
+    "method": "embedding",
+    "invocation": "CascadeWorkflow.run() (agentic entry point)",
+    "n_total_affected": 3454,
+    "n_embedding_only_additions": 0
+  },
+  "n_predicted_targets": 50,
+  "n_resolved": 49,
+  "n_tested": 49,
+  "n_concordant": 48,
+  "observed_concordance_rate": 0.9796,
+  "binomial_p_value": 8.881784197001252e-14,
+  "permutation_empirical_p": 0.0,
+  "permutation_mean_rate": 0.5374,
+  "n_myc_amplified_samples": 49,
+  "n_myc_nonamplified_samples": 264,
+  "n_background_pool": 171,
+  "gene_results": [
+    {
+      "gene": "FAM72D",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.9048,
+      "nonamp_mean_zscore": 0.0437,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "PRSS50",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.037,
+      "nonamp_mean_zscore": -0.0794,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "SYT7",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.7599,
+      "nonamp_mean_zscore": -0.0995,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "RASGEF1A",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.5335,
+      "nonamp_mean_zscore": -0.0839,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "POTEF",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.9027,
+      "nonamp_mean_zscore": -0.1498,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "MAGEA3",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.1094,
+      "nonamp_mean_zscore": -0.2944,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "HOXD13",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.6526,
+      "nonamp_mean_zscore": -0.1081,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "EXO1",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.9337,
+      "nonamp_mean_zscore": 0.0886,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "CENPA",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.7559,
+      "nonamp_mean_zscore": -0.1071,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "PLK1",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.9995,
+      "nonamp_mean_zscore": -0.1468,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "SH3BGRL",
+      "direction": "up",
+      "tested": true,
+      "amp_mean_zscore": -0.4458,
+      "nonamp_mean_zscore": 0.0687,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "KIF4A",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.0372,
+      "nonamp_mean_zscore": -0.235,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "KIFC1",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.3017,
+      "nonamp_mean_zscore": -0.0539,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "CTAG2",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.67,
+      "nonamp_mean_zscore": -0.25,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "GABRA3",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.8812,
+      "nonamp_mean_zscore": -0.1855,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "MAGEA2",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.7991,
+      "nonamp_mean_zscore": -0.2674,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "POTEE",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.9135,
+      "nonamp_mean_zscore": -0.1655,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "HOXD10",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.7461,
+      "nonamp_mean_zscore": -0.1192,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "HOXC12",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.0024,
+      "nonamp_mean_zscore": -0.1399,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "ADHFE1",
+      "direction": "up",
+      "tested": true,
+      "amp_mean_zscore": -0.363,
+      "nonamp_mean_zscore": -0.0834,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "CLPSL2",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.3132,
+      "nonamp_mean_zscore": -0.1413,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "HTR2C",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.8944,
+      "nonamp_mean_zscore": -0.1903,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "OSBP2",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.8696,
+      "nonamp_mean_zscore": -0.1186,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "C12ORF56",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.1084,
+      "nonamp_mean_zscore": -0.196,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "BCORL1",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.0174,
+      "nonamp_mean_zscore": -0.1432,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "SVOPL",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.5105,
+      "nonamp_mean_zscore": -0.0704,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "TBX4",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.3747,
+      "nonamp_mean_zscore": -0.0616,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "LRFN3",
+      "direction": "up",
+      "tested": true,
+      "amp_mean_zscore": -0.3449,
+      "nonamp_mean_zscore": 0.0205,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "SLC5A12",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.5996,
+      "nonamp_mean_zscore": -0.1683,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "CEMIP",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": -0.0297,
+      "nonamp_mean_zscore": 0.0332,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": false
+    },
+    {
+      "gene": "EVA1C",
+      "direction": "up",
+      "tested": true,
+      "amp_mean_zscore": -0.175,
+      "nonamp_mean_zscore": 0.0174,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "MAGEC1",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.0522,
+      "nonamp_mean_zscore": -0.0689,
+      "n_amp": 40,
+      "n_nonamp": 223,
+      "concordant": true
+    },
+    {
+      "gene": "CENPBD1P",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.7616,
+      "nonamp_mean_zscore": -0.1618,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "CDC6",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 3.6175,
+      "nonamp_mean_zscore": 0.8463,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "KIF18A",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.1496,
+      "nonamp_mean_zscore": -0.0945,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "RAD54L",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.0222,
+      "nonamp_mean_zscore": -0.0638,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "AUNIP",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.2706,
+      "nonamp_mean_zscore": -0.1406,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "TMT1A",
+      "direction": "up",
+      "tested": true,
+      "amp_mean_zscore": -0.5098,
+      "nonamp_mean_zscore": 0.0756,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "CDK2",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.7248,
+      "nonamp_mean_zscore": 0.0003,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "SPDL1",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.8324,
+      "nonamp_mean_zscore": -0.1312,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "CCNA2",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.4041,
+      "nonamp_mean_zscore": -0.2046,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "CDK1",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.9016,
+      "nonamp_mean_zscore": -0.0604,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "FBXO5",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.8029,
+      "nonamp_mean_zscore": -0.0944,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "TTK",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.2787,
+      "nonamp_mean_zscore": -0.1943,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "NCAPG",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.5709,
+      "nonamp_mean_zscore": -0.1273,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "CCNB1",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 0.4361,
+      "nonamp_mean_zscore": -0.116,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "KPNA2",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.5341,
+      "nonamp_mean_zscore": -0.0159,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "RACGAP1",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.2895,
+      "nonamp_mean_zscore": -0.0527,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    },
+    {
+      "gene": "BUB1",
+      "direction": "down",
+      "tested": true,
+      "amp_mean_zscore": 1.2952,
+      "nonamp_mean_zscore": -0.0931,
+      "n_amp": 44,
+      "n_nonamp": 247,
+      "concordant": true
+    }
+  ]
+}

@@ -1,0 +1,2676 @@
+{
+  "llama3.1:8b": {
+    "n": 35,
+    "overall_exact": 25,
+    "overall_exact_pct": 71.4,
+    "overall_server_exact": 27,
+    "overall_server_exact_pct": 77.1,
+    "per_category": {
+      "baseline_tcga": {
+        "n": 5,
+        "exact": 3,
+        "server_exact": 3
+      },
+      "baseline_immune": {
+        "n": 5,
+        "exact": 5,
+        "server_exact": 5
+      },
+      "gene_alias": {
+        "n": 5,
+        "exact": 1,
+        "server_exact": 3
+      },
+      "cancer_type_name": {
+        "n": 5,
+        "exact": 4,
+        "server_exact": 4
+      },
+      "perturbation_phrasing": {
+        "n": 5,
+        "exact": 4,
+        "server_exact": 4
+      },
+      "implicit_params": {
+        "n": 5,
+        "exact": 4,
+        "server_exact": 4
+      },
+      "multi_entity": {
+        "n": 5,
+        "exact": 4,
+        "server_exact": 4
+      }
+    },
+    "field_mismatches": {
+      "tcga_network": 7,
+      "gene": 3,
+      "perturbation_type": 1,
+      "network_source": 1
+    },
+    "server_field_mismatches": {
+      "tcga_network": 7,
+      "perturbation_type": 1,
+      "network_source": 1
+    },
+    "results": [
+      {
+        "category": "baseline_tcga",
+        "query": "What happens if we knock down TP53 in liver cancer?",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "lihc"
+        },
+        "actual": {
+          "cell_type": "liver_cell",
+          "gene": "TP53",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "query": "What happens if we knock down TP53 in liver cancer?",
+          "tcga_network": "lihc",
+          "analysis_depth": "basic"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "Simulate knockdown of PTEN in kidney cancer",
+        "expected": {
+          "gene": "PTEN",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "kirc"
+        },
+        "actual": {
+          "analysis_depth": "basic",
+          "cell_type": "",
+          "gene": "PTEN",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "query": "Simulate knockdown of PTEN in kidney cancer",
+          "tcga_network": "kirc"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "What are the downstream effects of MYC overexpression in lung adenocarcinoma?",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "luad"
+        },
+        "actual": {
+          "perturbation_type": "overexpression",
+          "query": "What are the downstream effects of MYC overexpression in lung adenocarcinoma?",
+          "tcga_network": "luad",
+          "gene": "MYC",
+          "network_source": "tcga"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "Predict what happens when EGFR is knocked down in cervical cancer",
+        "expected": {
+          "gene": "EGFR",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "cesc"
+        },
+        "actual": {
+          "tcga_network": "ucec",
+          "gene": "EGFR",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "query": "",
+          "cell_type": "cesc",
+          "analysis_depth": "comprehensive"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "tcga_network: expected='cesc' got='ucec'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "tcga_network: expected='cesc' got='ucec'"
+        ]
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "Overexpress BRCA1 in ovarian cancer and show effects",
+        "expected": {
+          "gene": "BRCA1",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "ov"
+        },
+        "actual": {
+          "perturbation_type": "overexpression",
+          "query": "Overexpress BRCA1 in ovarian cancer and show effects",
+          "cell_type": "ov",
+          "gene": "BRCA1",
+          "network_source": "tcga"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "tcga_network: expected='ov' got=None"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "tcga_network: expected='ov' got=None"
+        ]
+      },
+      {
+        "category": "baseline_immune",
+        "query": "What if we knock down STAT3 in CD4 T cells?",
+        "expected": {
+          "gene": "STAT3",
+          "perturbation_type": "knockdown",
+          "cell_type": "cd4_t_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "network_source": "cell_type",
+          "perturbation_type": "knockdown",
+          "analysis_depth": "basic",
+          "cell_type": "cd4_t_cells",
+          "gene": "STAT3"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_immune",
+        "query": "Show effects of overexpressing IL2 in NK cells",
+        "expected": {
+          "gene": "IL2",
+          "perturbation_type": "overexpression",
+          "cell_type": "nk_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "network_source": "cell_type",
+          "perturbation_type": "overexpression",
+          "gene": "IL2",
+          "cell_type": "nk_cells"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_immune",
+        "query": "Knock down FOXP3 in CD8 T cells",
+        "expected": {
+          "gene": "FOXP3",
+          "perturbation_type": "knockdown",
+          "cell_type": "cd8_t_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "gene": "FOXP3",
+          "cell_type": "cd8_t_cells",
+          "perturbation_type": "knockdown"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_immune",
+        "query": "What happens if BCL2 is overexpressed in B cells?",
+        "expected": {
+          "gene": "BCL2",
+          "perturbation_type": "overexpression",
+          "cell_type": "cd20_b_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "basic",
+          "network_source": "cell_type",
+          "perturbation_type": "overexpression",
+          "query": "",
+          "tcga_network": "",
+          "cell_type": "cd20_b_cells",
+          "gene": "BCL2"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_immune",
+        "query": "Simulate knockdown of TLR4 in CD14 monocytes",
+        "expected": {
+          "gene": "TLR4",
+          "perturbation_type": "knockdown",
+          "cell_type": "cd14_monocytes",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "cell_type": "cd14_monocytes",
+          "perturbation_type": "knockdown",
+          "gene": "TLR4"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "Knock down HER2 in breast cancer",
+        "expected": {
+          "gene": "ERBB2",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "gene": "HER2",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "query": "Knock down HER2 in breast cancer",
+          "tcga_network": "brca"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "gene: expected='ERBB2' got='HER2'"
+        ],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "What if p53 is overexpressed in lung squamous cell carcinoma?",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "lusc"
+        },
+        "actual": {
+          "perturbation_type": "overexpression",
+          "query": "What if p53 is overexpressed in lung squamous cell carcinoma?",
+          "tcga_network": "luad",
+          "analysis_depth": "basic",
+          "cell_type": "epithelial_cell",
+          "gene": "TP53",
+          "network_source": "tcga"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "tcga_network: expected='lusc' got='luad'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "tcga_network: expected='lusc' got='luad'"
+        ]
+      },
+      {
+        "category": "gene_alias",
+        "query": "Simulate knockdown of the estrogen receptor in breast cancer",
+        "expected": {
+          "gene": "ESR1",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "cell_type": "epithelial_cell",
+          "query": "Simulate knockdown of the estrogen receptor in breast cancer",
+          "tcga_network": "brca",
+          "perturbation_type": "knockdown",
+          "gene": "ESR1",
+          "analysis_depth": "comprehensive",
+          "network_source": "tcga"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "What happens when we knock down PD-L1 in NK cells?",
+        "expected": {
+          "gene": "CD274",
+          "perturbation_type": "knockdown",
+          "cell_type": "nk_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "cell_type": "nk_cells",
+          "perturbation_type": "knockdown",
+          "gene": "PD-L1",
+          "analysis_depth": "basic"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "gene: expected='CD274' got='PD-L1'"
+        ],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "Overexpress HER3 in stomach cancer",
+        "expected": {
+          "gene": "ERBB3",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "stad"
+        },
+        "actual": {
+          "tcga_network": "stomach",
+          "analysis_depth": "basic",
+          "cell_type": "gastric cells",
+          "gene": "HER3",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "query": "Overexpress HER3 in stomach cancer"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "gene: expected='ERBB3' got='HER3'",
+          "tcga_network: expected='stad' got='stomach'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "tcga_network: expected='stad' got='stomach'"
+        ]
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Knock down APC in head and neck cancer",
+        "expected": {
+          "gene": "APC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "hnsc"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "hnsc_cells",
+          "gene": "APC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "query": "Knock down APC in head and neck cancer",
+          "tcga_network": "hnsc"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "What if TP53 is overexpressed in uterine cancer?",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "ucec"
+        },
+        "actual": {
+          "perturbation_type": "overexpression",
+          "query": "What if TP53 is overexpressed in uterine cancer?",
+          "tcga_network": "ucec",
+          "analysis_depth": "comprehensive",
+          "cell_type": "",
+          "gene": "TP53",
+          "network_source": "tcga"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Simulate MYC knockdown in prostate cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "prad"
+        },
+        "actual": {
+          "cell_type": "",
+          "query": "Simulate MYC knockdown in prostate cancer",
+          "tcga_network": "prad",
+          "perturbation_type": "knockdown",
+          "gene": "MYC",
+          "network_source": "tcga",
+          "analysis_depth": "comprehensive"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Overexpress KRAS in bladder cancer",
+        "expected": {
+          "gene": "KRAS",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "blca"
+        },
+        "actual": {
+          "gene": "KRAS",
+          "analysis_depth": "comprehensive",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "query": "Overexpress KRAS in bladder cancer",
+          "tcga_network": "blca"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Knock down SMAD4 in pancreatic cancer",
+        "expected": {
+          "gene": "SMAD4",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "paad"
+        },
+        "actual": {
+          "cell_type": "pancreatic_cancer",
+          "gene": "SMAD4",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "query": "Knock down SMAD4 in pancreatic cancer",
+          "analysis_depth": "comprehensive"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "tcga_network: expected='paad' got=None"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "tcga_network: expected='paad' got=None"
+        ]
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Silence MYC in breast cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "network_source": "tcga",
+          "gene": "MYC",
+          "analysis_depth": "comprehensive",
+          "perturbation_type": "knockdown",
+          "query": "Silence MYC in breast cancer",
+          "cell_type": "breast cancer",
+          "tcga_network": "brca"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Boost expression of PTEN in colon cancer",
+        "expected": {
+          "gene": "PTEN",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "coad"
+        },
+        "actual": {
+          "query": "Boost expression of PTEN in colon cancer",
+          "analysis_depth": "comprehensive",
+          "cell_type": "coad",
+          "tcga_network": "coad",
+          "gene": "PTEN",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Suppress TP53 activity in stomach cancer",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "stad"
+        },
+        "actual": {
+          "gene": "TP53",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "query": "Suppress TP53 activity in stomach cancer",
+          "tcga_network": "paad"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "tcga_network: expected='stad' got='paad'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "tcga_network: expected='stad' got='paad'"
+        ]
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Amplify GATA3 signaling in breast tumors",
+        "expected": {
+          "gene": "GATA3",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "gene": "GATA3",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "query": "Amplify GATA3 signaling in breast tumors",
+          "tcga_network": "brca",
+          "analysis_depth": "basic",
+          "cell_type": ""
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Delete AURKA function in bladder cancer",
+        "expected": {
+          "gene": "AURKA",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "blca"
+        },
+        "actual": {
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "query": "Delete AURKA function in bladder cancer",
+          "tcga_network": "blca",
+          "gene": "AURKA"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "implicit_params",
+        "query": "What does MYC do?",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell"
+        },
+        "ambiguous": true,
+        "exact_match": false,
+        "mismatches": [
+          "perturbation_type: expected='knockdown' got='overexpression'",
+          "network_source: expected='cell_type' got='tcga'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "perturbation_type: expected='knockdown' got='overexpression'",
+          "network_source: expected='cell_type' got='tcga'"
+        ]
+      },
+      {
+        "category": "implicit_params",
+        "query": "Tell me about knocking down TP53",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "gene": "TP53",
+          "analysis_depth": "basic",
+          "perturbation_type": "knockdown"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "implicit_params",
+        "query": "Is APC a good drug target?",
+        "expected": {
+          "gene": "APC",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "gene": "APC",
+          "perturbation_type": "knockdown"
+        },
+        "ambiguous": true,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "implicit_params",
+        "query": "Overexpress ESR1",
+        "expected": {
+          "gene": "ESR1",
+          "perturbation_type": "overexpression",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "gene": "ESR1",
+          "perturbation_type": "overexpression"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "implicit_params",
+        "query": "What genes are affected by GATA3?",
+        "expected": {
+          "gene": "GATA3",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "gene": "GATA3",
+          "analysis_depth": "basic",
+          "perturbation_type": "knockdown"
+        },
+        "ambiguous": true,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "We're studying MYC and TP53 together, but for now just knock down MYC in breast cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "gene": "MYC",
+          "analysis_depth": "basic",
+          "cell_type": "breast",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "query": "We"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "tcga_network: expected='brca' got=None"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "tcga_network: expected='brca' got=None"
+        ]
+      },
+      {
+        "category": "multi_entity",
+        "query": "Compared to breast cancer, I actually want the APC knockdown result in colon cancer",
+        "expected": {
+          "gene": "APC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "coad"
+        },
+        "actual": {
+          "perturbation_type": "knockdown",
+          "analysis_depth": "basic",
+          "cell_type": "epithelial_cell",
+          "query": "Compared to breast cancer, I actually want the APC knockdown result in colon cancer",
+          "tcga_network": "coad",
+          "gene": "APC",
+          "network_source": "tcga"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "I know ERBB2 is important in breast cancer, but right now show me AURKA overexpression in breast cancer instead",
+        "expected": {
+          "gene": "AURKA",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "gene": "AURKA",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "query": "I know ERBB2 is important in breast cancer, but right now show me AURKA overexpression in breast cancer instead",
+          "tcga_network": "brca",
+          "analysis_depth": "comprehensive",
+          "cell_type": ""
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "Previously we knocked down GATA3, now let's overexpress FOXA1 in breast tumors",
+        "expected": {
+          "gene": "FOXA1",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "cell_type": "breast tumor cells (assuming epithelial cell type for network analysis)",
+          "query": "Previously we knocked down GATA3, now let's overexpress FOXA1 in breast tumors",
+          "tcga_network": "brca",
+          "gene": "FOXA1",
+          "analysis_depth": "comprehensive",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "Skip the stomach cancer analysis for now, instead simulate MYC knockdown in colon cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "coad"
+        },
+        "actual": {
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "query": "Simulate MYC knockdown in colon cancer",
+          "tcga_network": "coad",
+          "analysis_depth": "comprehensive",
+          "cell_type": ""
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      }
+    ],
+    "ambiguity_handling": {
+      "n_ambiguous": 3,
+      "n_correctly_flagged": 0,
+      "ambiguous_detail": [
+        {
+          "query": "What does MYC do?",
+          "case": "explicit_guess",
+          "status": "resolved",
+          "correctly_flagged": false,
+          "network_source_mismatch": true
+        },
+        {
+          "query": "Is APC a good drug target?",
+          "case": "explicit_guess",
+          "status": "resolved",
+          "correctly_flagged": false,
+          "network_source_mismatch": false
+        },
+        {
+          "query": "What genes are affected by GATA3?",
+          "case": "explicit_guess",
+          "status": "resolved",
+          "correctly_flagged": false,
+          "network_source_mismatch": false
+        }
+      ],
+      "query_field_compliance": 23,
+      "query_field_compliance_pct": 65.7,
+      "round_trip_triggers": 0,
+      "round_trip_triggers_pct": 0.0,
+      "non_ambiguous_regressions": []
+    }
+  },
+  "qwen2.5:72b-instruct-q4_0": {
+    "n": 35,
+    "overall_exact": 30,
+    "overall_exact_pct": 85.7,
+    "overall_server_exact": 33,
+    "overall_server_exact_pct": 94.3,
+    "per_category": {
+      "baseline_tcga": {
+        "n": 5,
+        "exact": 5,
+        "server_exact": 5
+      },
+      "baseline_immune": {
+        "n": 5,
+        "exact": 5,
+        "server_exact": 5
+      },
+      "gene_alias": {
+        "n": 5,
+        "exact": 2,
+        "server_exact": 5
+      },
+      "cancer_type_name": {
+        "n": 5,
+        "exact": 5,
+        "server_exact": 5
+      },
+      "perturbation_phrasing": {
+        "n": 5,
+        "exact": 5,
+        "server_exact": 5
+      },
+      "implicit_params": {
+        "n": 5,
+        "exact": 3,
+        "server_exact": 3
+      },
+      "multi_entity": {
+        "n": 5,
+        "exact": 5,
+        "server_exact": 5
+      }
+    },
+    "field_mismatches": {
+      "gene": 3,
+      "perturbation_type": 2
+    },
+    "server_field_mismatches": {
+      "perturbation_type": 2
+    },
+    "results": [
+      {
+        "category": "baseline_tcga",
+        "query": "What happens if we knock down TP53 in liver cancer?",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "lihc"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell",
+          "gene": "TP53",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "lihc"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "Simulate knockdown of PTEN in kidney cancer",
+        "expected": {
+          "gene": "PTEN",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "kirc"
+        },
+        "actual": {
+          "gene": "PTEN",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "kirc",
+          "analysis_depth": "comprehensive",
+          "cell_type": "cd14_monocytes"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "What are the downstream effects of MYC overexpression in lung adenocarcinoma?",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "luad"
+        },
+        "actual": {
+          "cell_type": "epithelial_cell",
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "luad",
+          "analysis_depth": "comprehensive"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "Predict what happens when EGFR is knocked down in cervical cancer",
+        "expected": {
+          "gene": "EGFR",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "cesc"
+        },
+        "actual": {
+          "perturbation_type": "knockdown",
+          "tcga_network": "cesc",
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell",
+          "gene": "EGFR",
+          "network_source": "tcga"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "Overexpress BRCA1 in ovarian cancer and show effects",
+        "expected": {
+          "gene": "BRCA1",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "ov"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "ovarian_cancer",
+          "gene": "BRCA1",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "ov"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_immune",
+        "query": "What if we knock down STAT3 in CD4 T cells?",
+        "expected": {
+          "gene": "STAT3",
+          "perturbation_type": "knockdown",
+          "cell_type": "cd4_t_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "cd4_t_cells",
+          "gene": "STAT3",
+          "perturbation_type": "knockdown"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_immune",
+        "query": "Show effects of overexpressing IL2 in NK cells",
+        "expected": {
+          "gene": "IL2",
+          "perturbation_type": "overexpression",
+          "cell_type": "nk_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "cell_type": "nk_cells",
+          "gene": "IL2",
+          "perturbation_type": "overexpression",
+          "analysis_depth": "comprehensive"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_immune",
+        "query": "Knock down FOXP3 in CD8 T cells",
+        "expected": {
+          "gene": "FOXP3",
+          "perturbation_type": "knockdown",
+          "cell_type": "cd8_t_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "cd8_t_cells",
+          "gene": "FOXP3",
+          "perturbation_type": "knockdown"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_immune",
+        "query": "What happens if BCL2 is overexpressed in B cells?",
+        "expected": {
+          "gene": "BCL2",
+          "perturbation_type": "overexpression",
+          "cell_type": "cd20_b_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "gene": "BCL2",
+          "perturbation_type": "overexpression",
+          "analysis_depth": "comprehensive",
+          "cell_type": "cd20_b_cells"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_immune",
+        "query": "Simulate knockdown of TLR4 in CD14 monocytes",
+        "expected": {
+          "gene": "TLR4",
+          "perturbation_type": "knockdown",
+          "cell_type": "cd14_monocytes",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "gene": "TLR4",
+          "perturbation_type": "knockdown",
+          "analysis_depth": "comprehensive",
+          "cell_type": "cd14_monocytes"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "Knock down HER2 in breast cancer",
+        "expected": {
+          "gene": "ERBB2",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "tcga_network": "brca",
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell",
+          "gene": "HER2",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "gene: expected='ERBB2' got='HER2'"
+        ],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "What if p53 is overexpressed in lung squamous cell carcinoma?",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "lusc"
+        },
+        "actual": {
+          "cell_type": "epithelial_cell",
+          "gene": "TP53",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "lusc",
+          "analysis_depth": "comprehensive"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "Simulate knockdown of the estrogen receptor in breast cancer",
+        "expected": {
+          "gene": "ESR1",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "gene": "ESR1",
+          "cell_type": "cd20_b_cells",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "brca"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "What happens when we knock down PD-L1 in NK cells?",
+        "expected": {
+          "gene": "CD274",
+          "perturbation_type": "knockdown",
+          "cell_type": "nk_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "nk_cells",
+          "gene": "PD-L1",
+          "perturbation_type": "knockdown"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "gene: expected='CD274' got='PD-L1'"
+        ],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "Overexpress HER3 in stomach cancer",
+        "expected": {
+          "gene": "ERBB3",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "stad"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "",
+          "gene": "HER3",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "stad"
+        },
+        "ambiguous": false,
+        "exact_match": false,
+        "mismatches": [
+          "gene: expected='ERBB3' got='HER3'"
+        ],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Knock down APC in head and neck cancer",
+        "expected": {
+          "gene": "APC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "hnsc"
+        },
+        "actual": {
+          "tcga_network": "hnsc",
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell",
+          "gene": "APC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "What if TP53 is overexpressed in uterine cancer?",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "ucec"
+        },
+        "actual": {
+          "cell_type": "epithelial_cell",
+          "gene": "TP53",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "ucec",
+          "analysis_depth": "comprehensive"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Simulate MYC knockdown in prostate cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "prad"
+        },
+        "actual": {
+          "tcga_network": "prad",
+          "analysis_depth": "comprehensive",
+          "cell_type": "cd4_t_cells",
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Overexpress KRAS in bladder cancer",
+        "expected": {
+          "gene": "KRAS",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "blca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell",
+          "gene": "KRAS",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "blca"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Knock down SMAD4 in pancreatic cancer",
+        "expected": {
+          "gene": "SMAD4",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "paad"
+        },
+        "actual": {
+          "gene": "SMAD4",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "paad",
+          "analysis_depth": "comprehensive"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Silence MYC in breast cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "brca",
+          "analysis_depth": "comprehensive",
+          "cell_type": "cd20_b_cells"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Boost expression of PTEN in colon cancer",
+        "expected": {
+          "gene": "PTEN",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "coad"
+        },
+        "actual": {
+          "perturbation_type": "overexpression",
+          "tcga_network": "coad",
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell",
+          "gene": "PTEN",
+          "network_source": "tcga"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Suppress TP53 activity in stomach cancer",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "stad"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell",
+          "gene": "TP53",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "stad"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Amplify GATA3 signaling in breast tumors",
+        "expected": {
+          "gene": "GATA3",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "brca",
+          "analysis_depth": "comprehensive",
+          "cell_type": "cd20_b_cells",
+          "gene": "GATA3"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Delete AURKA function in bladder cancer",
+        "expected": {
+          "gene": "AURKA",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "blca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell",
+          "gene": "AURKA",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "blca"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "implicit_params",
+        "query": "What does MYC do?",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell",
+          "gene": "MYC",
+          "perturbation_type": "overexpression"
+        },
+        "ambiguous": true,
+        "exact_match": false,
+        "mismatches": [
+          "perturbation_type: expected='knockdown' got='overexpression'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "perturbation_type: expected='knockdown' got='overexpression'"
+        ]
+      },
+      {
+        "category": "implicit_params",
+        "query": "Tell me about knocking down TP53",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "gene": "TP53",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "analysis_depth": "comprehensive"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "implicit_params",
+        "query": "Is APC a good drug target?",
+        "expected": {
+          "gene": "APC",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "perturbation_type": "knockdown",
+          "analysis_depth": "basic",
+          "cell_type": "epithelial_cell",
+          "gene": "APC"
+        },
+        "ambiguous": true,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "implicit_params",
+        "query": "Overexpress ESR1",
+        "expected": {
+          "gene": "ESR1",
+          "perturbation_type": "overexpression",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "gene": "ESR1",
+          "perturbation_type": "overexpression"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "implicit_params",
+        "query": "What genes are affected by GATA3?",
+        "expected": {
+          "gene": "GATA3",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "gene": "GATA3",
+          "perturbation_type": "overexpression",
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell"
+        },
+        "ambiguous": true,
+        "exact_match": false,
+        "mismatches": [
+          "perturbation_type: expected='knockdown' got='overexpression'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "perturbation_type: expected='knockdown' got='overexpression'"
+        ]
+      },
+      {
+        "category": "multi_entity",
+        "query": "We're studying MYC and TP53 together, but for now just knock down MYC in breast cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "brca",
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "Compared to breast cancer, I actually want the APC knockdown result in colon cancer",
+        "expected": {
+          "gene": "APC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "coad"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell",
+          "gene": "APC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "coad"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "I know ERBB2 is important in breast cancer, but right now show me AURKA overexpression in breast cancer instead",
+        "expected": {
+          "gene": "AURKA",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "epithelial_cell",
+          "gene": "AURKA",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "brca"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "Previously we knocked down GATA3, now let's overexpress FOXA1 in breast tumors",
+        "expected": {
+          "gene": "FOXA1",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "gene": "FOXA1",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "brca",
+          "analysis_depth": "comprehensive",
+          "cell_type": "cd20_b_cells"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "Skip the stomach cancer analysis for now, instead simulate MYC knockdown in colon cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "coad"
+        },
+        "actual": {
+          "cell_type": "epithelial_cell",
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "coad",
+          "analysis_depth": "comprehensive"
+        },
+        "ambiguous": false,
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      }
+    ],
+    "ambiguity_handling": {
+      "n_ambiguous": 3,
+      "n_correctly_flagged": 0,
+      "ambiguous_detail": [
+        {
+          "query": "What does MYC do?",
+          "case": "explicit_guess",
+          "status": "resolved",
+          "correctly_flagged": false,
+          "network_source_mismatch": false
+        },
+        {
+          "query": "Is APC a good drug target?",
+          "case": "explicit_guess",
+          "status": "resolved",
+          "correctly_flagged": false,
+          "network_source_mismatch": false
+        },
+        {
+          "query": "What genes are affected by GATA3?",
+          "case": "explicit_guess",
+          "status": "resolved",
+          "correctly_flagged": false,
+          "network_source_mismatch": false
+        }
+      ],
+      "query_field_compliance": 0,
+      "query_field_compliance_pct": 0.0,
+      "round_trip_triggers": 0,
+      "round_trip_triggers_pct": 0.0,
+      "non_ambiguous_regressions": []
+    }
+  },
+  "gpt-oss:120b": {
+    "n": 35,
+    "overall_exact": 23,
+    "overall_exact_pct": 65.7,
+    "overall_server_exact": 23,
+    "overall_server_exact_pct": 65.7,
+    "per_category": {
+      "baseline_tcga": {
+        "n": 5,
+        "exact": 5,
+        "server_exact": 5
+      },
+      "baseline_immune": {
+        "n": 5,
+        "exact": 0,
+        "server_exact": 0
+      },
+      "gene_alias": {
+        "n": 5,
+        "exact": 4,
+        "server_exact": 4
+      },
+      "cancer_type_name": {
+        "n": 5,
+        "exact": 5,
+        "server_exact": 5
+      },
+      "perturbation_phrasing": {
+        "n": 5,
+        "exact": 4,
+        "server_exact": 4
+      },
+      "implicit_params": {
+        "n": 5,
+        "exact": 0,
+        "server_exact": 0
+      },
+      "multi_entity": {
+        "n": 5,
+        "exact": 5,
+        "server_exact": 5
+      }
+    },
+    "field_mismatches": {
+      "cell_type": 10,
+      "network_source": 10
+    },
+    "server_field_mismatches": {
+      "cell_type": 10,
+      "network_source": 10
+    },
+    "results": [
+      {
+        "category": "baseline_tcga",
+        "query": "What happens if we knock down TP53 in liver cancer?",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "lihc"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "hepatocellular carcinoma",
+          "gene": "TP53",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "LIHC"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "Simulate knockdown of PTEN in kidney cancer",
+        "expected": {
+          "gene": "PTEN",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "kirc"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "kidney epithelial",
+          "gene": "PTEN",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "KIRC"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "What are the downstream effects of MYC overexpression in lung adenocarcinoma?",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "luad"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "lung adenocarcinoma",
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "LUAD"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "Predict what happens when EGFR is knocked down in cervical cancer",
+        "expected": {
+          "gene": "EGFR",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "cesc"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "cervical epithelial",
+          "gene": "EGFR",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "CESC"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_tcga",
+        "query": "Overexpress BRCA1 in ovarian cancer and show effects",
+        "expected": {
+          "gene": "BRCA1",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "ov"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "ovarian carcinoma",
+          "gene": "BRCA1",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "OV"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "baseline_immune",
+        "query": "What if we knock down STAT3 in CD4 T cells?",
+        "expected": {
+          "gene": "STAT3",
+          "perturbation_type": "knockdown",
+          "cell_type": "cd4_t_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "CD4+ T cell",
+          "gene": "STAT3",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "TCGA-BRCA"
+        },
+        "exact_match": false,
+        "mismatches": [
+          "cell_type: expected='cd4_t_cells' got='CD4+ T cell'",
+          "network_source: expected='cell_type' got='tcga'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "cell_type: expected='cd4_t_cells' got='CD4+ T cell'",
+          "network_source: expected='cell_type' got='tcga'"
+        ]
+      },
+      {
+        "category": "baseline_immune",
+        "query": "Show effects of overexpressing IL2 in NK cells",
+        "expected": {
+          "gene": "IL2",
+          "perturbation_type": "overexpression",
+          "cell_type": "nk_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "focused",
+          "cell_type": "NK",
+          "gene": "IL2",
+          "network_source": "generic",
+          "perturbation_type": "overexpression"
+        },
+        "exact_match": false,
+        "mismatches": [
+          "cell_type: expected='nk_cells' got='NK'",
+          "network_source: expected='cell_type' got='generic'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "cell_type: expected='nk_cells' got='NK'",
+          "network_source: expected='cell_type' got='generic'"
+        ]
+      },
+      {
+        "category": "baseline_immune",
+        "query": "Knock down FOXP3 in CD8 T cells",
+        "expected": {
+          "gene": "FOXP3",
+          "perturbation_type": "knockdown",
+          "cell_type": "cd8_t_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "CD8 T cell",
+          "gene": "FOXP3",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "SKCM"
+        },
+        "exact_match": false,
+        "mismatches": [
+          "cell_type: expected='cd8_t_cells' got='CD8 T cell'",
+          "network_source: expected='cell_type' got='tcga'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "cell_type: expected='cd8_t_cells' got='CD8 T cell'",
+          "network_source: expected='cell_type' got='tcga'"
+        ]
+      },
+      {
+        "category": "baseline_immune",
+        "query": "What happens if BCL2 is overexpressed in B cells?",
+        "expected": {
+          "gene": "BCL2",
+          "perturbation_type": "overexpression",
+          "cell_type": "cd20_b_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "focused",
+          "cell_type": "B cell",
+          "gene": "BCL2",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "DLBC"
+        },
+        "exact_match": false,
+        "mismatches": [
+          "cell_type: expected='cd20_b_cells' got='B cell'",
+          "network_source: expected='cell_type' got='tcga'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "cell_type: expected='cd20_b_cells' got='B cell'",
+          "network_source: expected='cell_type' got='tcga'"
+        ]
+      },
+      {
+        "category": "baseline_immune",
+        "query": "Simulate knockdown of TLR4 in CD14 monocytes",
+        "expected": {
+          "gene": "TLR4",
+          "perturbation_type": "knockdown",
+          "cell_type": "cd14_monocytes",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "CD14+ monocytes",
+          "gene": "TLR4",
+          "network_source": "default",
+          "perturbation_type": "knockdown"
+        },
+        "exact_match": false,
+        "mismatches": [
+          "cell_type: expected='cd14_monocytes' got='CD14+ monocytes'",
+          "network_source: expected='cell_type' got='default'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "cell_type: expected='cd14_monocytes' got='CD14+ monocytes'",
+          "network_source: expected='cell_type' got='default'"
+        ]
+      },
+      {
+        "category": "gene_alias",
+        "query": "Knock down HER2 in breast cancer",
+        "expected": {
+          "gene": "ERBB2",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "breast epithelial",
+          "gene": "ERBB2",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "BRCA"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "What if p53 is overexpressed in lung squamous cell carcinoma?",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "lusc"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "lung squamous cell carcinoma",
+          "gene": "TP53",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "LUSC"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "Simulate knockdown of the estrogen receptor in breast cancer",
+        "expected": {
+          "gene": "ESR1",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "luminal breast epithelium",
+          "gene": "ESR1",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "BRCA"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "gene_alias",
+        "query": "What happens when we knock down PD-L1 in NK cells?",
+        "expected": {
+          "gene": "CD274",
+          "perturbation_type": "knockdown",
+          "cell_type": "nk_cells",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "basic",
+          "cell_type": "NK",
+          "gene": "CD274",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "SKCM"
+        },
+        "exact_match": false,
+        "mismatches": [
+          "cell_type: expected='nk_cells' got='NK'",
+          "network_source: expected='cell_type' got='tcga'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "cell_type: expected='nk_cells' got='NK'",
+          "network_source: expected='cell_type' got='tcga'"
+        ]
+      },
+      {
+        "category": "gene_alias",
+        "query": "Overexpress HER3 in stomach cancer",
+        "expected": {
+          "gene": "ERBB3",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "stad"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "gastric_epithelial",
+          "gene": "ERBB3",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "STAD"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Knock down APC in head and neck cancer",
+        "expected": {
+          "gene": "APC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "hnsc"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "head_and_neck_cancer",
+          "gene": "APC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "HNSC"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "What if TP53 is overexpressed in uterine cancer?",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "ucec"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "uterine_epithelial",
+          "gene": "TP53",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "UCEC"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Simulate MYC knockdown in prostate cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "prad"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "prostate",
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "PRAD"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Overexpress KRAS in bladder cancer",
+        "expected": {
+          "gene": "KRAS",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "blca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "bladder cancer",
+          "gene": "KRAS",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "BLCA"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "cancer_type_name",
+        "query": "Knock down SMAD4 in pancreatic cancer",
+        "expected": {
+          "gene": "SMAD4",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "paad"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "pancreatic cancer",
+          "gene": "SMAD4",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "PAAD"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Silence MYC in breast cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "breast_cancer",
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "BRCA"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Boost expression of PTEN in colon cancer",
+        "expected": {
+          "gene": "PTEN",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "coad"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "colon epithelial",
+          "gene": "PTEN",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "COAD"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Suppress TP53 activity in stomach cancer",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "stad"
+        },
+        "actual": null,
+        "exact_match": false,
+        "mismatches": [
+          "no_tool_call"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "no_tool_call"
+        ]
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Amplify GATA3 signaling in breast tumors",
+        "expected": {
+          "gene": "GATA3",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "breast epithelial",
+          "gene": "GATA3",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "BRCA"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "perturbation_phrasing",
+        "query": "Delete AURKA function in bladder cancer",
+        "expected": {
+          "gene": "AURKA",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "blca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "bladder",
+          "gene": "AURKA",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "BLCA"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "implicit_params",
+        "query": "What does MYC do?",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": null,
+        "exact_match": false,
+        "mismatches": [
+          "no_tool_call"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "no_tool_call"
+        ]
+      },
+      {
+        "category": "implicit_params",
+        "query": "Tell me about knocking down TP53",
+        "expected": {
+          "gene": "TP53",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "breast epithelial cell",
+          "gene": "TP53",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "BRCA"
+        },
+        "exact_match": false,
+        "mismatches": [
+          "cell_type: expected='epithelial_cell' got='breast epithelial cell'",
+          "network_source: expected='cell_type' got='tcga'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "cell_type: expected='epithelial_cell' got='breast epithelial cell'",
+          "network_source: expected='cell_type' got='tcga'"
+        ]
+      },
+      {
+        "category": "implicit_params",
+        "query": "Is APC a good drug target?",
+        "expected": {
+          "gene": "APC",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "focused",
+          "cell_type": "colonic_epithelial",
+          "gene": "APC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "COADREAD"
+        },
+        "exact_match": false,
+        "mismatches": [
+          "cell_type: expected='epithelial_cell' got='colonic_epithelial'",
+          "network_source: expected='cell_type' got='tcga'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "cell_type: expected='epithelial_cell' got='colonic_epithelial'",
+          "network_source: expected='cell_type' got='tcga'"
+        ]
+      },
+      {
+        "category": "implicit_params",
+        "query": "Overexpress ESR1",
+        "expected": {
+          "gene": "ESR1",
+          "perturbation_type": "overexpression",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "breast epithelial",
+          "gene": "ESR1",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "BRCA"
+        },
+        "exact_match": false,
+        "mismatches": [
+          "cell_type: expected='epithelial_cell' got='breast epithelial'",
+          "network_source: expected='cell_type' got='tcga'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "cell_type: expected='epithelial_cell' got='breast epithelial'",
+          "network_source: expected='cell_type' got='tcga'"
+        ]
+      },
+      {
+        "category": "implicit_params",
+        "query": "What genes are affected by GATA3?",
+        "expected": {
+          "gene": "GATA3",
+          "perturbation_type": "knockdown",
+          "cell_type": "epithelial_cell",
+          "network_source": "cell_type"
+        },
+        "actual": {
+          "analysis_depth": "focused",
+          "cell_type": "breast_epithelial",
+          "gene": "GATA3",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "BRCA"
+        },
+        "exact_match": false,
+        "mismatches": [
+          "cell_type: expected='epithelial_cell' got='breast_epithelial'",
+          "network_source: expected='cell_type' got='tcga'"
+        ],
+        "server_exact_match": false,
+        "server_mismatches": [
+          "cell_type: expected='epithelial_cell' got='breast_epithelial'",
+          "network_source: expected='cell_type' got='tcga'"
+        ]
+      },
+      {
+        "category": "multi_entity",
+        "query": "We're studying MYC and TP53 together, but for now just knock down MYC in breast cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "breast",
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "BRCA"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "Compared to breast cancer, I actually want the APC knockdown result in colon cancer",
+        "expected": {
+          "gene": "APC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "coad"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "colon",
+          "gene": "APC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "COAD"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "I know ERBB2 is important in breast cancer, but right now show me AURKA overexpression in breast cancer instead",
+        "expected": {
+          "gene": "AURKA",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "breast epithelial",
+          "gene": "AURKA",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "BRCA"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "Previously we knocked down GATA3, now let's overexpress FOXA1 in breast tumors",
+        "expected": {
+          "gene": "FOXA1",
+          "perturbation_type": "overexpression",
+          "network_source": "tcga",
+          "tcga_network": "brca"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "breast tumor",
+          "gene": "FOXA1",
+          "network_source": "tcga",
+          "perturbation_type": "overexpression",
+          "tcga_network": "BRCA"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      },
+      {
+        "category": "multi_entity",
+        "query": "Skip the stomach cancer analysis for now, instead simulate MYC knockdown in colon cancer",
+        "expected": {
+          "gene": "MYC",
+          "perturbation_type": "knockdown",
+          "network_source": "tcga",
+          "tcga_network": "coad"
+        },
+        "actual": {
+          "analysis_depth": "comprehensive",
+          "cell_type": "colon",
+          "gene": "MYC",
+          "network_source": "tcga",
+          "perturbation_type": "knockdown",
+          "tcga_network": "COAD"
+        },
+        "exact_match": true,
+        "mismatches": [],
+        "server_exact_match": true,
+        "server_mismatches": []
+      }
+    ]
+  }
+}

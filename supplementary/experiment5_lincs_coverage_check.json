@@ -1,0 +1,43 @@
+{
+  "method": "network",
+  "top_n": 50,
+  "min_overlap_threshold": 10,
+  "cell_line": "MCF7",
+  "n_cell_lines_in_dataset": 15,
+  "source": "GSE106127 (shRNA consensus gene signatures, 978 L1000 landmark genes)",
+  "results": {
+    "GATA3": {
+      "mcf7_signature_exists": true,
+      "n_reagents": 3,
+      "replicate_consistency_cc_q75": 0.141073,
+      "n_predicted_targets": 50,
+      "n_overlap_with_landmark": 3,
+      "coverage_sufficient": false
+    },
+    "FOXA1": {
+      "mcf7_signature_exists": true,
+      "n_reagents": 3,
+      "replicate_consistency_cc_q75": 0.2143,
+      "n_predicted_targets": 50,
+      "n_overlap_with_landmark": 5,
+      "coverage_sufficient": false
+    },
+    "SOX9": {
+      "mcf7_signature_exists": false,
+      "n_signatures_any_cell_line": 0,
+      "n_predicted_targets": null,
+      "n_overlap_with_landmark": null,
+      "coverage_sufficient": false
+    },
+    "ESR1": {
+      "mcf7_signature_exists": true,
+      "n_reagents": 3,
+      "replicate_consistency_cc_q75": 0.500607,
+      "n_predicted_targets": 50,
+      "n_overlap_with_landmark": 2,
+      "coverage_sufficient": false
+    }
+  },
+  "n_testable": 0,
+  "n_focal_genes": 4
+}
