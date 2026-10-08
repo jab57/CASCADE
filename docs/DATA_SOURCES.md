@@ -458,7 +458,7 @@ Martin, F.J., et al. (2023). Ensembl 2023. *Nucleic Acids Research*, 51(D1), D93
 
 CASCADE supports **14 TCGA cancer-type-specific ARACNe networks** derived from The Cancer Genome Atlas (TCGA) tumor expression data. These complement the GREmLN population-averaged cell-type networks with tumor-state regulatory wiring and include **Mode of Action (MoA)** annotations (activation vs. repression) not present in the GREmLN networks.
 
-> **Not included in this repository.** The network files are published by their authors on Zenodo (record [22918956](https://doi.org/10.5281/zenodo.22918956)) under CC BY-NC-ND 4.0: attribution required, non-commercial use only, and modified versions may not be shared. CASCADE's converted CSVs are modified versions, so CASCADE does not redistribute them; keep locally generated CSVs local. The Bioconductor `aracne.networks` package, which contains the same files, carries a separate Columbia University license (non-commercial academic research use only, no redistribution). To use `network_source="tcga"`, generate the CSVs locally with the steps under [How to Generate from Source](#how-to-generate-from-source); you are responsible for complying with the license of the source you download from. All other CASCADE features work without these files.
+> **Not included in this repository.** The network files are published by their authors on Zenodo (record [22918956](https://doi.org/10.5281/zenodo.22918956)) under CC BY-NC-ND 4.0: attribution required, non-commercial use only, and modified versions may not be shared. CASCADE's converted CSVs are modified versions, so CASCADE does not redistribute them; keep locally generated CSVs local. The Bioconductor `aracne.networks` package, which contains the same files, carries a separate Columbia University license (non-commercial academic research use only, no redistribution). To use `network_source="tcga"`, generate the CSVs locally with the steps under [How to Generate from Source](#how-to-generate-from-source); the script downloads from Zenodo by default, and you are responsible for complying with the license of the source you use. All other CASCADE features work without these files.
 
 ### Supported Cancer Types
 
@@ -486,7 +486,7 @@ GBM and LAML are intentionally excluded — no reference network of the appropri
 **Data files**: Zenodo record 22918956 (Giorgi, F.M. & Alvarez, M.J., 2026), CC BY-NC-ND 4.0. doi:10.5281/zenodo.22918956 — identical to the data sets distributed with `aracne.networks` up to version 1.39.0
 **Package**: Bioconductor `aracne.networks` v1.38.0 (Giorgi, F.M.). doi:10.18129/B9.bioc.aracne.networks
 **Algorithm**: ARACNe-AP (Lachmann et al., 2016). doi:10.1093/bioinformatics/btw216
-**Download URL**: `https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz`
+**Download URL**: `https://doi.org/10.5281/zenodo.22918956` (primary); `https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz` (alternative)
 
 Networks are derived from TCGA tumor RNA-seq data processed through the ARACNe-AP algorithm at the Califano Lab (Columbia University).
 
@@ -510,31 +510,29 @@ TP53,MDM2,-1.0,0.251
 
 ### How to Generate from Source
 
-These steps download the Bioconductor package (Bioconductor 3.23 release, pinned) and convert its networks to the CSVs CASCADE reads. The same `.rda` files are also available from the Zenodo record above.
+The primary source is the authors' Zenodo record (22918956, CC BY-NC-ND 4.0). The script downloads the 14 `regulon{type}.rda` files (~115 MB), verifies each against the MD5 checksum published in the record, and converts them to the CSVs CASCADE reads.
 
-#### Step 1: Download the Bioconductor tarball (~213 MB)
-
-```bash
-curl -o /tmp/aracne.networks.tar.gz \
-  https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz
-```
-
-#### Step 2: Install required Python packages
+#### Step 1: Install required Python packages
 
 ```bash
 pip install rdata
 ```
 
-#### Step 3: Extract network CSVs
+#### Step 2: Extract network CSVs
 
 ```bash
-# Converts Entrez IDs → gene symbols via MyGene.info (~5 min, requires internet)
-python scripts/extract_tcga_networks.py \
-    --tarball /tmp/aracne.networks.tar.gz \
-    --output-dir data/networks/tcga
+# Downloads from Zenodo, then converts Entrez IDs → gene symbols via MyGene.info (~5 min, requires internet)
+python scripts/extract_tcga_networks.py --output-dir data/networks/tcga
 ```
 
-The script reads each `.rda` file from the tarball, batch-converts all Entrez IDs to gene symbols via MyGene.info (resolves >99.9% of IDs), and writes symbol-keyed CSVs. A single cancer type can be extracted with `--cancer-type brca` for faster testing.
+The script batch-converts all Entrez IDs to gene symbols via MyGene.info (resolves >99.9% of IDs) and writes symbol-keyed CSVs. A single cancer type can be extracted with `--cancer-type brca` for faster testing. Downloaded `.rda` files are cached in `$TEMP/aracne_zenodo_22918956` (change with `--download-dir`).
+
+#### Alternative inputs
+
+- Files already downloaded from the Zenodo record: `python scripts/extract_tcga_networks.py --rda-dir <folder> --output-dir data/networks/tcga`
+- Bioconductor `aracne.networks` tarball (~213 MB; carries the separate Columbia University license): download `https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz`, then run `python scripts/extract_tcga_networks.py --tarball <path> --output-dir data/networks/tcga`.
+
+The Zenodo and Bioconductor inputs give the same network edges and values; gene-symbol labels for a few dozen genes can differ between runs because MyGene.info updates symbols over time.
 
 ### Network Statistics
 

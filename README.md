@@ -187,7 +187,7 @@ The server provides analysis across several categories:
 
 ### TCGA Tumor-State Networks (use with `network_source="tcga"` + `tcga_network` parameter)
 
-CASCADE supports ARACNe regulatory networks derived from TCGA tumor RNA-seq data (Bioconductor `aracne.networks`, Giorgi; inferred with ARACNe-AP, Lachmann et al. 2016). The network files are **not included in this repository** because their upstream licenses do not permit redistribution; generate them locally with one script (see [Data Setup](#data-setup)). These provide tumor-state regulatory wiring and Mode of Action (MoA) annotations for 14 epithelial-origin cancer types. The MoA sign (+1 activation, −1 repression) is used directly in propagation to determine whether a knockdown or overexpression increases or decreases each target gene.
+CASCADE supports ARACNe regulatory networks derived from TCGA tumor RNA-seq data (Giorgi & Alvarez 2026, Zenodo record 22918956, also distributed as Bioconductor `aracne.networks`; inferred with ARACNe-AP, Lachmann et al. 2016). The network files are **not included in this repository** because their upstream licenses do not permit redistribution; generate them locally with one script that downloads them from Zenodo (see [Data Setup](#data-setup)). These provide tumor-state regulatory wiring and Mode of Action (MoA) annotations for 14 epithelial-origin cancer types. The MoA sign (+1 activation, −1 repression) is used directly in propagation to determine whether a knockdown or overexpression increases or decreases each target gene.
 
 | Key | Cancer Type | Edges |
 |-----|-------------|-------|
@@ -266,13 +266,14 @@ This makes one batch API call to Ensembl per 1,000 genes (~5–10 minutes). The 
 - Download `CRISPRGeneEffect.csv` from the latest DepMap Public release
 - Place it at `data/depmap/CRISPRGeneEffect.csv`
 
-**4. TCGA ARACNe networks** (~213 MB download) — optional; only needed for `network_source="tcga"`. The files are not redistributed with CASCADE (see [License](#license)), so download the Bioconductor package and convert it locally (~5 min, needs internet for Entrez → symbol mapping):
+**4. TCGA ARACNe networks** (~115 MB download) — optional; only needed for `network_source="tcga"`. The files are not redistributed with CASCADE (see [License](#license)), so the script downloads them from the authors' Zenodo record ([10.5281/zenodo.22918956](https://doi.org/10.5281/zenodo.22918956), CC BY-NC-ND 4.0), verifies each file against the record's checksum, and converts them locally (~5 min, needs internet for Entrez → symbol mapping):
 
 ```bash
 pip install rdata
-curl -o aracne.networks.tar.gz https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz
-python scripts/extract_tcga_networks.py --tarball aracne.networks.tar.gz --output-dir data/networks/tcga
+python scripts/extract_tcga_networks.py --output-dir data/networks/tcga
 ```
+
+If you already have the `regulon*.rda` files, pass `--rda-dir <folder>`. The Bioconductor `aracne.networks` tarball is also supported as a fallback with `--tarball` (see [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md)). Keep the generated CSVs local, use them for non-commercial purposes only, and cite the Zenodo record.
 
 Without them, TCGA requests return an error explaining how to generate the files; everything else works.
 
@@ -746,4 +747,4 @@ A `CITATION.cff` file is included for GitHub's citation feature.
 
 ## License
 
-MIT — this covers CASCADE's code. Third-party data keeps its upstream license; see [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md). In particular, the TCGA ARACNe network files are licensed CC BY-NC-ND 4.0 by their authors ([Zenodo record 22918956](https://doi.org/10.5281/zenodo.22918956)): non-commercial use only, and modified versions may not be shared. CASCADE's converted network files are modified versions, so they are not included here. (The Bioconductor `aracne.networks` package, which also contains the files, carries a separate Columbia University license for non-commercial academic research.)
+MIT — this covers CASCADE's code. Third-party data keeps its upstream license; see [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md). In particular, the TCGA ARACNe network files are licensed CC BY-NC-ND 4.0 by their authors ([Zenodo record 22918956](https://doi.org/10.5281/zenodo.22918956)): non-commercial use only, and modified versions may not be shared. CASCADE's converted network files are modified versions, so they are not included here; the setup script downloads the files from the Zenodo record, and the CSVs it generates must stay local. (The Bioconductor `aracne.networks` package, an alternative source for the same files, carries a separate Columbia University license for non-commercial academic research.)

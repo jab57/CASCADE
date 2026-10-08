@@ -17,6 +17,7 @@ The tarball is the Bioconductor experiment data package:
 
 import argparse
 import csv
+import hashlib
 import io
 import json
 import os
@@ -29,6 +30,9 @@ import urllib.error
 from collections import defaultdict
 
 MYGENE_URL = "https://mygene.info/v3/gene"
+
+ZENODO_RECORD_ID = "22918956"
+ZENODO_API_URL = f"https://zenodo.org/api/records/{ZENODO_RECORD_ID}"
 
 # Map from Bioconductor dataset name → our cancer type key
 CANCER_TYPE_MAP = {
@@ -68,13 +72,22 @@ RDA_NAMES = {
 }
 
 
+def _parse_rda_bytes(raw_bytes: bytes, cancer_type: str):
+    """Parse raw .rda bytes into the rdata regulon object for one cancer type."""
+    import rdata
+
+    parsed = rdata.read_rda(io.BytesIO(raw_bytes))
+    var_name = f"regulon{cancer_type}"
+    if var_name in parsed:
+        return parsed[var_name]
+    return next(iter(parsed.values()))
+
+
 def load_rda_from_tarball(tarball_path: str, cancer_type: str):
     """
     Load a single .rda regulon object from inside the tarball.
-    Returns the parsed rdata object (dict of Entrez ID → regulon entries).
+    Returns the parsed rdata object (dict of Entrez ID -> regulon entries).
     """
-    import rdata
-
     rda_name = RDA_NAMES[cancer_type]
     inner_path = f"aracne.networks/data/{rda_name}"
 
@@ -84,11 +97,80 @@ def load_rda_from_tarball(tarball_path: str, cancer_type: str):
         fh = tf.extractfile(member)
         raw_bytes = fh.read()
 
-    parsed = rdata.read_rda(io.BytesIO(raw_bytes))
-    var_name = f"regulon{cancer_type}"
-    if var_name in parsed:
-        return parsed[var_name]
-    return next(iter(parsed.values()))
+    return _parse_rda_bytes(raw_bytes, cancer_type)
+
+
+def load_rda_from_dir(rda_dir: str, cancer_type: str):
+    """Load a single regulon{type}.rda file from a directory of .rda files."""
+    path = os.path.join(rda_dir, RDA_NAMES[cancer_type])
+    print(f"  Reading {path} ...")
+    with open(path, "rb") as fh:
+        raw_bytes = fh.read()
+    return _parse_rda_bytes(raw_bytes, cancer_type)
+
+
+def _md5_of_file(path: str) -> str:
+    digest = hashlib.md5()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def download_from_zenodo(cancer_types: list, dest_dir: str) -> str:
+    """
+    Download regulon{type}.rda files from the Zenodo record into dest_dir,
+    verifying each against the MD5 checksum published in the record.
+    Files already present with a matching checksum are reused.
+    Returns dest_dir. Raises RuntimeError on any download or checksum failure.
+    """
+    print(f"Fetching file list from Zenodo record {ZENODO_RECORD_ID} ...")
+    try:
+        with urllib.request.urlopen(ZENODO_API_URL, timeout=60) as resp:
+            record = json.loads(resp.read())
+    except (urllib.error.URLError, urllib.error.HTTPError) as exc:
+        raise RuntimeError(f"could not reach {ZENODO_API_URL}: {exc}") from exc
+
+    files = {f["key"]: f for f in record.get("files", [])}
+    os.makedirs(dest_dir, exist_ok=True)
+
+    for ct in cancer_types:
+        name = RDA_NAMES[ct]
+        entry = files.get(name)
+        if entry is None:
+            raise RuntimeError(f"{name} not found in Zenodo record {ZENODO_RECORD_ID}")
+        algo, _, expected = entry["checksum"].partition(":")
+        if algo != "md5":
+            raise RuntimeError(f"unexpected checksum type {algo!r} for {name}")
+
+        dest = os.path.join(dest_dir, name)
+        if os.path.exists(dest) and _md5_of_file(dest) == expected:
+            print(f"  {name}: already downloaded, checksum OK")
+            continue
+
+        print(f"  {name}: downloading {entry['size'] / 1e6:.1f} MB ...")
+        tmp = dest + ".part"
+        try:
+            with urllib.request.urlopen(entry["links"]["self"], timeout=120) as resp, \
+                    open(tmp, "wb") as out:
+                while True:
+                    chunk = resp.read(1 << 20)
+                    if not chunk:
+                        break
+                    out.write(chunk)
+        except (urllib.error.URLError, urllib.error.HTTPError) as exc:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+            raise RuntimeError(f"download of {name} failed: {exc}") from exc
+
+        actual = _md5_of_file(tmp)
+        if actual != expected:
+            os.remove(tmp)
+            raise RuntimeError(f"checksum mismatch for {name}: expected {expected}, got {actual}")
+        os.replace(tmp, dest)
+        print(f"  {name}: checksum OK")
+
+    return dest_dir
 
 
 def collect_entrez_ids(networks: dict) -> list:
@@ -230,15 +312,24 @@ def write_csv(edges: list, output_path: str) -> None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Extract TCGA ARACNe networks from Bioconductor tarball to CSV."
+        description="Extract TCGA ARACNe networks (Zenodo record 22918956 by default) to CSV."
+    )
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument(
+        "--rda-dir",
+        default=None,
+        help="Directory of regulon{type}.rda files already downloaded from the Zenodo record",
+    )
+    source.add_argument(
+        "--tarball",
+        default=None,
+        help="Path to the Bioconductor aracne.networks tarball (fallback source)",
     )
     parser.add_argument(
-        "--tarball",
-        default=os.path.join(
-            os.environ.get("TEMP", "/tmp"),
-            "aracne.networks.tar.gz"
-        ),
-        help="Path to aracne.networks tarball (default: $TEMP/aracne.networks.tar.gz)",
+        "--download-dir",
+        default=os.path.join(os.environ.get("TEMP", "/tmp"), "aracne_zenodo_22918956"),
+        help="Where Zenodo files are downloaded when neither --rda-dir nor --tarball "
+             "is given (default: $TEMP/aracne_zenodo_22918956)",
     )
     parser.add_argument(
         "--output-dir",
@@ -249,24 +340,44 @@ def main():
         "--cancer-type",
         choices=list(CANCER_TYPE_MAP.keys()),
         default=None,
-        help="Process only one cancer type (default: all 8)",
+        help="Process only one cancer type (default: all 14)",
     )
     args = parser.parse_args()
 
-    if not os.path.exists(args.tarball):
-        print(f"ERROR: tarball not found: {args.tarball}")
-        print("Download from:")
-        print("  https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz")
-        sys.exit(1)
-
     cancer_types = [args.cancer_type] if args.cancer_type else list(CANCER_TYPE_MAP.keys())
 
-    # Step 1: Load all requested networks from tarball
-    print(f"\nLoading {len(cancer_types)} network(s) from tarball ...")
+    # Step 0: choose the input source (Zenodo unless told otherwise)
+    if args.tarball:
+        if not os.path.exists(args.tarball):
+            print(f"ERROR: tarball not found: {args.tarball}")
+            print("Download from:")
+            print("  https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz")
+            sys.exit(1)
+        load_one = lambda ct: load_rda_from_tarball(args.tarball, ct)
+        source_label = "tarball"
+    else:
+        rda_dir = args.rda_dir
+        if rda_dir is None:
+            try:
+                rda_dir = download_from_zenodo(cancer_types, args.download_dir)
+            except RuntimeError as exc:
+                print(f"ERROR: {exc}")
+                print("Download the regulon*.rda files manually from "
+                      f"https://doi.org/10.5281/zenodo.{ZENODO_RECORD_ID} and pass --rda-dir,")
+                print("or use --tarball with the Bioconductor aracne.networks package.")
+                sys.exit(1)
+        elif not os.path.isdir(rda_dir):
+            print(f"ERROR: --rda-dir is not a directory: {rda_dir}")
+            sys.exit(1)
+        load_one = lambda ct: load_rda_from_dir(rda_dir, ct)
+        source_label = f"Zenodo files in {rda_dir}"
+
+    # Step 1: Load all requested networks
+    print(f"\nLoading {len(cancer_types)} network(s) from {source_label} ...")
     networks = {}
     for ct in cancer_types:
         try:
-            networks[ct] = load_rda_from_tarball(args.tarball, ct)
+            networks[ct] = load_one(ct)
             print(f"  {ct}: {len(networks[ct]):,} regulators loaded")
         except Exception as exc:
             print(f"  ERROR loading {ct}: {exc}")
