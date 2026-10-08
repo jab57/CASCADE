@@ -515,7 +515,7 @@ The primary source is the authors' Zenodo record (22918956, CC BY-NC-ND 4.0). Th
 #### Step 1: Install required Python packages
 
 ```bash
-pip install rdata
+pip install rdata==1.1.0
 ```
 
 #### Step 2: Extract network CSVs

@@ -24,7 +24,7 @@ What it does:
      reproduces exactly the networks used by CASCADE and its paper.
 
 Usage:
-    pip install rdata
+    pip install rdata==1.1.0
     python scripts/extract_tcga_networks.py --accept-license
     python scripts/extract_tcga_networks.py --accept-license --cancer-type brca coad
     python scripts/extract_tcga_networks.py --accept-license --rda-dir /path/to/rda_files
@@ -346,7 +346,7 @@ def main() -> None:
     try:
         import rdata  # noqa: F401
     except ImportError:
-        sys.exit('ERROR: this script needs the "rdata" package: pip install rdata')
+        sys.exit('ERROR: this script needs the "rdata" package: pip install rdata==1.1.0')
 
     maps = load_symbol_maps()
     types = args.cancer_type or list(CANCER_TYPE_MAP)

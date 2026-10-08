@@ -95,7 +95,8 @@ def load_tcga_network(cancer_type: str) -> pd.DataFrame:
     if not csv_path.exists():
         return {"error": f"TCGA network file not found: {csv_path}. "
                          "TCGA networks are not redistributed with CASCADE (upstream license); "
-                         "generate them locally with scripts/extract_tcga_networks.py "
+                         "install them locally with: python scripts/extract_tcga_networks.py "
+                         f"--accept-license --cancer-type {cancer_type} "
                          "(see docs/DATA_SOURCES.md, 'How to Generate from Source')."}
 
     cache_key = str(csv_path.resolve())

@@ -269,7 +269,7 @@ This makes one batch API call to Ensembl per 1,000 genes (~5–10 minutes). The 
 **4. TCGA ARACNe networks** (~115 MB download) — optional; only needed for `network_source="tcga"`. The files are not redistributed with CASCADE (see [License](#license)), so the script downloads them from the authors' Zenodo record ([10.5281/zenodo.22918956](https://doi.org/10.5281/zenodo.22918956), CC BY-NC-ND 4.0), verifies each file against a stored SHA-256, converts them locally with a frozen gene-symbol mapping (`scripts/data/tcga_entrez_to_symbol.json.gz`), and installs each network only if its checksum matches, so every install is identical to the networks used in CASCADE's paper (~1 min). The license notice is shown and `--accept-license` is required:
 
 ```bash
-pip install rdata
+pip install rdata==1.1.0
 python scripts/extract_tcga_networks.py --accept-license --output-dir data/networks/tcga
 ```
 

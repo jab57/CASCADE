@@ -25,3 +25,6 @@ python-dotenv==1.2.1
 
 # Optional: torch-geometric for graph operations
 # torch-geometric>=2.7
+
+# Optional: TCGA network installer (scripts/extract_tcga_networks.py); same pin as RegNetAgents
+rdata==1.1.0
