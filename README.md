@@ -273,7 +273,7 @@ pip install rdata==1.1.0
 python scripts/extract_tcga_networks.py --accept-license --output-dir data/networks/tcga
 ```
 
-If you already have the `regulon*.rda` files, pass `--rda-dir <folder>`. The Bioconductor `aracne.networks` tarball is also supported as a fallback with `--source bioconductor` or `--tarball` (see [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md)). Keep the generated CSVs local, use them for non-commercial purposes only, and cite the Zenodo record.
+If you already have the `regulon*.rda` files, pass `--rda-dir <folder>`. The Bioconductor `aracne.networks` tarball is also supported as a fallback with `--source bioconductor` or `--tarball` (see [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md)). Keep the generated CSVs local, use them for non-commercial purposes only, and cite the Zenodo record. `verify_installation.py` reports the number of TCGA networks installed and a SKIP (not a failure) if they are absent.
 
 Without them, TCGA requests return an error explaining how to generate the files; everything else works.
 

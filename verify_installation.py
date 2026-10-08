@@ -5,10 +5,11 @@ Runs a series of checks to confirm that the CASCADE MCP server
 is correctly installed and functional:
   1. Core dependency imports
   2. Network file loading (all 10 cell types)
-  3. Model checkpoint loading
-  4. Gene ID mapping (requires internet; skip with --offline)
-  5. Perturbation analysis
-  6. Embedding similarity search
+  3. TCGA tumor-state networks (optional; reported, never a failure)
+  4. Model checkpoint loading
+  5. Gene ID mapping (requires internet; skip with --offline)
+  6. Perturbation analysis
+  7. Embedding similarity search
 
 Usage:
     python verify_installation.py            # full check
@@ -106,7 +107,8 @@ def check_networks() -> tuple[int, int]:
         _fail(f"Networks directory not found: {NETWORKS_DIR}")
         return 0, 1
 
-    cell_types = sorted(p.name for p in NETWORKS_DIR.iterdir() if p.is_dir())
+    # data/networks/tcga holds optional TCGA CSVs, not a GREmLN cell type (see check_tcga_networks)
+    cell_types = sorted(p.name for p in NETWORKS_DIR.iterdir() if p.is_dir() and p.name != "tcga")
     if not cell_types:
         _fail("No cell-type directories found")
         return 0, 1
@@ -127,6 +129,27 @@ def check_networks() -> tuple[int, int]:
             failed += 1
 
     return passed, failed
+
+
+def check_tcga_networks() -> tuple[int, int]:
+    """Optional: report which TCGA tumor-state networks are installed (never a failure)."""
+    try:
+        from tools.loader import TCGA_NETWORKS_DIR, VALID_TCGA_CANCER_TYPES
+    except Exception as exc:
+        _fail(f"TCGA networks — import error: {exc}")
+        return 0, 1
+
+    installed = [ct for ct in sorted(VALID_TCGA_CANCER_TYPES)
+                 if (TCGA_NETWORKS_DIR / ct / "network.csv").exists()]
+    total = len(VALID_TCGA_CANCER_TYPES)
+    if len(installed) == total:
+        _pass(f"TCGA networks (optional): all {total} installed")
+        return 1, 0
+
+    _skip(f"TCGA networks (optional): {len(installed)}/{total} installed. They are not included "
+          "with CASCADE (aracne.networks license); only network_source=\"tcga\" needs them. "
+          "Install with: python scripts/extract_tcga_networks.py --accept-license")
+    return 1, 0  # Missing optional data is not a failure
 
 
 def check_model() -> tuple[int, int]:
@@ -323,6 +346,11 @@ def main() -> int:
 
     # 2. Networks
     p, f = check_networks()
+    total_passed += p
+    total_failed += f
+
+    # 2b. TCGA tumor-state networks (optional)
+    p, f = check_tcga_networks()
     total_passed += p
     total_failed += f
 
