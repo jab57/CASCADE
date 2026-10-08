@@ -510,7 +510,7 @@ TP53,MDM2,-1.0,0.251
 
 ### How to Generate from Source
 
-The primary source is the authors' Zenodo record (22918956, CC BY-NC-ND 4.0). The script downloads the 14 `regulon{type}.rda` files (~115 MB), verifies each against the MD5 checksum published in the record, and converts them to the CSVs CASCADE reads.
+The primary source is the authors' Zenodo record (22918956, CC BY-NC-ND 4.0). The script downloads the 14 `regulon{type}.rda` files (~115 MB), verifies each against the MD5 checksum published in the record and against a stored SHA-256, converts Entrez IDs to gene symbols with a frozen mapping (`scripts/data/tcga_entrez_to_symbol.json.gz`; gene identifiers only, no network data), and installs each CSV only if its SHA-256 matches the expected value. Every install is therefore byte-identical to the networks used in CASCADE and its paper.
 
 #### Step 1: Install required Python packages
 
@@ -521,18 +521,18 @@ pip install rdata
 #### Step 2: Extract network CSVs
 
 ```bash
-# Downloads from Zenodo, then converts Entrez IDs → gene symbols via MyGene.info (~5 min, requires internet)
-python scripts/extract_tcga_networks.py --output-dir data/networks/tcga
+# Shows the license notice; --accept-license confirms you have read it and your use complies
+python scripts/extract_tcga_networks.py --accept-license --output-dir data/networks/tcga
 ```
 
-The script batch-converts all Entrez IDs to gene symbols via MyGene.info (resolves >99.9% of IDs) and writes symbol-keyed CSVs. A single cancer type can be extracted with `--cancer-type brca` for faster testing. Downloaded `.rda` files are cached in `$TEMP/aracne_zenodo_22918956` (change with `--download-dir`).
+A subset can be installed with `--cancer-type brca coad`. Downloaded `.rda` files are cached in `$TEMP/aracne_zenodo_22918956` (change with `--download-dir`). If a source file or a rebuilt CSV does not match its expected checksum, that network is not installed and the script exits with an error.
 
 #### Alternative inputs
 
-- Files already downloaded from the Zenodo record: `python scripts/extract_tcga_networks.py --rda-dir <folder> --output-dir data/networks/tcga`
-- Bioconductor `aracne.networks` tarball (~213 MB; carries the separate Columbia University license): download `https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz`, then run `python scripts/extract_tcga_networks.py --tarball <path> --output-dir data/networks/tcga`.
+- Files already downloaded from the Zenodo record: `python scripts/extract_tcga_networks.py --accept-license --rda-dir <folder> --output-dir data/networks/tcga`
+- Bioconductor `aracne.networks` tarball (~213 MB; carries the separate Columbia University license): download `https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz`, then run `python scripts/extract_tcga_networks.py --accept-license --tarball <path> --output-dir data/networks/tcga`. Without `--tarball`, `--source bioconductor` downloads the pinned tarball itself.
 
-The Zenodo and Bioconductor inputs give the same network edges and values; gene-symbol labels for a few dozen genes can differ between runs because MyGene.info updates symbols over time.
+The Zenodo and Bioconductor inputs give identical networks (the same SHA-256 per file).
 
 ### Network Statistics
 

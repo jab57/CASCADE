@@ -1,40 +1,67 @@
 #!/usr/bin/env python3
 """
-Extract TCGA ARACNe networks from Bioconductor aracne.networks tarball
-and write CSVs compatible with CASCADE's load_tcga_network() loader.
+Install the TCGA ARACNe tumor-state networks used by CASCADE.
+
+The networks are the data files of the Bioconductor package ``aracne.networks``
+(Giorgi & Alvarez). Their authors publish the files on Zenodo
+(https://doi.org/10.5281/zenodo.22918956) under CC BY-NC-ND 4.0 (attribution,
+non-commercial use, no sharing of modified versions). CASCADE does not ship these
+networks: this script downloads them from the official source and builds the CSVs
+that load_tcga_network() reads, locally.
+
+What it does:
+  1. Shows the license notice and requires --accept-license.
+  2. Downloads the 14 regulon{type}.rda files from the Zenodo record (default),
+     reads them from a directory (--rda-dir), or reads them from a Bioconductor
+     aracne.networks 1.36.0/1.38.0 tarball (--source bioconductor or --tarball),
+     which carries the package's Columbia license.
+  3. Checks each .rda against the SHA-256 recorded in scripts/data/
+     tcga_entrez_to_symbol.json.gz (identical in the Zenodo record and in
+     aracne.networks 1.36.0 and 1.38.0).
+  4. Converts Entrez IDs to gene symbols with that file's frozen mapping (no
+     network call), builds the network CSV, checks its SHA-256, and only then
+     moves it to data/networks/tcga/<type>/network.csv, so every install
+     reproduces exactly the networks used by CASCADE and its paper.
 
 Usage:
-    python scripts/extract_tcga_networks.py \
-        --tarball /path/to/aracne.networks_1.38.0.tar.gz \
-        --output-dir data/networks/tcga
-
-Requires:
-    pip install rdata requests
-
-The tarball is the Bioconductor experiment data package:
-    https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz
+    pip install rdata
+    python scripts/extract_tcga_networks.py --accept-license
+    python scripts/extract_tcga_networks.py --accept-license --cancer-type brca coad
+    python scripts/extract_tcga_networks.py --accept-license --rda-dir /path/to/rda_files
+    python scripts/extract_tcga_networks.py --accept-license --source bioconductor
+    python scripts/extract_tcga_networks.py --accept-license --tarball aracne.networks_1.38.0.tar.gz
 """
 
 import argparse
 import csv
+import gzip
 import hashlib
 import io
 import json
 import os
 import sys
 import tarfile
-import time
-import urllib.request
-import urllib.parse
+import tempfile
 import urllib.error
-from collections import defaultdict
-
-MYGENE_URL = "https://mygene.info/v3/gene"
+import urllib.request
 
 ZENODO_RECORD_ID = "22918956"
+ZENODO_RECORD = f"https://doi.org/10.5281/zenodo.{ZENODO_RECORD_ID}"
 ZENODO_API_URL = f"https://zenodo.org/api/records/{ZENODO_RECORD_ID}"
+ZENODO_LICENSE_URL = "https://creativecommons.org/licenses/by-nc-nd/4.0/"
+BIOC_LICENSE_URL = ("https://bioconductor.org/packages/release/data/experiment/"
+                    "licenses/aracne.networks/LICENSE")
+# Version-pinned Bioconductor URLs (the generic "release/" URL changes at every
+# Bioconductor release). Network data are identical in 1.36.0 and 1.38.0; from 1.39.x
+# the package no longer contains the .rda data files.
+DOWNLOAD_URLS = [
+    "https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz",
+    "https://bioconductor.org/packages/3.22/data/experiment/src/contrib/aracne.networks_1.36.0.tar.gz",
+]
+MAP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data",
+                        "tcga_entrez_to_symbol.json.gz")
 
-# Map from Bioconductor dataset name → our cancer type key
+# Map from Bioconductor dataset name -> our cancer type key
 CANCER_TYPE_MAP = {
     "blca": "blca",
     "brca": "brca",
@@ -52,27 +79,59 @@ CANCER_TYPE_MAP = {
     "ucec": "ucec",
 }
 
-# Known .rda filenames inside the package (data/ directory)
-# Format: aracne.networks/data/regulon{ct}.rda, variable name: regulon{ct}
-RDA_NAMES = {
-    "blca": "regulonblca.rda",
-    "brca": "regulonbrca.rda",
-    "cesc": "reguloncesc.rda",
-    "coad": "reguloncoad.rda",
-    "hnsc": "regulonhnsc.rda",
-    "kirc": "regulonkirc.rda",
-    "lihc": "regulonlihc.rda",
-    "luad": "regulonluad.rda",
-    "lusc": "regulonlusc.rda",
-    "ov":   "regulonov.rda",
-    "paad": "regulonpaad.rda",
-    "prad": "regulonprad.rda",
-    "stad": "regulonstad.rda",
-    "ucec": "regulonucec.rda",
+# Known .rda filenames (Zenodo record root; aracne.networks/data/ in the tarball)
+# Format: regulon{ct}.rda, variable name: regulon{ct}
+RDA_NAMES = {ct: f"regulon{ct}.rda" for ct in CANCER_TYPE_MAP}
+
+LICENSE_NOTICE = {
+    "zenodo": f"""
+The TCGA networks are the data files of the Bioconductor package aracne.networks
+(Giorgi FM, Alvarez MJ), published by its authors on Zenodo ({ZENODO_RECORD})
+under the Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 license
+(CC BY-NC-ND 4.0). In summary (read the full text before continuing): credit the
+authors and the record; non-commercial use only; do not share modified versions of
+the networks (the CSVs this script builds are for your own use).
+
+Full license: {ZENODO_LICENSE_URL}
+
+CASCADE does not redistribute these networks. By passing --accept-license you
+confirm that you have read the license and that your use complies with it.
+""",
+    "bioconductor": f"""
+The TCGA networks come from the Bioconductor package aracne.networks, distributed
+under a Columbia University software evaluation license. In summary (read the full
+text before continuing): use is limited to non-commercial academic or educational
+research; you may not redistribute the package or make it available to third
+parties; commercial use requires a license from Columbia University. The same
+network data are also available under CC BY-NC-ND 4.0 (--source zenodo, the default).
+
+Full license: {BIOC_LICENSE_URL}
+
+CASCADE does not redistribute these networks. By passing --accept-license you
+confirm that you have read the license and that your use complies with it.
+""",
 }
 
 
-def _parse_rda_bytes(raw_bytes: bytes, cancer_type: str):
+def sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def load_symbol_maps() -> dict:
+    """Load the frozen Entrez -> symbol mapping and per-network checksums."""
+    with gzip.open(MAP_PATH, "rt", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def symbol_map_for(data: dict, cancer_type: str) -> dict:
+    t = data["types"][cancer_type]
+    unmapped = set(t["unmapped"])
+    m = {e: s for e, s in data["base"].items() if e not in unmapped}
+    m.update(t["override"])
+    return m
+
+
+def parse_rda_bytes(raw_bytes: bytes, cancer_type: str):
     """Parse raw .rda bytes into the rdata regulon object for one cancer type."""
     import rdata
 
@@ -83,30 +142,18 @@ def _parse_rda_bytes(raw_bytes: bytes, cancer_type: str):
     return next(iter(parsed.values()))
 
 
-def load_rda_from_tarball(tarball_path: str, cancer_type: str):
-    """
-    Load a single .rda regulon object from inside the tarball.
-    Returns the parsed rdata object (dict of Entrez ID -> regulon entries).
-    """
-    rda_name = RDA_NAMES[cancer_type]
-    inner_path = f"aracne.networks/data/{rda_name}"
-
-    print(f"  Reading {inner_path} from tarball ...")
-    with tarfile.open(tarball_path, "r:gz") as tf:
-        member = tf.getmember(inner_path)
-        fh = tf.extractfile(member)
-        raw_bytes = fh.read()
-
-    return _parse_rda_bytes(raw_bytes, cancer_type)
-
-
-def load_rda_from_dir(rda_dir: str, cancer_type: str):
-    """Load a single regulon{type}.rda file from a directory of .rda files."""
+def read_rda_from_dir(rda_dir: str, cancer_type: str) -> bytes:
+    """Read one regulon{type}.rda file from a directory of .rda files."""
     path = os.path.join(rda_dir, RDA_NAMES[cancer_type])
     print(f"  Reading {path} ...")
     with open(path, "rb") as fh:
-        raw_bytes = fh.read()
-    return _parse_rda_bytes(raw_bytes, cancer_type)
+        return fh.read()
+
+
+def read_rda_from_tarball(tf: tarfile.TarFile, cancer_type: str) -> bytes:
+    """Read one .rda file from an open aracne.networks tarball."""
+    member = tf.extractfile(f"aracne.networks/data/{RDA_NAMES[cancer_type]}")
+    return member.read() if member else b""
 
 
 def _md5_of_file(path: str) -> str:
@@ -173,86 +220,17 @@ def download_from_zenodo(cancer_types: list, dest_dir: str) -> str:
     return dest_dir
 
 
-def collect_entrez_ids(networks: dict) -> list:
-    """Collect all unique Entrez IDs across all loaded networks."""
-    all_ids = set()
-    for cancer_type, regulon in networks.items():
-        for reg_id, reg_data in regulon.items():
-            all_ids.add(str(reg_id))
-            try:
-                targets = list(reg_data["tfmode"].coords[
-                    list(reg_data["tfmode"].dims)[0]
-                ].values)
-                for t in targets:
-                    all_ids.add(str(t))
-            except Exception:
-                pass
-    return sorted(all_ids)
-
-
-def entrez_to_symbol_batch(entrez_ids: list, batch_size: int = 1000) -> dict:
-    """
-    Convert Entrez IDs → gene symbols via MyGene.info batch POST.
-    Returns dict: entrez_id_str → symbol.
-    """
-    print(f"Converting {len(entrez_ids):,} Entrez IDs to symbols via MyGene.info ...")
-    id_to_symbol = {}
-    unresolved = []
-
-    for i in range(0, len(entrez_ids), batch_size):
-        batch = [str(x) for x in entrez_ids[i:i + batch_size]]
-        batch_num = i // batch_size + 1
-        total_batches = (len(entrez_ids) + batch_size - 1) // batch_size
-        print(f"  Batch {batch_num}/{total_batches} ({len(batch)} IDs) ...", end=" ", flush=True)
-
-        payload = json.dumps({
-            "ids": batch,
-            "fields": "symbol",
-            "species": "human",
-        }).encode("utf-8")
-
-        req = urllib.request.Request(
-            MYGENE_URL,
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
+def download_bioconductor_tarball(dest: str) -> str:
+    """Download the pinned aracne.networks tarball, trying each pinned URL in turn."""
+    for url in DOWNLOAD_URLS:
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                hits = json.loads(resp.read())
-        except urllib.error.HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="replace")
-            print(f"HTTP {exc.code}: {body[:200]}")
-            continue
-        except urllib.error.URLError as exc:
-            print(f"URLError: {exc}")
-            continue
-
-        resolved_this_batch = 0
-        for hit in hits:
-            entrez_str = str(hit.get("query", ""))
-            if hit.get("notfound"):
-                unresolved.append(entrez_str)
-                continue
-            symbol = hit.get("symbol", "")
-            if symbol:
-                id_to_symbol[entrez_str] = symbol.upper()
-                resolved_this_batch += 1
-            else:
-                unresolved.append(entrez_str)
-
-        print(f"resolved {resolved_this_batch}/{len(batch)}")
-
-        if i + batch_size < len(entrez_ids):
-            time.sleep(0.3)
-
-    total = len(entrez_ids)
-    n_resolved = len(id_to_symbol)
-    rate = n_resolved / total if total else 0
-    print(f"  Total resolved: {n_resolved:,}/{total:,} ({rate:.1%})")
-    if unresolved[:20]:
-        print(f"  Unresolved sample: {unresolved[:20]}")
-    return id_to_symbol
+            print(f"Downloading {url} ...")
+            urllib.request.urlretrieve(url, dest)
+            return dest
+        except Exception as exc:  # try the next mirror/version
+            print(f"  failed: {exc}")
+    sys.exit("ERROR: could not download aracne.networks. Download it manually from "
+             "https://bioconductor.org/packages/aracne.networks and pass --tarball.")
 
 
 def regulon_to_edges(regulon, id_to_symbol: dict):
@@ -300,114 +278,145 @@ def regulon_to_edges(regulon, id_to_symbol: dict):
     return edges, skipped
 
 
-def write_csv(edges: list, output_path: str) -> None:
-    """Write edges to CSV with columns: Regulator, Target, MoA, Likelihood."""
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, "w", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=["Regulator", "Target", "MoA", "Likelihood"])
+def write_csv(edges: list, path: str) -> bytes:
+    """Write edges to CSV (columns: Regulator, Target, MoA, Likelihood); return its bytes."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=["Regulator", "Target", "MoA", "Likelihood"],
+                                lineterminator="\r\n")
         writer.writeheader()
         writer.writerows(edges)
-    print(f"  Wrote {len(edges):,} edges -> {output_path}")
+    with open(path, "rb") as fh:
+        return fh.read()
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Extract TCGA ARACNe networks (Zenodo record 22918956 by default) to CSV."
-    )
-    source = parser.add_mutually_exclusive_group()
-    source.add_argument(
-        "--rda-dir",
-        default=None,
-        help="Directory of regulon{type}.rda files already downloaded from the Zenodo record",
-    )
-    source.add_argument(
-        "--tarball",
-        default=None,
-        help="Path to the Bioconductor aracne.networks tarball (fallback source)",
-    )
-    parser.add_argument(
-        "--download-dir",
-        default=os.path.join(os.environ.get("TEMP", "/tmp"), "aracne_zenodo_22918956"),
-        help="Where Zenodo files are downloaded when neither --rda-dir nor --tarball "
-             "is given (default: $TEMP/aracne_zenodo_22918956)",
-    )
-    parser.add_argument(
-        "--output-dir",
-        default="data/networks/tcga",
-        help="Root output directory (default: data/networks/tcga)",
-    )
-    parser.add_argument(
-        "--cancer-type",
-        choices=list(CANCER_TYPE_MAP.keys()),
-        default=None,
-        help="Process only one cancer type (default: all 14)",
-    )
-    args = parser.parse_args()
+def install_csv(edges: list, path: str, expected_sha256: str) -> bool:
+    """Write the network CSV to a temp file and move it to ``path`` only if its
+    SHA-256 matches. On a mismatch no new file is written to ``path`` (an
+    earlier verified file there is left untouched)."""
+    tmp_path = path + ".tmp"
+    try:
+        written = write_csv(edges, tmp_path)
+        if sha256(written) != expected_sha256:
+            return False
+        os.replace(tmp_path, path)
+        return True
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
-    cancer_types = [args.cancer_type] if args.cancer_type else list(CANCER_TYPE_MAP.keys())
 
-    # Step 0: choose the input source (Zenodo unless told otherwise)
+def main() -> None:
+    ap = argparse.ArgumentParser(
+        description="Install the TCGA ARACNe networks (aracne.networks data) for CASCADE."
+    )
+    ap.add_argument("--accept-license", action="store_true",
+                    help="Confirm you have read and comply with the license of the chosen source.")
+    ap.add_argument("--source", choices=["zenodo", "bioconductor"], default="zenodo",
+                    help="Zenodo record (CC BY-NC-ND 4.0, default) or Bioconductor tarball "
+                         "(Columbia license).")
+    ap.add_argument("--rda-dir", default=None,
+                    help="Directory of regulon{type}.rda files already downloaded from the "
+                         "Zenodo record (implies --source zenodo, no download).")
+    ap.add_argument("--tarball", default=None,
+                    help="Use a local aracne.networks_*.tar.gz (implies --source bioconductor).")
+    ap.add_argument("--download-dir",
+                    default=os.path.join(os.environ.get("TEMP", "/tmp"), "aracne_zenodo_22918956"),
+                    help="Where Zenodo files are cached when downloading "
+                         "(default: $TEMP/aracne_zenodo_22918956)")
+    ap.add_argument("--cancer-type", nargs="+", choices=list(CANCER_TYPE_MAP), metavar="TYPE",
+                    help=f"Only these types (default: all 14): {', '.join(CANCER_TYPE_MAP)}")
+    ap.add_argument("--output-dir", default="data/networks/tcga",
+                    help="Root output directory (default: data/networks/tcga)")
+    ap.add_argument("--keep-tarball", action="store_true",
+                    help="Do not delete a downloaded Bioconductor tarball.")
+    args = ap.parse_args()
+
+    if args.rda_dir and args.tarball:
+        ap.error("--rda-dir and --tarball are mutually exclusive")
     if args.tarball:
-        if not os.path.exists(args.tarball):
-            print(f"ERROR: tarball not found: {args.tarball}")
-            print("Download from:")
-            print("  https://bioconductor.org/packages/3.23/data/experiment/src/contrib/aracne.networks_1.38.0.tar.gz")
-            sys.exit(1)
-        load_one = lambda ct: load_rda_from_tarball(args.tarball, ct)
-        source_label = "tarball"
-    else:
-        rda_dir = args.rda_dir
-        if rda_dir is None:
+        args.source = "bioconductor"
+    if args.rda_dir:
+        args.source = "zenodo"
+
+    print(LICENSE_NOTICE[args.source])
+    if not args.accept_license:
+        sys.exit("Not accepted: re-run with --accept-license once you have read the license.")
+
+    try:
+        import rdata  # noqa: F401
+    except ImportError:
+        sys.exit('ERROR: this script needs the "rdata" package: pip install rdata')
+
+    maps = load_symbol_maps()
+    types = args.cancer_type or list(CANCER_TYPE_MAP)
+
+    # Source data: the .rda bytes of each requested network.
+    raw = {}
+    tmpdir = None
+    tarball = args.tarball
+    try:
+        if args.source == "zenodo":
+            rda_dir = args.rda_dir
+            if rda_dir is None:
+                try:
+                    rda_dir = download_from_zenodo(types, args.download_dir)
+                except RuntimeError as exc:
+                    sys.exit(f"ERROR: {exc}\nDownload the regulon*.rda files manually from "
+                             f"{ZENODO_RECORD} and pass --rda-dir, or use --source bioconductor.")
+            elif not os.path.isdir(rda_dir):
+                sys.exit(f"ERROR: --rda-dir is not a directory: {rda_dir}")
+            for ct in types:
+                try:
+                    raw[ct] = read_rda_from_dir(rda_dir, ct)
+                except OSError as exc:
+                    sys.exit(f"ERROR: could not read {RDA_NAMES[ct]} ({exc}).")
+        else:
+            if not tarball:
+                tmpdir = tempfile.mkdtemp(prefix="aracne_networks_")
+                tarball = download_bioconductor_tarball(os.path.join(tmpdir, "aracne.networks.tar.gz"))
+            elif not os.path.exists(tarball):
+                sys.exit(f"ERROR: tarball not found: {tarball}\nDownload from:\n  {DOWNLOAD_URLS[0]}")
+            with tarfile.open(tarball, "r:gz") as tf:
+                names = set(tf.getnames())
+                missing = [ct for ct in types if f"aracne.networks/data/{RDA_NAMES[ct]}" not in names]
+                if missing:
+                    sys.exit("ERROR: this aracne.networks tarball has no network data files "
+                             f"({', '.join(missing)}). Use version 1.36.0 or 1.38.0, e.g.\n  "
+                             + DOWNLOAD_URLS[0] + "\nor use --source zenodo.")
+                for ct in types:
+                    raw[ct] = read_rda_from_tarball(tf, ct)
+    finally:
+        if tmpdir and not args.keep_tarball:
             try:
-                rda_dir = download_from_zenodo(cancer_types, args.download_dir)
-            except RuntimeError as exc:
-                print(f"ERROR: {exc}")
-                print("Download the regulon*.rda files manually from "
-                      f"https://doi.org/10.5281/zenodo.{ZENODO_RECORD_ID} and pass --rda-dir,")
-                print("or use --tarball with the Bioconductor aracne.networks package.")
-                sys.exit(1)
-        elif not os.path.isdir(rda_dir):
-            print(f"ERROR: --rda-dir is not a directory: {rda_dir}")
-            sys.exit(1)
-        load_one = lambda ct: load_rda_from_dir(rda_dir, ct)
-        source_label = f"Zenodo files in {rda_dir}"
+                os.remove(tarball)
+                os.rmdir(tmpdir)
+            except OSError:
+                pass
 
-    # Step 1: Load all requested networks
-    print(f"\nLoading {len(cancer_types)} network(s) from {source_label} ...")
-    networks = {}
-    for ct in cancer_types:
-        try:
-            networks[ct] = load_one(ct)
-            print(f"  {ct}: {len(networks[ct]):,} regulators loaded")
-        except Exception as exc:
-            print(f"  ERROR loading {ct}: {exc}")
-
-    if not networks:
-        print("No networks loaded. Exiting.")
-        sys.exit(1)
-
-    # Step 2: Collect all unique Entrez IDs
-    all_entrez = collect_entrez_ids(networks)
-    print(f"\nTotal unique Entrez IDs: {len(all_entrez):,}")
-
-    # Step 3: Batch convert Entrez → symbol
-    id_to_symbol = entrez_to_symbol_batch(all_entrez)
-
-    if not id_to_symbol:
-        print("ERROR: No symbols resolved. Check network connectivity.")
-        sys.exit(1)
-
-    # Step 4: Convert each network to edges and write CSV
-    print(f"\nConverting and writing CSVs ...")
-    for ct, regulon in networks.items():
-        print(f"\n  Processing {ct} ...")
-        edges, skipped = regulon_to_edges(regulon, id_to_symbol)
-        print(f"  {ct}: {len(edges):,} edges, {skipped:,} endpoints skipped (no symbol)")
-
+    failures = []
+    for ct in types:
+        expected = maps["types"][ct]
+        print(f"\n[{ct}] checking source data ...")
+        if sha256(raw[ct]) != expected["rda_sha256"]:
+            failures.append(ct)
+            print(f"  ERROR: {RDA_NAMES[ct]} differs from the version CASCADE was built "
+                  "with; skipping (results would not match).")
+            continue
+        regulon = parse_rda_bytes(raw[ct], ct)
+        edges, skipped = regulon_to_edges(regulon, symbol_map_for(maps, ct))
         csv_path = os.path.join(args.output_dir, ct, "network.csv")
-        write_csv(edges, csv_path)
+        if not install_csv(edges, csv_path, expected["csv_sha256"]):
+            failures.append(ct)
+            print(f"  ERROR: rebuilt {csv_path} does not match the expected checksum; "
+                  "not installed.")
+            continue
+        print(f"  {len(edges):,} edges, {skipped:,} endpoints skipped (no symbol) -> "
+              f"{csv_path} (checksum verified)")
 
-    print("\nDone.")
+    if failures:
+        sys.exit(f"\nFAILED for: {', '.join(failures)}")
+    print(f"\nTCGA networks installed: {', '.join(types)}")
 
 
 if __name__ == "__main__":

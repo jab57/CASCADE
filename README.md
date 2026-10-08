@@ -266,14 +266,14 @@ This makes one batch API call to Ensembl per 1,000 genes (~5–10 minutes). The 
 - Download `CRISPRGeneEffect.csv` from the latest DepMap Public release
 - Place it at `data/depmap/CRISPRGeneEffect.csv`
 
-**4. TCGA ARACNe networks** (~115 MB download) — optional; only needed for `network_source="tcga"`. The files are not redistributed with CASCADE (see [License](#license)), so the script downloads them from the authors' Zenodo record ([10.5281/zenodo.22918956](https://doi.org/10.5281/zenodo.22918956), CC BY-NC-ND 4.0), verifies each file against the record's checksum, and converts them locally (~5 min, needs internet for Entrez → symbol mapping):
+**4. TCGA ARACNe networks** (~115 MB download) — optional; only needed for `network_source="tcga"`. The files are not redistributed with CASCADE (see [License](#license)), so the script downloads them from the authors' Zenodo record ([10.5281/zenodo.22918956](https://doi.org/10.5281/zenodo.22918956), CC BY-NC-ND 4.0), verifies each file against a stored SHA-256, converts them locally with a frozen gene-symbol mapping (`scripts/data/tcga_entrez_to_symbol.json.gz`), and installs each network only if its checksum matches, so every install is identical to the networks used in CASCADE's paper (~1 min). The license notice is shown and `--accept-license` is required:
 
 ```bash
 pip install rdata
-python scripts/extract_tcga_networks.py --output-dir data/networks/tcga
+python scripts/extract_tcga_networks.py --accept-license --output-dir data/networks/tcga
 ```
 
-If you already have the `regulon*.rda` files, pass `--rda-dir <folder>`. The Bioconductor `aracne.networks` tarball is also supported as a fallback with `--tarball` (see [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md)). Keep the generated CSVs local, use them for non-commercial purposes only, and cite the Zenodo record.
+If you already have the `regulon*.rda` files, pass `--rda-dir <folder>`. The Bioconductor `aracne.networks` tarball is also supported as a fallback with `--source bioconductor` or `--tarball` (see [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md)). Keep the generated CSVs local, use them for non-commercial purposes only, and cite the Zenodo record.
 
 Without them, TCGA requests return an error explaining how to generate the files; everything else works.
 
