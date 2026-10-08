@@ -12,6 +12,7 @@ to `outputs/`, which is not tracked.
 | `experiment4_pam50_control_lumb.json` | `scripts/experiment4_pam50_control.py` |
 | `experiment4_hallmark_baseline_*.json` | `scripts/experiment4_hallmark_baseline.py` |
 | `experiment4_baseline_comparison_stats.json` | `scripts/experiment4_baseline_comparison_stats.py` |
+| `experiment4_generalization_bh_fdr.json` | `scripts/experiment4_generalization_bh_fdr.py` (BH-FDR across the 27 generalization combinations) |
 | `experiment5_lincs_coverage_check.json` | `scripts/experiment5_lincs_coverage_check.py` |
 | `experiment6_agent_tool_grounding.json` | `scripts/experiment6_agent_tool_grounding.py` |
 
