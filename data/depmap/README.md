@@ -13,11 +13,11 @@ predicted gene essentiality with empirical phenotypic evidence.
 ## Download Instructions
 
 1. Go to **https://depmap.org/portal/download/**
-2. Select the latest **DepMap Public** release (e.g., "DepMap Public 24Q4")
+2. Select the latest **DepMap Public** release (e.g., "DepMap Public 25Q3")
 3. Download the following files:
 
 ### CRISPRGeneEffect.csv
-- Find under **CRISPR (DepMap Internal 24Q4+Score, Chronos)**
+- Find under **CRISPR (DepMap Internal <release>+Score, Chronos)**
   or search for "CRISPRGeneEffect"
 - Column format: `"GENE (entrez_id)"` — CASCADE strips the Entrez suffix automatically
 
@@ -43,5 +43,4 @@ predicted gene essentiality with empirical phenotypic evidence.
 
 ## Citation
 
-DepMap, Broad (2024). DepMap 24Q4 Public. Figshare+.
-https://doi.org/10.25452/figshare.plus.27993248
+DepMap, Broad (2025). DepMap Public 25Q3. https://depmap.org/portal/ (released directly on the portal; DepMap no longer posts releases to Figshare).

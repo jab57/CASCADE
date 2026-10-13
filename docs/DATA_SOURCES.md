@@ -282,7 +282,7 @@ Khan, A. & Zhang, X. (2016). dbSUPER: a database of super-enhancers in mouse and
 
 **Source**: Broad Institute DepMap Portal
 **URL**: https://depmap.org/portal/download/
-**Release used**: DepMap Public 24Q4 (recommended; use latest available)
+**Release used**: DepMap Public 25Q3 (`CRISPRGeneEffect.csv`: 432,295,412 bytes, 1,186 models x 18,435 genes, SHA-256 `fa44b6a7cefe8748aaa2bef21bd49aa105f7ebfe819510da3022266d88f24d51`; use latest available)
 **Files:**
 
 | File | Size | In repo? | Description |
@@ -295,8 +295,8 @@ Khan, A. & Zhang, X. (2016). dbSUPER: a database of super-enhancers in mouse and
 `Model.csv` is included in the repository. Only `CRISPRGeneEffect.csv` needs to be downloaded manually (413 MB, versioned quarterly by DepMap — users should pull from source to ensure they have the current release):
 
 1. Go to **https://depmap.org/portal/download/**
-2. Select the latest **DepMap Public** release (e.g., "DepMap Public 24Q4")
-3. Download **CRISPRGeneEffect.csv** — listed under "CRISPR (DepMap Internal 24Q4+Score, Chronos)" or search "CRISPRGeneEffect"
+2. Select the latest **DepMap Public** release (e.g., "DepMap Public 25Q3")
+3. Download **CRISPRGeneEffect.csv** — listed under "CRISPR (DepMap Internal <release>+Score, Chronos)" or search "CRISPRGeneEffect"
 4. Place the file in `data/depmap/`
 
 ### Score Interpretation
@@ -319,7 +319,7 @@ Khan, A. & Zhang, X. (2016). dbSUPER: a database of super-enhancers in mouse and
 
 ### Citation
 
-DepMap, Broad (2024). DepMap 24Q4 Public. Figshare+. https://doi.org/10.25452/figshare.plus.27993248
+DepMap, Broad (2025). DepMap Public 25Q3. https://depmap.org/portal/ (released directly on the portal; DepMap no longer posts releases to Figshare).
 
 ---
 
@@ -590,7 +590,7 @@ When publishing results obtained with CASCADE, please cite the relevant underlyi
 
 5. **dbSUPER** — Khan & Zhang (2016), *Nucleic Acids Research*, 44(D1), D164–D171. https://doi.org/10.1093/nar/gkv1002
 
-6. **DepMap** — DepMap, Broad (2024). DepMap 24Q4 Public. Figshare+. https://doi.org/10.25452/figshare.plus.27993248
+6. **DepMap** — DepMap, Broad (2025). DepMap Public 25Q3. https://depmap.org/portal/ (released directly on the portal; DepMap no longer posts releases to Figshare).
 
 7. **STRING** — Szklarczyk et al. (2023), *Nucleic Acids Research*, 51(D1), D638–D646. https://doi.org/10.1093/nar/gkac1000
 
